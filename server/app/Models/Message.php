@@ -86,4 +86,39 @@ class Message extends Model
     {
         return max(0, $this->recipients - $this->successful - $this->failed - $this->errored);
     }
+
+    /** Short description of who receives the message. */
+    public function audienceLabel(): string
+    {
+        $t = $this->targeting ?? [];
+
+        $label = match (true) {
+            ! empty($t['subscription_ids']) => trans_choice(':count device|:count devices', count($t['subscription_ids'])),
+            ! empty($t['external_ids']) => trans_choice(':count user|:count users', count($t['external_ids'])),
+            ! empty($t['segments']) => implode(', ', array_map(fn ($s) => __($s), $t['segments'])),
+            ! empty($t['filters']) => __('Filters'),
+            default => '—',
+        };
+
+        if (! empty($t['excluded_segments'])) {
+            $label .= ' − '.implode(', ', array_map(fn ($s) => __($s), $t['excluded_segments']));
+        }
+
+        if (! empty($t['platforms'])) {
+            $label .= ' · '.implode(', ', array_map(fn ($p) => ['ios' => 'iOS', 'android' => 'Android', 'web' => 'Web'][$p] ?? $p, $t['platforms']));
+        }
+
+        return $label;
+    }
+
+    /** Title shown in the lists: name, else heading, else text. */
+    public function label(): string
+    {
+        return $this->name ?: (self::localized($this->headings, app()->getLocale()) ?? mb_strimwidth((string) self::localized($this->contents, app()->getLocale()), 0, 80, '…'));
+    }
+
+    public function rate(int $value): ?float
+    {
+        return $this->successful > 0 ? round($value / $this->successful * 100, 1) : null;
+    }
 }

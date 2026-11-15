@@ -31,6 +31,40 @@
         </x-ui.card>
     @endif
 
+    @php
+        $n = fn ($v) => number_format((int) $v, 0, ',', ' ');
+        $ctr = $stats['delivered'] > 0 ? number_format($stats['clicked'] / $stats['delivered'] * 100, 1, ',', ' ').' %' : '—';
+    @endphp
+    <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <x-ui.stat :label="__('Subscribed devices')" :value="$n($stats['devices'])" icon="smartphone" :href="route('projects.subscribers.index', $project)"
+            :hint="collect(['ios' => 'iOS', 'android' => 'Android', 'web' => 'Web'])->filter(fn ($l, $k) => $stats['platforms'][$k] ?? 0)->map(fn ($l, $k) => $l.' '.$n($stats['platforms'][$k]))->implode(' · ') ?: null" />
+        <x-ui.stat :label="__('New devices')" :value="$n(array_sum($stats['new']))" icon="users" :hint="__('Last 30 days')" :series="$stats['new']" />
+        <x-ui.stat :label="__('Messages')" :value="$n($stats['messages'])" icon="send" :hint="__(':count delivered notifications', ['count' => $n($stats['delivered'])])" :href="route('projects.messages.index', $project)" />
+        <x-ui.stat :label="__('Click rate')" :value="$ctr" icon="external" :hint="__(':count clicks in 30 days', ['count' => $n($stats['clicked'])])" />
+    </div>
+
+    @if ($latest->isNotEmpty())
+        <x-ui.card class="mb-6" :title="__('Latest messages')" icon="send" :padding="false">
+            <x-slot:actions>
+                @can('send', $project)<x-ui.button size="sm" :href="route('projects.messages.create', $project)" icon="send">{{ __('New message') }}</x-ui.button>@endcan
+            </x-slot:actions>
+            <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                @foreach ($latest as $message)
+                    <li>
+                        <a href="{{ route('projects.messages.show', [$project, $message]) }}" class="flex items-center gap-4 px-5 py-3 transition hover:bg-zinc-50/80 sm:px-6 dark:hover:bg-white/[.02]">
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-sm font-medium text-zinc-900 dark:text-white">{{ $message->label() }}</p>
+                                <p class="truncate text-xs text-zinc-500">{{ $message->audienceLabel() }} · {{ $message->created_at->diffForHumans() }}</p>
+                            </div>
+                            <span class="hidden text-sm tabular-nums text-zinc-600 sm:block dark:text-zinc-300">{{ $n($message->successful) }} / {{ $n($message->recipients) }}</span>
+                            <x-messages.status :status="$message->status" />
+                        </a>
+                    </li>
+                @endforeach
+            </ul>
+        </x-ui.card>
+    @endif
+
     <div class="grid gap-6 lg:grid-cols-2">
         <x-ui.card :title="__('App ID')" :description="__('Identifies this project in your apps (SDK) and in the API.')" icon="key">
             <x-ui.code :label="__('App ID')">{{ $project->app_id }}</x-ui.code>

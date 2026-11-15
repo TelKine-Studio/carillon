@@ -141,7 +141,7 @@ class CreateMessage
      * @param  array<string, mixed>  $input
      * @return array<string, mixed>
      */
-    protected function targeting(array $input): array
+    public function targeting(array $input): array
     {
         $ids = array_values(array_unique(array_merge($input['include_subscription_ids'] ?? [], $input['include_player_ids'] ?? [])));
         $externalIds = array_values(array_unique(array_map('strval', array_merge(

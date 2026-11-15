@@ -182,4 +182,199 @@ Alpine.data('selectBox', () => ({
     },
 }));
 
+/* ---------------------------------------------------- Message composer */
+
+Alpine.data('messageComposer', (config) => ({
+    texts: config.texts,
+    active: 0,
+    audience: config.audience,
+    included: config.included,
+    excluded: config.excluded,
+    platforms: config.platforms,
+    image: config.image ?? '',
+    buttons: config.buttons,
+    data: config.data,
+    schedule: config.schedule,
+    advanced: false,
+    estimate: { total: null, platforms: {}, error: null, loading: false },
+    timer: null,
+
+    init() {
+        this.$watch('audience', () => this.refresh());
+        this.$watch('included', () => this.refresh());
+        this.$watch('excluded', () => this.refresh());
+        this.$watch('platforms', () => this.refresh());
+        this.refresh();
+    },
+
+    get preview() {
+        const text = this.texts[this.active] ?? {};
+        return {
+            title: text.title,
+            subtitle: text.subtitle,
+            body: text.body,
+            image: this.image,
+            buttons: this.buttons.map((b) => b.text).filter(Boolean),
+        };
+    },
+
+    get unusedLanguages() {
+        const used = this.texts.map((t) => t.language);
+        return Object.entries(config.languages).filter(([code]) => !used.includes(code));
+    },
+
+    addLanguage(code) {
+        if (!code) return;
+        this.texts.push({ language: code, title: '', subtitle: '', body: '' });
+        this.active = this.texts.length - 1;
+    },
+
+    removeLanguage(index) {
+        this.texts.splice(index, 1);
+        this.active = Math.max(0, Math.min(this.active, this.texts.length - 1));
+    },
+
+    toggle(list, value) {
+        const index = this[list].indexOf(value);
+        index === -1 ? this[list].push(value) : this[list].splice(index, 1);
+    },
+
+    /** Recipients for the current audience (debounced). */
+    refresh() {
+        clearTimeout(this.timer);
+        this.timer = setTimeout(async () => {
+            this.estimate.loading = true;
+            try {
+                const response = await fetch(config.estimateUrl, {
+                    method: 'POST',
+                    headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+                    body: new FormData(this.$root),
+                });
+                const result = await response.json();
+                this.estimate = { total: result.total, platforms: result.platforms ?? {}, error: result.error ?? null, loading: false };
+            } catch {
+                this.estimate.loading = false;
+            }
+        }, 350);
+    },
+
+    format(value) {
+        return new Intl.NumberFormat(document.documentElement.lang || undefined).format(value ?? 0);
+    },
+}));
+
+/* ------------------------------------------------------ Segment builder */
+
+/** Conditions AND-ed within a group, groups OR-ed (API "filters" format). */
+Alpine.data('segmentBuilder', (config) => ({
+    groups: [],
+    count: null,
+    error: null,
+    loading: false,
+    timer: null,
+
+    init() {
+        const groups = [[]];
+        for (const filter of config.filters) {
+            if (filter.operator === 'OR') groups.push([]);
+            else groups[groups.length - 1].push({ field: 'tag', key: '', relation: '=', value: '', hours_ago: '', ...filter });
+        }
+        this.groups = groups.filter((g) => g.length).length ? groups.filter((g) => g.length) : [[this.blank()]];
+        this.$watch('groups', () => this.refresh(), { deep: true });
+        this.refresh();
+    },
+
+    blank() {
+        return { field: 'tag', key: '', relation: '=', value: '', hours_ago: '' };
+    },
+
+    get filters() {
+        return this.groups.flatMap((group, index) => [...(index ? [{ operator: 'OR' }] : []), ...group]);
+    },
+
+    get json() {
+        return JSON.stringify(this.filters);
+    },
+
+    relations(field) {
+        return config.relations[field] ?? config.relations.tag;
+    },
+
+    usesKey(field) {
+        return field === 'tag';
+    },
+
+    usesHours(field) {
+        return field === 'last_session' || field === 'first_session';
+    },
+
+    needsValue(condition) {
+        return !['exists', 'not_exists'].includes(condition.relation) && !this.usesHours(condition.field);
+    },
+
+    fieldChanged(condition) {
+        const relations = this.relations(condition.field);
+        if (!relations.some(([value]) => value === condition.relation)) condition.relation = relations[0][0];
+    },
+
+    refresh() {
+        clearTimeout(this.timer);
+        this.timer = setTimeout(async () => {
+            this.loading = true;
+            try {
+                const body = new FormData();
+                body.append('filters', this.json);
+                const response = await fetch(config.countUrl, {
+                    method: 'POST',
+                    headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+                    body,
+                });
+                const result = await response.json();
+                this.count = result.total;
+                this.error = result.error ?? null;
+            } finally {
+                this.loading = false;
+            }
+        }, 400);
+    },
+}));
+
+/* ------------------------------------------- Custom select (dynamic) */
+
+/**
+ * Same look as x-ui.select, for options computed by Alpine:
+ * <div x-data="dropdownSelect(() => [[value, label], ...])" x-modelable="value" x-model="...">
+ */
+Alpine.data('dropdownSelect', (source) => ({
+    open: false,
+    value: '',
+    active: 0,
+    get options() {
+        return (source() ?? []).map(([value, label]) => ({ value: String(value), label }));
+    },
+    get label() {
+        return this.options.find((option) => option.value === String(this.value))?.label ?? '';
+    },
+    toggle() {
+        this.open ? (this.open = false) : this.show();
+    },
+    show() {
+        this.open = true;
+        this.active = Math.max(0, this.options.findIndex((option) => option.value === String(this.value)));
+    },
+    move(step) {
+        if (!this.open) return this.show();
+        this.active = (this.active + step + this.options.length) % this.options.length;
+    },
+    pick() {
+        this.open ? this.choose(this.options[this.active].value) : this.show();
+    },
+    choose(value) {
+        this.value = value;
+        this.open = false;
+        this.$refs.button.focus();
+        this.$dispatch('change');
+    },
+}));
+
 Alpine.start();

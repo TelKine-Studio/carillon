@@ -96,6 +96,170 @@
 <?php endif; ?>
     <?php endif; ?>
 
+    <?php
+        $n = fn ($v) => number_format((int) $v, 0, ',', ' ');
+        $ctr = $stats['delivered'] > 0 ? number_format($stats['clicked'] / $stats['delivered'] * 100, 1, ',', ' ').' %' : '—';
+    ?>
+    <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <?php if (isset($component)) { $__componentOriginal01e87901d1d4257641ca1465090a996e = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal01e87901d1d4257641ca1465090a996e = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.stat','data' => ['label' => __('Subscribed devices'),'value' => $n($stats['devices']),'icon' => 'smartphone','href' => route('projects.subscribers.index', $project),'hint' => collect(['ios' => 'iOS', 'android' => 'Android', 'web' => 'Web'])->filter(fn ($l, $k) => $stats['platforms'][$k] ?? 0)->map(fn ($l, $k) => $l.' '.$n($stats['platforms'][$k]))->implode(' · ') ?: null]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('ui.stat'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Subscribed devices')),'value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($n($stats['devices'])),'icon' => 'smartphone','href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('projects.subscribers.index', $project)),'hint' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(collect(['ios' => 'iOS', 'android' => 'Android', 'web' => 'Web'])->filter(fn ($l, $k) => $stats['platforms'][$k] ?? 0)->map(fn ($l, $k) => $l.' '.$n($stats['platforms'][$k]))->implode(' · ') ?: null)]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal01e87901d1d4257641ca1465090a996e)): ?>
+<?php $attributes = $__attributesOriginal01e87901d1d4257641ca1465090a996e; ?>
+<?php unset($__attributesOriginal01e87901d1d4257641ca1465090a996e); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal01e87901d1d4257641ca1465090a996e)): ?>
+<?php $component = $__componentOriginal01e87901d1d4257641ca1465090a996e; ?>
+<?php unset($__componentOriginal01e87901d1d4257641ca1465090a996e); ?>
+<?php endif; ?>
+        <?php if (isset($component)) { $__componentOriginal01e87901d1d4257641ca1465090a996e = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal01e87901d1d4257641ca1465090a996e = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.stat','data' => ['label' => __('New devices'),'value' => $n(array_sum($stats['new'])),'icon' => 'users','hint' => __('Last 30 days'),'series' => $stats['new']]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('ui.stat'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('New devices')),'value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($n(array_sum($stats['new']))),'icon' => 'users','hint' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Last 30 days')),'series' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($stats['new'])]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal01e87901d1d4257641ca1465090a996e)): ?>
+<?php $attributes = $__attributesOriginal01e87901d1d4257641ca1465090a996e; ?>
+<?php unset($__attributesOriginal01e87901d1d4257641ca1465090a996e); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal01e87901d1d4257641ca1465090a996e)): ?>
+<?php $component = $__componentOriginal01e87901d1d4257641ca1465090a996e; ?>
+<?php unset($__componentOriginal01e87901d1d4257641ca1465090a996e); ?>
+<?php endif; ?>
+        <?php if (isset($component)) { $__componentOriginal01e87901d1d4257641ca1465090a996e = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal01e87901d1d4257641ca1465090a996e = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.stat','data' => ['label' => __('Messages'),'value' => $n($stats['messages']),'icon' => 'send','hint' => __(':count delivered notifications', ['count' => $n($stats['delivered'])]),'href' => route('projects.messages.index', $project)]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('ui.stat'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Messages')),'value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($n($stats['messages'])),'icon' => 'send','hint' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__(':count delivered notifications', ['count' => $n($stats['delivered'])])),'href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('projects.messages.index', $project))]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal01e87901d1d4257641ca1465090a996e)): ?>
+<?php $attributes = $__attributesOriginal01e87901d1d4257641ca1465090a996e; ?>
+<?php unset($__attributesOriginal01e87901d1d4257641ca1465090a996e); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal01e87901d1d4257641ca1465090a996e)): ?>
+<?php $component = $__componentOriginal01e87901d1d4257641ca1465090a996e; ?>
+<?php unset($__componentOriginal01e87901d1d4257641ca1465090a996e); ?>
+<?php endif; ?>
+        <?php if (isset($component)) { $__componentOriginal01e87901d1d4257641ca1465090a996e = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal01e87901d1d4257641ca1465090a996e = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.stat','data' => ['label' => __('Click rate'),'value' => $ctr,'icon' => 'external','hint' => __(':count clicks in 30 days', ['count' => $n($stats['clicked'])])]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('ui.stat'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Click rate')),'value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($ctr),'icon' => 'external','hint' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__(':count clicks in 30 days', ['count' => $n($stats['clicked'])]))]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal01e87901d1d4257641ca1465090a996e)): ?>
+<?php $attributes = $__attributesOriginal01e87901d1d4257641ca1465090a996e; ?>
+<?php unset($__attributesOriginal01e87901d1d4257641ca1465090a996e); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal01e87901d1d4257641ca1465090a996e)): ?>
+<?php $component = $__componentOriginal01e87901d1d4257641ca1465090a996e; ?>
+<?php unset($__componentOriginal01e87901d1d4257641ca1465090a996e); ?>
+<?php endif; ?>
+    </div>
+
+    <?php if($latest->isNotEmpty()): ?>
+        <?php if (isset($component)) { $__componentOriginaldae4cd48acb67888a4631e1ba48f2f93 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginaldae4cd48acb67888a4631e1ba48f2f93 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.card','data' => ['class' => 'mb-6','title' => __('Latest messages'),'icon' => 'send','padding' => false]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('ui.card'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['class' => 'mb-6','title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Latest messages')),'icon' => 'send','padding' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(false)]); ?>
+             <?php $__env->slot('actions', null, []); ?> 
+                <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('send', $project)): ?><?php if (isset($component)) { $__componentOriginala8bb031a483a05f647cb99ed3a469847 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginala8bb031a483a05f647cb99ed3a469847 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.button','data' => ['size' => 'sm','href' => route('projects.messages.create', $project),'icon' => 'send']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('ui.button'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['size' => 'sm','href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('projects.messages.create', $project)),'icon' => 'send']); ?><?php echo e(__('New message')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginala8bb031a483a05f647cb99ed3a469847)): ?>
+<?php $attributes = $__attributesOriginala8bb031a483a05f647cb99ed3a469847; ?>
+<?php unset($__attributesOriginala8bb031a483a05f647cb99ed3a469847); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginala8bb031a483a05f647cb99ed3a469847)): ?>
+<?php $component = $__componentOriginala8bb031a483a05f647cb99ed3a469847; ?>
+<?php unset($__componentOriginala8bb031a483a05f647cb99ed3a469847); ?>
+<?php endif; ?><?php endif; ?>
+             <?php $__env->endSlot(); ?>
+            <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                <?php $__currentLoopData = $latest; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $message): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <li>
+                        <a href="<?php echo e(route('projects.messages.show', [$project, $message])); ?>" class="flex items-center gap-4 px-5 py-3 transition hover:bg-zinc-50/80 sm:px-6 dark:hover:bg-white/[.02]">
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-sm font-medium text-zinc-900 dark:text-white"><?php echo e($message->label()); ?></p>
+                                <p class="truncate text-xs text-zinc-500"><?php echo e($message->audienceLabel()); ?> · <?php echo e($message->created_at->diffForHumans()); ?></p>
+                            </div>
+                            <span class="hidden text-sm tabular-nums text-zinc-600 sm:block dark:text-zinc-300"><?php echo e($n($message->successful)); ?> / <?php echo e($n($message->recipients)); ?></span>
+                            <?php if (isset($component)) { $__componentOriginal265ec32edd8b2457cacac492b237409d = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal265ec32edd8b2457cacac492b237409d = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.messages.status','data' => ['status' => $message->status]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('messages.status'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['status' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($message->status)]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal265ec32edd8b2457cacac492b237409d)): ?>
+<?php $attributes = $__attributesOriginal265ec32edd8b2457cacac492b237409d; ?>
+<?php unset($__attributesOriginal265ec32edd8b2457cacac492b237409d); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal265ec32edd8b2457cacac492b237409d)): ?>
+<?php $component = $__componentOriginal265ec32edd8b2457cacac492b237409d; ?>
+<?php unset($__componentOriginal265ec32edd8b2457cacac492b237409d); ?>
+<?php endif; ?>
+                        </a>
+                    </li>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+            </ul>
+         <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginaldae4cd48acb67888a4631e1ba48f2f93)): ?>
+<?php $attributes = $__attributesOriginaldae4cd48acb67888a4631e1ba48f2f93; ?>
+<?php unset($__attributesOriginaldae4cd48acb67888a4631e1ba48f2f93); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginaldae4cd48acb67888a4631e1ba48f2f93)): ?>
+<?php $component = $__componentOriginaldae4cd48acb67888a4631e1ba48f2f93; ?>
+<?php unset($__componentOriginaldae4cd48acb67888a4631e1ba48f2f93); ?>
+<?php endif; ?>
+    <?php endif; ?>
+
     <div class="grid gap-6 lg:grid-cols-2">
         <?php if (isset($component)) { $__componentOriginaldae4cd48acb67888a4631e1ba48f2f93 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginaldae4cd48acb67888a4631e1ba48f2f93 = $attributes; } ?>

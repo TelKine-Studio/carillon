@@ -10,11 +10,14 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Auth\TwoFactorController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectMemberController;
 use App\Http\Controllers\PushCredentialController;
+use App\Http\Controllers\SegmentController;
 use App\Http\Controllers\SetupController;
+use App\Http\Controllers\SubscriberController;
 use App\Http\Middleware\RequireTwoFactor;
 use Illuminate\Support\Facades\Route;
 
@@ -57,6 +60,27 @@ Route::middleware('auth')->group(function () {
         Route::get('settings/{section?}', [ProjectController::class, 'settings'])->name('settings');
         Route::put('/', [ProjectController::class, 'update'])->name('update');
         Route::delete('/', [ProjectController::class, 'destroy'])->name('destroy');
+
+        Route::get('messages', [MessageController::class, 'index'])->name('messages.index');
+        Route::get('messages/create', [MessageController::class, 'create'])->name('messages.create');
+        Route::post('messages', [MessageController::class, 'store'])->name('messages.store');
+        Route::post('messages/estimate', [MessageController::class, 'estimate'])->name('messages.estimate');
+        Route::get('messages/{message}', [MessageController::class, 'show'])->name('messages.show');
+        Route::post('messages/{message}/cancel', [MessageController::class, 'cancel'])->name('messages.cancel');
+
+        Route::get('audience', [SubscriberController::class, 'index'])->name('subscribers.index');
+        Route::get('audience/{subscriber}', [SubscriberController::class, 'show'])->name('subscribers.show');
+        Route::put('audience/{subscriber}/tags', [SubscriberController::class, 'updateTags'])->name('subscribers.tags');
+        Route::post('audience/{subscriber}/test', [SubscriberController::class, 'test'])->name('subscribers.test');
+        Route::delete('audience/{subscriber}', [SubscriberController::class, 'destroy'])->name('subscribers.destroy');
+
+        Route::get('segments', [SegmentController::class, 'index'])->name('segments.index');
+        Route::get('segments/create', [SegmentController::class, 'create'])->name('segments.create');
+        Route::post('segments', [SegmentController::class, 'store'])->name('segments.store');
+        Route::post('segments/count', [SegmentController::class, 'count'])->name('segments.count');
+        Route::get('segments/{segment}/edit', [SegmentController::class, 'edit'])->name('segments.edit');
+        Route::put('segments/{segment}', [SegmentController::class, 'update'])->name('segments.update');
+        Route::delete('segments/{segment}', [SegmentController::class, 'destroy'])->name('segments.destroy');
 
         Route::put('push/{provider}', [PushCredentialController::class, 'update'])->name('push.update');
         Route::post('push/webpush/generate', [PushCredentialController::class, 'generateWebPush'])->name('push.webpush.generate');

@@ -65,9 +65,27 @@ class ProjectController extends Controller
         $this->authorize('view', $project);
         $project->load('credentials');
 
+        $reachable = $project->subscriptions()->where('enabled', true)->whereNull('invalid_at');
+        $since = now()->subDays(29)->startOfDay();
+        $daily = $project->subscriptions()
+            ->where('created_at', '>=', $since)
+            ->selectRaw('date(created_at) as day, count(*) as total')
+            ->groupBy('day')
+            ->pluck('total', 'day');
+        $recent = $project->messages()->where('created_at', '>=', now()->subDays(30));
+
         return view('projects.show', [
             'project' => $project,
             'role' => $request->user()->roleIn($project),
+            'stats' => [
+                'devices' => (clone $reachable)->count(),
+                'platforms' => (clone $reachable)->selectRaw('type, count(*) as total')->groupBy('type')->pluck('total', 'type'),
+                'new' => collect(range(29, 0))->map(fn ($d) => (int) ($daily[now()->subDays($d)->toDateString()] ?? 0))->all(),
+                'messages' => (clone $recent)->count(),
+                'delivered' => (int) (clone $recent)->sum('successful'),
+                'clicked' => (int) (clone $recent)->sum('clicked'),
+            ],
+            'latest' => $project->messages()->latest()->limit(5)->get(),
             'steps' => [
                 ['done' => $project->configuredProviders() !== [], 'title' => __('Add the push keys of your app'), 'text' => __('Apple (APNs), Android (Firebase) or web push.'), 'href' => route('projects.settings', [$project, 'platforms'])],
                 ['done' => $project->apiKeys()->exists(), 'title' => __('Create an API key'), 'text' => __('Your server uses it to send notifications.'), 'href' => route('projects.settings', [$project, 'api-keys'])],

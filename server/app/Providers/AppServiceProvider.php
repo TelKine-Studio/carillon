@@ -45,7 +45,7 @@ class AppServiceProvider extends ServiceProvider
         // Identifiers are UUIDs: anything else is a 404 (and never reaches
         // PostgreSQL, which rejects malformed UUIDs).
         $uuid = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
-        foreach (['project', 'app_id', 'appId', 'id'] as $parameter) {
+        foreach (['project', 'message', 'subscriber', 'app_id', 'appId', 'id'] as $parameter) {
             Route::pattern($parameter, $uuid);
         }
 
