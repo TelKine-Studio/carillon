@@ -35,11 +35,20 @@ class Carillon {
   /// on the Carillon server at [serverUrl].
   ///
   /// [openUrls]: tapping a notification with a link opens it.
-  static Future<void> initialize(String appId, {required String serverUrl, bool openUrls = true}) async {
+  static Future<void> initialize(
+    String appId, {
+    required String serverUrl,
+    bool openUrls = true,
+  }) async {
     if (_engine != null) return;
     WidgetsFlutterBinding.ensureInitialized();
 
-    final engine = _Engine(appId, serverUrl, await CarillonStore.open(), openUrls: openUrls);
+    final engine = _Engine(
+      appId,
+      serverUrl,
+      await CarillonStore.open(),
+      openUrls: openUrls,
+    );
     _engine = engine;
     await engine.start();
   }
@@ -58,22 +67,27 @@ class CarillonNotifications {
   CarillonNotifications._();
 
   /// Whether the user allows notifications.
-  Future<bool> get permission async => await Carillon._ready.platform.permission() == 'granted';
+  Future<bool> get permission async =>
+      await Carillon._ready.platform.permission() == 'granted';
 
   /// Asks the user (once: the system remembers the answer).
   Future<bool> requestPermission() => Carillon._ready.requestPermission();
 
-  void addClickListener(void Function(CarillonClickEvent event) listener) => Carillon._ready.addClickListener(listener);
+  void addClickListener(void Function(CarillonClickEvent event) listener) =>
+      Carillon._ready.addClickListener(listener);
 
-  void removeClickListener(void Function(CarillonClickEvent event) listener) => Carillon._ready.clickListeners.remove(listener);
+  void removeClickListener(void Function(CarillonClickEvent event) listener) =>
+      Carillon._ready.clickListeners.remove(listener);
 
   /// Called before a notification is shown while the app is open; call
   /// [CarillonForegroundEvent.preventDefault] to hide it.
-  void addForegroundWillDisplayListener(void Function(CarillonForegroundEvent event) listener) =>
-      Carillon._ready.foregroundListeners.add(listener);
+  void addForegroundWillDisplayListener(
+    void Function(CarillonForegroundEvent event) listener,
+  ) => Carillon._ready.foregroundListeners.add(listener);
 
-  void removeForegroundWillDisplayListener(void Function(CarillonForegroundEvent event) listener) =>
-      Carillon._ready.foregroundListeners.remove(listener);
+  void removeForegroundWillDisplayListener(
+    void Function(CarillonForegroundEvent event) listener,
+  ) => Carillon._ready.foregroundListeners.remove(listener);
 
   /// Removes the notifications of this app from the notification center.
   Future<void> clearAll() => Carillon._ready.platform.clearAll();
@@ -88,12 +102,14 @@ class CarillonUser {
 
   Future<void> addTag(String key, Object value) => addTags({key: value});
 
-  Future<void> addTags(Map<String, Object> tags) =>
-      Carillon._ready.setTags(tags.map((key, value) => MapEntry(key, '$value')));
+  Future<void> addTags(Map<String, Object> tags) => Carillon._ready.setTags(
+    tags.map((key, value) => MapEntry(key, '$value')),
+  );
 
   Future<void> removeTag(String key) => removeTags([key]);
 
-  Future<void> removeTags(List<String> keys) => Carillon._ready.setTags({for (final key in keys) key: null});
+  Future<void> removeTags(List<String> keys) =>
+      Carillon._ready.setTags({for (final key in keys) key: null});
 
   final pushSubscription = CarillonPushSubscription._();
 }
@@ -151,7 +167,9 @@ class _Engine with WidgetsBindingObserver {
 
     platform.tokens.listen((_) => sync());
     platform.clicks.listen(_handleClick);
-    platform.displayed.listen((notification) => _report(notification.id, 'received'));
+    platform.displayed.listen(
+      (notification) => _report(notification.id, 'received'),
+    );
 
     final launch = await platform.initialClick();
     if (launch != null) _handleClick(launch);
@@ -203,7 +221,10 @@ class _Engine with WidgetsBindingObserver {
 
   Future<void> setTags(Map<String, String?> tags) async {
     final current = store.tags;
-    tags.forEach((key, value) => value == null ? current.remove(key) : current[key] = value);
+    tags.forEach(
+      (key, value) =>
+          value == null ? current.remove(key) : current[key] = value,
+    );
     store.tags = current;
 
     final id = store.subscriptionId;
@@ -214,9 +235,11 @@ class _Engine with WidgetsBindingObserver {
 
   /// Registers or updates this device (serialized: one call at a time).
   Future<void> sync({bool session = false}) {
-    return _syncing = (_syncing ?? Future.value()).then((_) => _sync(session)).catchError((Object error) {
-      debugPrint('[carillon] $error');
-    });
+    return _syncing = (_syncing ?? Future.value())
+        .then((_) => _sync(session))
+        .catchError((Object error) {
+          debugPrint('[carillon] $error');
+        });
   }
 
   Future<void> _sync(bool session) async {
@@ -225,7 +248,10 @@ class _Engine with WidgetsBindingObserver {
     enabled = permission == 'granted' && !store.optedOut;
 
     final now = DateTime.now();
-    final newSession = session && (store.lastSession == null || now.difference(store.lastSession!) > _sessionGap);
+    final newSession =
+        session &&
+        (store.lastSession == null ||
+            now.difference(store.lastSession!) > _sessionGap);
 
     if (token == null) return;
 
@@ -241,7 +267,10 @@ class _Engine with WidgetsBindingObserver {
 
     if (id != null) {
       try {
-        result = await api.update(id, {...body, if (newSession) 'session': true});
+        result = await api.update(id, {
+          ...body,
+          if (newSession) 'session': true,
+        });
       } on CarillonException catch (error) {
         if (!error.isGone) rethrow;
         store.subscriptionId = null;
@@ -263,7 +292,11 @@ class _Engine with WidgetsBindingObserver {
 
     store.token = token;
     if (newSession) store.lastSession = now;
-    await platform.share({'server': store.serverUrl, 'app': appId, 'subscription': store.subscriptionId});
+    await platform.share({
+      'server': store.serverUrl,
+      'app': appId,
+      'subscription': store.subscriptionId,
+    });
     _absorb(result);
     await _flushEvents();
   }
@@ -313,12 +346,14 @@ class _Engine with WidgetsBindingObserver {
   }
 
   void _handleClick(CarillonClickEvent event) {
-    _report(event.notification.id, 'clicked');
+    _report(event.notification.id, 'clicked', actionId: event.actionId);
 
     final url = event.actionId == null ? event.notification.url : null;
     if (openUrls && url != null) {
       final uri = Uri.tryParse(url);
-      if (uri != null) unawaited(launchUrl(uri, mode: LaunchMode.externalApplication));
+      if (uri != null) {
+        unawaited(launchUrl(uri, mode: LaunchMode.externalApplication));
+      }
     }
 
     if (clickListeners.isEmpty) {
@@ -330,13 +365,20 @@ class _Engine with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _report(String messageId, String event) async {
+  Future<void> _report(
+    String messageId,
+    String event, {
+    String? actionId,
+  }) async {
     final id = store.subscriptionId;
     if (id == null) return;
     try {
-      await api.event(id, messageId, event);
+      await api.event(id, messageId, event, actionId: actionId);
     } catch (_) {
-      store.pendingEvents = [...store.pendingEvents, {'message_id': messageId, 'event': event}];
+      store.pendingEvents = [
+        ...store.pendingEvents,
+        {'message_id': messageId, 'event': event, 'action_id': ?actionId},
+      ];
     }
   }
 
@@ -347,7 +389,12 @@ class _Engine with WidgetsBindingObserver {
     store.pendingEvents = [];
     for (final event in pending) {
       try {
-        await api.event(id, '${event['message_id']}', '${event['event']}');
+        await api.event(
+          id,
+          '${event['message_id']}',
+          '${event['event']}',
+          actionId: event['action_id'] as String?,
+        );
       } on CarillonException {
         // Unknown message (deleted): dropped.
       } catch (_) {
@@ -356,7 +403,9 @@ class _Engine with WidgetsBindingObserver {
     }
   }
 
-  Future<Map<String, dynamic>?> _guard(Future<Map<String, dynamic>> Function() call) async {
+  Future<Map<String, dynamic>?> _guard(
+    Future<Map<String, dynamic>> Function() call,
+  ) async {
     try {
       return await call();
     } catch (error) {

@@ -17,7 +17,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProjectController extends Controller
 {
-    public const SECTIONS = ['general', 'platforms', 'api-keys', 'members'];
+    public const SECTIONS = ['general', 'platforms', 'api-keys', 'webhooks', 'members'];
 
     public function index(Request $request): View
     {
@@ -108,6 +108,7 @@ class ProjectController extends Controller
             'role' => $role,
             'canConfigure' => $role->canConfigure(),
             'apiKeys' => $section === 'api-keys' ? $project->apiKeys()->with('creator')->latest()->get() : collect(),
+            'webhooks' => $section === 'webhooks' ? $project->webhooks()->with(['deliveries' => fn ($q) => $q->latest('id')->limit(10)])->oldest()->get() : collect(),
             'members' => $section === 'members' ? $project->members()->orderBy('name')->get() : collect(),
             'invitations' => $section === 'members' ? Invitation::query()->pending()->where('project_id', $project->id)->latest()->get() : collect(),
             'candidates' => $section === 'members' && $role->canConfigure()

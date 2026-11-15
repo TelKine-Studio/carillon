@@ -29,7 +29,9 @@ abstract class PushPlatform {
 
   /// Called for a notification received while the app is open: returns
   /// whether it is shown.
-  set foregroundHandler(FutureOr<bool> Function(CarillonNotification notification)? handler);
+  set foregroundHandler(
+    FutureOr<bool> Function(CarillonNotification notification)? handler,
+  );
 
   /// Notifications received while the app is open (reported as received).
   Stream<CarillonNotification> get displayed;

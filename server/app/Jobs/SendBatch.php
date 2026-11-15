@@ -9,6 +9,7 @@ use App\Push\FcmSender;
 use App\Push\Result;
 use App\Push\Sender;
 use App\Push\WebPushSender;
+use App\Webhooks\Webhooks;
 use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -105,5 +106,18 @@ class SendBatch implements ShouldQueue
                 DB::table('subscriptions')->whereIn('id', $invalid)->update(['invalid_at' => $now, 'updated_at' => $now]);
             }
         });
+
+        // Tokens refused for good (app uninstalled...).
+        if ($invalid !== []) {
+            foreach (Subscription::query()->with('subscriber')->whereIn('id', $invalid)->get() as $subscription) {
+                Webhooks::dispatch($message->project_id, 'subscription.unsubscribed', array_filter([
+                    'subscription_id' => $subscription->id,
+                    'subscriber_id' => $subscription->subscriber_id,
+                    'external_id' => $subscription->subscriber?->external_id,
+                    'platform' => $subscription->type,
+                    'reason' => 'token_invalid',
+                ], fn ($value) => $value !== null));
+            }
+        }
     }
 }

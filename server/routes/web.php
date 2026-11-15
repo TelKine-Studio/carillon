@@ -19,6 +19,7 @@ use App\Http\Controllers\SegmentController;
 use App\Http\Controllers\SetupController;
 use App\Http\Controllers\SubscriberController;
 use App\Http\Controllers\TemplateController;
+use App\Http\Controllers\WebhookController;
 use App\Http\Middleware\RequireTwoFactor;
 use Illuminate\Support\Facades\Route;
 
@@ -96,6 +97,12 @@ Route::middleware('auth')->group(function () {
 
         Route::post('api-keys', [ApiKeyController::class, 'store'])->name('api-keys.store');
         Route::delete('api-keys/{apiKey}', [ApiKeyController::class, 'destroy'])->scopeBindings()->name('api-keys.destroy');
+
+        Route::post('webhooks', [WebhookController::class, 'store'])->name('webhooks.store');
+        Route::put('webhooks/{webhook}', [WebhookController::class, 'update'])->name('webhooks.update');
+        Route::post('webhooks/{webhook}/rotate', [WebhookController::class, 'rotate'])->name('webhooks.rotate');
+        Route::post('webhooks/{webhook}/test', [WebhookController::class, 'test'])->name('webhooks.test');
+        Route::delete('webhooks/{webhook}', [WebhookController::class, 'destroy'])->name('webhooks.destroy');
 
         Route::post('members', [ProjectMemberController::class, 'store'])->name('members.store');
         Route::put('members/{user}', [ProjectMemberController::class, 'update'])->name('members.update');

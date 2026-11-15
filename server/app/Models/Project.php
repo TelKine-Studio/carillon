@@ -76,6 +76,12 @@ class Project extends Model
         return $this->hasMany(Message::class);
     }
 
+    /** @return HasMany<Webhook, $this> */
+    public function webhooks(): HasMany
+    {
+        return $this->hasMany(Webhook::class);
+    }
+
     /** @return HasMany<Template, $this> */
     public function templates(): HasMany
     {

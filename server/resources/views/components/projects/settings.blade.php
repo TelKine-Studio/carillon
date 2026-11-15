@@ -5,6 +5,7 @@
         'general' => ['icon' => 'settings', 'label' => __('General'), 'text' => __('Name, icon, defaults')],
         'platforms' => ['icon' => 'smartphone', 'label' => __('Platforms'), 'text' => __('Apple, Firebase, web push')],
         'api-keys' => ['icon' => 'key', 'label' => __('API keys'), 'text' => __('Send from your server')],
+        'webhooks' => ['icon' => 'link', 'label' => __('Webhooks'), 'text' => __('Events sent to your server')],
         'members' => ['icon' => 'users', 'label' => __('Members'), 'text' => __('Who works on this project')],
     ];
 @endphp

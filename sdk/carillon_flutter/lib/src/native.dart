@@ -30,12 +30,16 @@ class NativePush extends PushPlatform {
   Stream<CarillonNotification> get displayed => _displayed.stream;
 
   @override
-  set foregroundHandler(FutureOr<bool> Function(CarillonNotification)? handler) => _foreground = handler;
+  set foregroundHandler(
+    FutureOr<bool> Function(CarillonNotification)? handler,
+  ) => _foreground = handler;
 
   @override
   Future<void> start() async {
     _channel.setMethodCallHandler((call) async {
-      final args = call.arguments is Map ? Map<String, dynamic>.from(call.arguments as Map) : <String, dynamic>{};
+      final args = call.arguments is Map
+          ? Map<String, dynamic>.from(call.arguments as Map)
+          : <String, dynamic>{};
       switch (call.method) {
         case 'onToken':
           _token = args['token'] as String?;
@@ -59,13 +63,16 @@ class NativePush extends PushPlatform {
   Future<String?> environment() => _channel.invokeMethod<String>('environment');
 
   @override
-  Future<String?> token() async => _token ?? await _channel.invokeMethod<String>('token');
+  Future<String?> token() async =>
+      _token ?? await _channel.invokeMethod<String>('token');
 
   @override
-  Future<String> permission() async => await _channel.invokeMethod<String>('permission') ?? 'not_determined';
+  Future<String> permission() async =>
+      await _channel.invokeMethod<String>('permission') ?? 'not_determined';
 
   @override
-  Future<bool> requestPermission() async => await _channel.invokeMethod<bool>('requestPermission') ?? false;
+  Future<bool> requestPermission() async =>
+      await _channel.invokeMethod<bool>('requestPermission') ?? false;
 
   @override
   Future<CarillonClickEvent?> initialClick() async {
@@ -77,7 +84,8 @@ class NativePush extends PushPlatform {
   Future<void> clearAll() => _channel.invokeMethod('clearAll');
 
   @override
-  Future<void> share(Map<String, String?> values) => _channel.invokeMethod('share', values);
+  Future<void> share(Map<String, String?> values) =>
+      _channel.invokeMethod('share', values);
 
   /// A map on iOS, a JSON string on Android.
   Map<String, dynamic>? _payload(Map<String, dynamic> args) {
@@ -93,6 +101,11 @@ class NativePush extends PushPlatform {
 
   CarillonClickEvent? _event(Map<String, dynamic> args) {
     final notification = CarillonNotification.fromPayload(_payload(args));
-    return notification == null ? null : CarillonClickEvent(notification: notification, actionId: args['action'] as String?);
+    return notification == null
+        ? null
+        : CarillonClickEvent(
+            notification: notification,
+            actionId: args['action'] as String?,
+          );
   }
 }

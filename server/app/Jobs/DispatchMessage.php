@@ -7,6 +7,7 @@ use App\Models\Message;
 use App\Models\MessagePlatform;
 use App\Models\Subscription;
 use App\Push\LocalTime;
+use App\Webhooks\Webhooks;
 use Illuminate\Bus\Batch;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Builder;
@@ -131,11 +132,25 @@ class DispatchMessage implements ShouldQueue
 
     public static function complete(string $messageId, ?string $error = null): void
     {
-        DB::table('messages')->where('id', $messageId)->where('status', 'sending')->update([
+        $completed = DB::table('messages')->where('id', $messageId)->where('status', 'sending')->update([
             'status' => 'sent',
             'completed_at' => now(),
             'error' => $error,
             'updated_at' => now(),
         ]);
+
+        if ($completed && $message = Message::query()->find($messageId)) {
+            Webhooks::dispatch($message->project_id, 'message.sent', array_filter([
+                'message_id' => $message->id,
+                'name' => $message->name,
+                'template_id' => $message->template_id,
+                'recipients' => $message->recipients,
+                'successful' => $message->successful,
+                'failed' => $message->failed,
+                'errored' => $message->errored,
+                'error' => $message->error,
+                'completed_at' => $message->completed_at?->toIso8601String(),
+            ], fn ($value) => $value !== null));
+        }
     }
 }

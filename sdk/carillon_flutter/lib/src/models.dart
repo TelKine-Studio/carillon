@@ -57,7 +57,9 @@ class CarillonNotification {
       buttons: buttons is List
           ? buttons
                 .whereType<Map>()
-                .map((b) => CarillonButton.fromJson(Map<String, dynamic>.from(b)))
+                .map(
+                  (b) => CarillonButton.fromJson(Map<String, dynamic>.from(b)),
+                )
                 .toList()
           : const [],
       raw: payload,

@@ -35,7 +35,7 @@ class TemplateController extends Controller
     {
         $this->authorize('send', $project);
         $template = $save->handle($project, $this->input($request), author: $request->user());
-        Audit::log('template.created', $template, ['name' => $template->name]);
+        Audit::log('template.created', $project, ['template' => $template->id, 'name' => $template->name]);
 
         return redirect()->route('projects.templates.index', $project)->with('status', __('Template “:name” created.', ['name' => $template->name]));
     }

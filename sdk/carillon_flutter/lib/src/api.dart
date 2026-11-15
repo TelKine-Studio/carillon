@@ -5,7 +5,8 @@ import 'package:http/http.dart' as http;
 /// Calls the SDK endpoints of a Carillon server.
 class CarillonApi {
   CarillonApi(String serverUrl, this.appId, {http.Client? client})
-    : base = '${serverUrl.replaceAll(RegExp(r'/+$'), '')}/api/v1/sdk/apps/$appId',
+    : base =
+          '${serverUrl.replaceAll(RegExp(r'/+$'), '')}/api/v1/sdk/apps/$appId',
       _client = client ?? http.Client();
 
   final String appId;
@@ -27,24 +28,43 @@ class CarillonApi {
   Future<Map<String, dynamic>> tags(String id, Map<String, dynamic> tags) =>
       _send('PUT', '/subscriptions/$id/tags', {'tags': tags});
 
-  Future<void> event(String id, String messageId, String event) =>
-      _send('POST', '/subscriptions/$id/events', {'message_id': messageId, 'event': event});
+  Future<void> event(
+    String id,
+    String messageId,
+    String event, {
+    String? actionId,
+  }) => _send('POST', '/subscriptions/$id/events', {
+    'message_id': messageId,
+    'event': event,
+    'action_id': ?actionId,
+  });
 
-  Future<Map<String, dynamic>> _send(String method, String path, Map<String, dynamic> body) async {
+  Future<Map<String, dynamic>> _send(
+    String method,
+    String path,
+    Map<String, dynamic> body,
+  ) async {
     final request = http.Request(method, Uri.parse('$base$path'))
-      ..headers.addAll({'Accept': 'application/json', 'Content-Type': 'application/json'})
+      ..headers.addAll({
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      })
       ..body = jsonEncode(body);
 
     final response = await http.Response.fromStream(
       await _client.send(request).timeout(const Duration(seconds: 20)),
     );
-    final json = response.body.isEmpty ? <String, dynamic>{} : jsonDecode(response.body);
+    final json = response.body.isEmpty
+        ? <String, dynamic>{}
+        : jsonDecode(response.body);
 
     if (response.statusCode >= 400) {
       final errors = json is Map ? json['errors'] : null;
       throw CarillonException(
         response.statusCode,
-        errors is List && errors.isNotEmpty ? '${errors.first}' : 'HTTP ${response.statusCode}',
+        errors is List && errors.isNotEmpty
+            ? '${errors.first}'
+            : 'HTTP ${response.statusCode}',
       );
     }
 

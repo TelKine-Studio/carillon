@@ -8,6 +8,7 @@ use App\Models\Delivery;
 use App\Models\Project;
 use App\Models\Subscriber;
 use App\Models\Subscription;
+use App\Webhooks\Webhooks;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,13 +37,15 @@ class SubscriptionController extends Controller
 
         $token = $this->normalizeToken($data['type'], $data['token']);
 
-        $subscription = DB::transaction(function () use ($project, $data, $token) {
+        $created = false;
+        $subscription = DB::transaction(function () use ($project, $data, $token, &$created) {
             $subscription = Subscription::query()
                 ->where('project_id', $project->id)
                 ->where('token_hash', hash('sha256', $token))
                 ->first();
 
             if (! $subscription) {
+                $created = true;
                 $subscriber = $this->identity->newSubscriber($project, ['last_active_at' => now()]);
                 $subscription = new Subscription(['project_id' => $project->id, 'subscriber_id' => $subscriber->id, 'type' => $data['type']]);
             }
@@ -61,6 +64,10 @@ class SubscriptionController extends Controller
         $subscriber = $subscription->fresh()->subscriber;
         $this->applyPerson($subscriber, $data);
 
+        if ($created) {
+            Webhooks::dispatch($project, 'subscription.created', $this->webhookData($subscription->fresh('subscriber')));
+        }
+
         return response()->json($this->present($subscription->fresh('subscriber')), 201);
     }
 
@@ -78,6 +85,7 @@ class SubscriptionController extends Controller
             $subscription->token = $this->normalizeToken($subscription->type, $data['token']);
             $subscription->invalid_at = null;
         }
+        $wasEnabled = $subscription->enabled;
         $this->applyDevice($subscription, $data);
 
         if ($request->boolean('session')) {
@@ -86,6 +94,10 @@ class SubscriptionController extends Controller
         }
         $subscription->save();
         $this->applyPerson($subscription->subscriber, $data);
+
+        if ($wasEnabled && ! $subscription->enabled) {
+            Webhooks::dispatch($subscription->project_id, 'subscription.unsubscribed', $this->webhookData($subscription, 'opted_out'));
+        }
 
         return response()->json($this->present($subscription->fresh('subscriber')));
     }
@@ -128,6 +140,7 @@ class SubscriptionController extends Controller
         $data = $request->validate([
             'message_id' => ['required', 'uuid'],
             'event' => ['required', Rule::in(['received', 'clicked'])],
+            'action_id' => ['nullable', 'string', 'max:64'],
         ]);
 
         $column = $data['event'].'_at';
@@ -140,6 +153,14 @@ class SubscriptionController extends Controller
         if ($updated) {
             DB::table('messages')->where('id', $data['message_id'])->increment($data['event']);
             DB::table('message_platforms')->where('message_id', $data['message_id'])->where('platform', $subscription->type)->increment($data['event']);
+
+            Webhooks::dispatch($subscription->project_id, 'notification.'.$data['event'], array_filter([
+                'message_id' => $data['message_id'],
+                'subscription_id' => $subscription->id,
+                'external_id' => $subscription->subscriber?->external_id,
+                'platform' => $subscription->type,
+                'action_id' => $data['event'] === 'clicked' ? ($data['action_id'] ?? null) : null,
+            ], fn ($value) => $value !== null));
         }
 
         // A click opens the app: it is a session too.
@@ -224,6 +245,22 @@ class SubscriptionController extends Controller
         abort_unless($subscription, 404, 'Unknown subscription.');
 
         return $subscription;
+    }
+
+    /** @return array<string, mixed> */
+    /** @return array<string, mixed> */
+    protected function webhookData(Subscription $subscription, ?string $reason = null): array
+    {
+        return array_filter([
+            'subscription_id' => $subscription->id,
+            'subscriber_id' => $subscription->subscriber_id,
+            'external_id' => $subscription->subscriber?->external_id,
+            'platform' => $subscription->type,
+            'language' => $subscription->subscriber?->language,
+            'device_model' => $subscription->device_model,
+            'app_version' => $subscription->app_version,
+            'reason' => $reason,
+        ], fn ($value) => $value !== null);
     }
 
     /** @return array<string, mixed> */

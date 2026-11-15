@@ -8,8 +8,8 @@ no subscriber limits, no per-message bill, your data stays with you.
 
 > 🚧 Work in progress. Available: projects and members, push keys per
 > project, the OneSignal-compatible REST API, the sending engine, the
-> dashboard and the Flutter SDK. Coming next: per-timezone delivery,
-> templates, webhooks and the web SDK.
+> dashboard, the Flutter SDK, delivery at local time, templates and
+> webhooks. Coming next: the web SDK and the OneSignal import.
 
 ## Features
 
@@ -39,7 +39,12 @@ no subscriber limits, no per-message bill, your data stays with you.
   buttons, clicks, users and tags, with the API of the OneSignal SDK. See
   [sdk/carillon_flutter](sdk/carillon_flutter).
 
-Planned: per-timezone delivery, templates, webhooks, web SDK.
+- **Delivery at local time**: the same hour for everyone, in their time zone.
+- **Templates**: reusable contents, from the composer or with `template_id`.
+- **Webhooks**: signed events (message sent, received, clicked, new or
+  unsubscribed device) sent to your servers, with retries.
+
+Planned: web SDK, OneSignal import.
 
 ## Install
 

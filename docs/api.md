@@ -146,3 +146,33 @@ import them with `POST /apps/{app_id}/users` (tokens, external ids, tags):
 your users keep receiving notifications without doing anything. Web push
 subscriptions are tied to OneSignal's VAPID keys, which cannot be exported:
 browsers subscribe again with the Carillon web SDK.
+
+## Webhooks
+
+*Project → Settings → Webhooks*: Carillon sends a `POST` request with a JSON
+body to your URL for the events you choose.
+
+| Event | When | `data` |
+| --- | --- | --- |
+| `message.sent` | A message has been sent to all its recipients | `message_id`, `name`, `template_id`, `recipients`, `successful`, `failed`, `errored`, `completed_at` |
+| `notification.received` | Shown on a device (reported by the SDK) | `message_id`, `subscription_id`, `external_id`, `platform` |
+| `notification.clicked` | Opened, once per device | the same, and `action_id` for a button |
+| `subscription.created` | A new device registered | `subscription_id`, `subscriber_id`, `external_id`, `platform`, `language`, `device_model`, `app_version` |
+| `subscription.unsubscribed` | Notifications turned off (`reason: opted_out`) or token refused by Apple/Google (`reason: token_invalid`) | `subscription_id`, `subscriber_id`, `external_id`, `platform`, `reason` |
+
+```json
+{
+  "id": "0193…",
+  "type": "notification.clicked",
+  "created_at": "2026-11-17T09:00:00+00:00",
+  "data": {"message_id": "…", "subscription_id": "…", "external_id": "user-42", "platform": "ios", "action_id": "track"},
+  "project": {"app_id": "…", "name": "Shop"}
+}
+```
+
+Headers: `Carillon-Event`, `Carillon-Delivery` (the event `id`, to ignore
+duplicates) and `Carillon-Signature: t=<timestamp>,v1=<signature>`, where the
+signature is the HMAC-SHA256 of `<timestamp>.<raw body>` with the secret of
+the webhook. Answer with a 2xx status within 10 seconds: failed deliveries
+are retried 4 times (10 s, 1 min, 5 min, 30 min), and a webhook is disabled
+after 20 events in a row could not be delivered.

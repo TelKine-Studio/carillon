@@ -8,7 +8,8 @@ class CarillonStore {
 
   final SharedPreferences _prefs;
 
-  static Future<CarillonStore> open() async => CarillonStore(await SharedPreferences.getInstance());
+  static Future<CarillonStore> open() async =>
+      CarillonStore(await SharedPreferences.getInstance());
 
   static const _prefix = 'carillon.';
 
@@ -44,19 +45,27 @@ class CarillonStore {
     return raw == null ? {} : Map<String, String>.from(jsonDecode(raw) as Map);
   }
 
-  set tags(Map<String, String> value) => _prefs.setString('${_prefix}tags', jsonEncode(value));
+  set tags(Map<String, String> value) =>
+      _prefs.setString('${_prefix}tags', jsonEncode(value));
 
   /// Clicks or receptions not reported yet (no network at the time).
   List<Map<String, dynamic>> get pendingEvents {
     final raw = _prefs.getString('${_prefix}events');
-    return raw == null ? [] : (jsonDecode(raw) as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    return raw == null
+        ? []
+        : (jsonDecode(raw) as List)
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList();
   }
 
-  set pendingEvents(List<Map<String, dynamic>> value) =>
-      _prefs.setString('${_prefix}events', jsonEncode(value.take(100).toList()));
+  set pendingEvents(List<Map<String, dynamic>> value) => _prefs.setString(
+    '${_prefix}events',
+    jsonEncode(value.take(100).toList()),
+  );
 
   Future<void> reload() => _prefs.reload();
 
-  void _set(String key, String? value) =>
-      value == null ? _prefs.remove('$_prefix$key') : _prefs.setString('$_prefix$key', value);
+  void _set(String key, String? value) => value == null
+      ? _prefs.remove('$_prefix$key')
+      : _prefs.setString('$_prefix$key', value);
 }
