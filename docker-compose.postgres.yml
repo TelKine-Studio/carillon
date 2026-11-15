@@ -9,6 +9,8 @@
 
 services:
   carillon:
+    build:
+      context: ./server
     image: ghcr.io/telkine-studio/carillon:latest
     restart: unless-stopped
     depends_on:

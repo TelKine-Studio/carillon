@@ -216,6 +216,11 @@ class MessageController extends Controller
             }
         }
 
+        if ($request->input('schedule') === 'timezone') {
+            $input['delayed_option'] = 'timezone';
+            $input['delivery_time_of_day'] = (string) $request->input('delivery_time');
+        }
+
         return $input;
     }
 

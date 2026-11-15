@@ -8,12 +8,12 @@
         @if ($icon)
             <x-ui.icon :name="$icon" class="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-zinc-400" />
         @endif
-        @php $isDate = in_array($type, ['date', 'datetime-local'], true); @endphp
+        @php $isDate = in_array($type, ['date', 'datetime-local', 'time'], true); @endphp
         @if ($isDate)
-            <x-ui.icon name="calendar" class="pointer-events-none absolute top-1/2 right-3.5 z-10 size-4 -translate-y-1/2 text-zinc-400" />
+            <x-ui.icon :name="$type === 'time' ? 'clock' : 'calendar'" class="pointer-events-none absolute top-1/2 right-3.5 z-10 size-4 -translate-y-1/2 text-zinc-400" />
         @endif
         <input id="{{ $id }}" name="{{ $name }}" type="{{ $isDate ? 'text' : $type }}" value="{{ $type === 'password' ? '' : old($name, $value) }}"
-            @if ($isDate) x-data="datePicker({{ $type === 'datetime-local' ? 'true' : 'false' }}, @js($attributes->get('min')))" placeholder="{{ $attributes->get('placeholder', $type === 'datetime-local' ? __('Choose a date and time') : __('Choose a date')) }}" @endif
+            @if ($isDate) x-data="datePicker({{ match ($type) { 'datetime-local' => 'true', 'time' => "'time'", default => 'false' } }}, @js($attributes->get('min')))" placeholder="{{ $attributes->get('placeholder', match ($type) { 'datetime-local' => __('Choose a date and time'), 'time' => __('Choose a time'), default => __('Choose a date') }) }}" @endif
             {{ $attributes->except($isDate ? ['id', 'class', 'min', 'placeholder'] : ['id', 'class'])->class(['form-control', 'rounded-l-none' => $prefix, 'pl-10' => $icon, 'pr-10' => $isDate, 'form-control-invalid' => $errors->has($name)]) }}>
     </div>
 </x-ui.field>

@@ -194,8 +194,8 @@
 
             {{-- Delivery --}}
             <x-ui.card :title="__('Delivery')" icon="clock">
-                <div class="grid gap-3 sm:grid-cols-2">
-                    @foreach (['now' => [__('Send now'), __('Delivered within seconds.')], 'later' => [__('Schedule'), __('At a date and time of your choice.')]] as $key => [$label, $text])
+                <div class="grid gap-2">
+                    @foreach (['now' => [__('Send now'), __('Delivered within seconds.')], 'later' => [__('Schedule'), __('At a date and time of your choice.')], 'timezone' => [__('Local time'), __('At the same hour for everyone, in their time zone.')]] as $key => [$label, $text])
                         <label class="flex cursor-pointer gap-3 rounded-lg border border-zinc-200 p-3.5 transition has-checked:border-brand-500 has-checked:bg-brand-50/50 dark:border-zinc-800 dark:has-checked:bg-brand-500/5">
                             <input type="radio" name="schedule" value="{{ $key }}" x-model="schedule" class="mt-0.5">
                             <span><span class="block text-sm font-semibold text-zinc-900 dark:text-white">{{ $label }}</span><span class="block text-sm text-zinc-500 dark:text-zinc-400">{{ $text }}</span></span>
@@ -204,6 +204,9 @@
                 </div>
                 <div x-show="schedule === 'later'" x-cloak class="mt-5">
                     <x-ui.input name="send_at" type="datetime-local" min="today" :label="__('Date and time')" :hint="__('In your time zone.')" />
+                </div>
+                <div x-show="schedule === 'timezone'" x-cloak class="mt-5 max-w-xs">
+                    <x-ui.input name="delivery_time" type="time" :value="old('delivery_time', $source?->option('delivery_time_of_day') ?? '09:00')" :label="__('Time of day')" :hint="__('Each device receives it at this time in its own time zone, within the next 24 hours.')" />
                 </div>
 
                 <button type="button" class="mt-5 flex items-center gap-2 text-sm font-medium text-zinc-600 dark:text-zinc-400" x-on:click="advanced = !advanced">
@@ -249,7 +252,7 @@
                 <p class="mt-3 text-xs text-amber-700 dark:text-amber-400" x-show="estimate.total === 0 && !estimate.error" x-cloak>{{ __('No subscribed device matches this audience yet.') }}</p>
 
                 <x-ui.button class="mt-5 w-full" size="lg" icon="send">
-                    <span x-text="schedule === 'later' ? @js(__('Schedule the message')) : @js(__('Send the message'))">{{ __('Send the message') }}</span>
+                    <span x-text="schedule !== 'now' ? @js(__('Schedule the message')) : @js(__('Send the message'))">{{ __('Send the message') }}</span>
                 </x-ui.button>
             </div>
         </aside>

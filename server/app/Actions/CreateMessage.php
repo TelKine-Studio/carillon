@@ -8,6 +8,7 @@ use App\Models\ApiKey;
 use App\Models\Message;
 use App\Models\Project;
 use App\Models\User;
+use App\Push\LocalTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
@@ -60,6 +61,13 @@ class CreateMessage
             $options['big_picture'] = reset($options['ios_attachments']) ?: null;
         }
         $options['ttl'] ??= $project->setting('default_ttl');
+        // Only the time zone option changes the delivery ("last-active" is
+        // sent right away).
+        if (($options['delayed_option'] ?? null) === 'timezone') {
+            $options['delivery_time_of_day'] = LocalTime::parse($options['delivery_time_of_day'])->format();
+        } else {
+            unset($options['delayed_option'], $options['delivery_time_of_day']);
+        }
         $options = array_filter($options, fn ($value) => $value !== null);
 
         $message = new Message([
@@ -131,10 +139,16 @@ class CreateMessage
             'include_aliases.external_id' => ['nullable', 'array', 'max:'.self::MAX_IDS],
             'target_channel' => ['nullable', 'in:push'],
             'send_after' => ['nullable', 'string', 'max:100'],
+            'delayed_option' => ['nullable', 'in:timezone,last-active,immediate'],
+            'delivery_time_of_day' => ['nullable', 'string', 'max:16'],
         ], [
             'contents.required' => 'Message Notifications must have English language content',
             'target_channel.in' => 'Only push notifications are supported.',
-        ])->validate();
+        ])->after(function ($validator) use ($input) {
+            if (($input['delayed_option'] ?? null) === 'timezone' && ! LocalTime::parse($input['delivery_time_of_day'] ?? null)) {
+                $validator->errors()->add('delivery_time_of_day', 'delivery_time_of_day must be a time of day like "9:00AM" when delayed_option is "timezone".');
+            }
+        })->validate();
     }
 
     /**

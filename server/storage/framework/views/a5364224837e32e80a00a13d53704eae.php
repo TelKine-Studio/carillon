@@ -510,8 +510,8 @@
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
 <?php $component->withAttributes(['title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Delivery')),'icon' => 'clock']); ?>
-                <div class="grid gap-3 sm:grid-cols-2">
-                    <?php $__currentLoopData = ['now' => [__('Send now'), __('Delivered within seconds.')], 'later' => [__('Schedule'), __('At a date and time of your choice.')]]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => [$label, $text]): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <div class="grid gap-2">
+                    <?php $__currentLoopData = ['now' => [__('Send now'), __('Delivered within seconds.')], 'later' => [__('Schedule'), __('At a date and time of your choice.')], 'timezone' => [__('Local time'), __('At the same hour for everyone, in their time zone.')]]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => [$label, $text]): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <label class="flex cursor-pointer gap-3 rounded-lg border border-zinc-200 p-3.5 transition has-checked:border-brand-500 has-checked:bg-brand-50/50 dark:border-zinc-800 dark:has-checked:bg-brand-500/5">
                             <input type="radio" name="schedule" value="<?php echo e($key); ?>" x-model="schedule" class="mt-0.5">
                             <span><span class="block text-sm font-semibold text-zinc-900 dark:text-white"><?php echo e($label); ?></span><span class="block text-sm text-zinc-500 dark:text-zinc-400"><?php echo e($text); ?></span></span>
@@ -529,6 +529,28 @@
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
 <?php $component->withAttributes(['name' => 'send_at','type' => 'datetime-local','min' => 'today','label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Date and time')),'hint' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('In your time zone.'))]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal65bd7e7dbd93cec773ad6501ce127e46)): ?>
+<?php $attributes = $__attributesOriginal65bd7e7dbd93cec773ad6501ce127e46; ?>
+<?php unset($__attributesOriginal65bd7e7dbd93cec773ad6501ce127e46); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal65bd7e7dbd93cec773ad6501ce127e46)): ?>
+<?php $component = $__componentOriginal65bd7e7dbd93cec773ad6501ce127e46; ?>
+<?php unset($__componentOriginal65bd7e7dbd93cec773ad6501ce127e46); ?>
+<?php endif; ?>
+                </div>
+                <div x-show="schedule === 'timezone'" x-cloak class="mt-5 max-w-xs">
+                    <?php if (isset($component)) { $__componentOriginal65bd7e7dbd93cec773ad6501ce127e46 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal65bd7e7dbd93cec773ad6501ce127e46 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.input','data' => ['name' => 'delivery_time','type' => 'time','value' => old('delivery_time', $source?->option('delivery_time_of_day') ?? '09:00'),'label' => __('Time of day'),'hint' => __('Each device receives it at this time in its own time zone, within the next 24 hours.')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('ui.input'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['name' => 'delivery_time','type' => 'time','value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(old('delivery_time', $source?->option('delivery_time_of_day') ?? '09:00')),'label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Time of day')),'hint' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Each device receives it at this time in its own time zone, within the next 24 hours.'))]); ?>
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal65bd7e7dbd93cec773ad6501ce127e46)): ?>
@@ -830,7 +852,7 @@
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
 <?php $component->withAttributes(['class' => 'mt-5 w-full','size' => 'lg','icon' => 'send']); ?>
-                    <span x-text="schedule === 'later' ? <?php echo \Illuminate\Support\Js::from(__('Schedule the message'))->toHtml() ?> : <?php echo \Illuminate\Support\Js::from(__('Send the message'))->toHtml() ?>"><?php echo e(__('Send the message')); ?></span>
+                    <span x-text="schedule !== 'now' ? <?php echo \Illuminate\Support\Js::from(__('Schedule the message'))->toHtml() ?> : <?php echo \Illuminate\Support\Js::from(__('Send the message'))->toHtml() ?>"><?php echo e(__('Send the message')); ?></span>
                  <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginala8bb031a483a05f647cb99ed3a469847)): ?>

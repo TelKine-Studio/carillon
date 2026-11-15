@@ -3,7 +3,6 @@ import collapse from '@alpinejs/collapse';
 import focus from '@alpinejs/focus';
 import flatpickr from 'flatpickr';
 import { French } from 'flatpickr/dist/l10n/fr.js';
-import 'flatpickr/dist/flatpickr.min.css';
 
 /**
  * Carillon's web interface is server-rendered (one page per URL).
@@ -102,17 +101,20 @@ Alpine.data('copy', (text = null) => ({
     },
 }));
 
+// mode: false (date), true (date and time) or 'time' (time of day only).
 Alpine.data('datePicker', (withTime = false, min = null) => ({
     init() {
         const french = document.documentElement.lang.startsWith('fr');
+        const timeOnly = withTime === 'time';
         this.picker = flatpickr(this.$el, {
             locale: french ? French : 'default',
-            enableTime: withTime,
+            enableTime: Boolean(withTime),
+            noCalendar: timeOnly,
             time_24hr: true,
             minuteIncrement: 5,
-            dateFormat: withTime ? 'Y-m-d\\TH:i' : 'Y-m-d',
+            dateFormat: timeOnly ? 'H:i' : withTime ? 'Y-m-d\\TH:i' : 'Y-m-d',
             altInput: true,
-            altFormat: withTime ? (french ? 'j F Y à H:i' : 'F j, Y at H:i') : (french ? 'j F Y' : 'F j, Y'),
+            altFormat: timeOnly ? 'H:i' : withTime ? (french ? 'j F Y à H:i' : 'F j, Y at H:i') : (french ? 'j F Y' : 'F j, Y'),
             minDate: min || null,
             disableMobile: true,
             monthSelectorType: 'static',

@@ -1289,5 +1289,11 @@
     "scheduled :date": "programmé :date",
     "tag key": "clé du tag",
     "value": "valeur",
-    "Sent": "Envoyé"
+    "Sent": "Envoyé",
+    "Local time": "Heure locale",
+    "At the same hour for everyone, in their time zone.": "À la même heure pour chacun, dans son fuseau horaire.",
+    "Time of day": "Heure",
+    "Each device receives it at this time in its own time zone, within the next 24 hours.": "Chaque appareil le reçoit à cette heure dans son propre fuseau horaire, dans les prochaines 24 heures.",
+    "Choose a time": "Choisir une heure",
+    "Delivered at :time in the time zone of each device": "Livré à :time dans le fuseau horaire de chaque appareil"
 }

@@ -60,13 +60,23 @@ English otherwise), `data`, `url`, `app_url`, `web_url`, `big_picture` /
 message is scheduled), `idempotency_key` (a second call with the same key
 returns the first message), `name`.
 
+**Delivery at local time**: `"delayed_option": "timezone"` with
+`"delivery_time_of_day": "9:00AM"` (or `"21:30"`) delivers the message at
+that time in the time zone of each person (sent by the SDK), within the next
+24 hours: today where the time has not passed yet, tomorrow elsewhere.
+Devices without a known time zone use UTC. Combined with `send_after`, the
+24 hours start at that date. The notification stays cancelable until the
+last time zone is reached. `"delayed_option": "last-active"` is accepted
+and sent right away.
+
 ## Follow a notification
 
 - `GET /api/v1/notifications/{id}` — status, `successful`, `failed`
   (refused, the device is disabled), `errored`, `received`, `converted`
   (clicks), `remaining`, `platform_delivery_stats` per platform.
 - `GET /api/v1/notifications?limit=50&offset=0` — latest notifications.
-- `DELETE /api/v1/notifications/{id}` — cancels a scheduled notification.
+- `DELETE /api/v1/notifications/{id}` — cancels a scheduled notification
+  (or the time zones not reached yet of a local time delivery).
 
 ## Users (people and their devices)
 

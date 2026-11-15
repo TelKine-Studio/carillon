@@ -64,18 +64,18 @@ unset($__defined_vars, $__key, $__value); ?>
 <?php unset($__componentOriginal56804098dcf376a0e2227cb77b6cd00a); ?>
 <?php endif; ?>
         <?php endif; ?>
-        <?php $isDate = in_array($type, ['date', 'datetime-local'], true); ?>
+        <?php $isDate = in_array($type, ['date', 'datetime-local', 'time'], true); ?>
         <?php if($isDate): ?>
             <?php if (isset($component)) { $__componentOriginal56804098dcf376a0e2227cb77b6cd00a = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal56804098dcf376a0e2227cb77b6cd00a = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.icon','data' => ['name' => 'calendar','class' => 'pointer-events-none absolute top-1/2 right-3.5 z-10 size-4 -translate-y-1/2 text-zinc-400']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.icon','data' => ['name' => $type === 'time' ? 'clock' : 'calendar','class' => 'pointer-events-none absolute top-1/2 right-3.5 z-10 size-4 -translate-y-1/2 text-zinc-400']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('ui.icon'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['name' => 'calendar','class' => 'pointer-events-none absolute top-1/2 right-3.5 z-10 size-4 -translate-y-1/2 text-zinc-400']); ?>
+<?php $component->withAttributes(['name' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($type === 'time' ? 'clock' : 'calendar'),'class' => 'pointer-events-none absolute top-1/2 right-3.5 z-10 size-4 -translate-y-1/2 text-zinc-400']); ?>
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal56804098dcf376a0e2227cb77b6cd00a)): ?>
@@ -88,7 +88,7 @@ unset($__defined_vars, $__key, $__value); ?>
 <?php endif; ?>
         <?php endif; ?>
         <input id="<?php echo e($id); ?>" name="<?php echo e($name); ?>" type="<?php echo e($isDate ? 'text' : $type); ?>" value="<?php echo e($type === 'password' ? '' : old($name, $value)); ?>"
-            <?php if($isDate): ?> x-data="datePicker(<?php echo e($type === 'datetime-local' ? 'true' : 'false'); ?>, <?php echo \Illuminate\Support\Js::from($attributes->get('min'))->toHtml() ?>)" placeholder="<?php echo e($attributes->get('placeholder', $type === 'datetime-local' ? __('Choose a date and time') : __('Choose a date'))); ?>" <?php endif; ?>
+            <?php if($isDate): ?> x-data="datePicker(<?php echo e(match ($type) { 'datetime-local' => 'true', 'time' => "'time'", default => 'false' }); ?>, <?php echo \Illuminate\Support\Js::from($attributes->get('min'))->toHtml() ?>)" placeholder="<?php echo e($attributes->get('placeholder', match ($type) { 'datetime-local' => __('Choose a date and time'), 'time' => __('Choose a time'), default => __('Choose a date') })); ?>" <?php endif; ?>
             <?php echo e($attributes->except($isDate ? ['id', 'class', 'min', 'placeholder'] : ['id', 'class'])->class(['form-control', 'rounded-l-none' => $prefix, 'pl-10' => $icon, 'pr-10' => $isDate, 'form-control-invalid' => $errors->has($name)])); ?>>
     </div>
  <?php echo $__env->renderComponent(); ?>

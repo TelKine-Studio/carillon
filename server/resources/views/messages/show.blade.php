@@ -42,6 +42,8 @@
         <span>
             @if ($message->status === 'scheduled')
                 {{ __('Scheduled for :date', ['date' => $message->send_after->isoFormat('LLL')]) }}
+            @elseif ($message->status === 'sending' && $message->option('delayed_option') === 'timezone')
+                {{ __('Delivered at :time in the time zone of each device', ['time' => $message->option('delivery_time_of_day')]) }}
             @elseif ($message->completed_at)
                 {{ __('Sent :date', ['date' => $message->completed_at->isoFormat('LLL')]) }}
             @else

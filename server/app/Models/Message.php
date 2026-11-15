@@ -78,6 +78,11 @@ class Message extends Model
 
     public function isCancelable(): bool
     {
+        // Delivered per time zone: the batches still waiting can be canceled.
+        if ($this->status === 'sending' && $this->option('delayed_option') === 'timezone') {
+            return true;
+        }
+
         return in_array($this->status, ['scheduled', 'queued'], true);
     }
 
