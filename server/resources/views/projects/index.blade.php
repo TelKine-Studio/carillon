@@ -16,7 +16,7 @@
     @else
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             @foreach ($projects as $project)
-                <a href="{{ route('projects.show', $project) }}" class="card group flex flex-col p-5 transition hover:-translate-y-0.5 hover:shadow-(--shadow-lift)">
+                <a href="{{ route('projects.show', $project) }}" class="card card-hover group flex min-w-0 flex-col p-5">
                     <div class="flex items-start gap-4">
                         <x-ui.project-icon :project="$project" />
                         <div class="min-w-0 flex-1">

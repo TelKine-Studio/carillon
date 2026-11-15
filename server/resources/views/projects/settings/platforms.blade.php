@@ -21,8 +21,10 @@
                 <x-ui.file name="private_key" accept=".p8,text/plain" :label="__('Private key (.p8)')" :placeholder="__('Choose your AuthKey_XXXXXXXXXX.p8 file')"
                     :hint="$apns ? __('A key is stored (encrypted). Leave empty to keep it.') : __('Stored encrypted.')" :optional="(bool) $apns" />
             </fieldset>
-            <details class="mt-5 rounded-xl bg-zinc-50 p-4 text-sm text-zinc-600 dark:bg-white/[.03] dark:text-zinc-400">
-                <summary class="cursor-pointer font-medium text-zinc-800 dark:text-zinc-200">{{ __('How to get a key') }}</summary>
+            <details class="group mt-5 rounded-xl border border-zinc-200/80 bg-zinc-50/60 p-4 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-white/[.02] dark:text-zinc-400">
+                <summary class="flex cursor-pointer items-center gap-2 font-medium text-zinc-800 select-none dark:text-zinc-200">
+                    <x-ui.icon name="chevron-right" class="size-4 text-zinc-400 transition group-open:rotate-90" />{{ __('How to get a key') }}
+                </summary>
                 <ol class="mt-3 list-decimal space-y-1.5 pl-5">
                     <li>{{ __('On developer.apple.com, open Certificates, IDs & Profiles → Keys and create a key with “Apple Push Notifications service (APNs)”.') }}</li>
                     <li>{{ __('Download the .p8 file (only once) and note its Key ID.') }}</li>

@@ -115,7 +115,7 @@
     <?php else: ?>
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <?php $__currentLoopData = $projects; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $project): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                <a href="<?php echo e(route('projects.show', $project)); ?>" class="card group flex flex-col p-5 transition hover:-translate-y-0.5 hover:shadow-(--shadow-lift)">
+                <a href="<?php echo e(route('projects.show', $project)); ?>" class="card card-hover group flex min-w-0 flex-col p-5">
                     <div class="flex items-start gap-4">
                         <?php if (isset($component)) { $__componentOriginal36407694a283dbdf6dc29360724d3fd0 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal36407694a283dbdf6dc29360724d3fd0 = $attributes; } ?>

@@ -23,7 +23,8 @@
 
         <div class="lg:pl-[272px]">
             {{-- Top bar --}}
-            <header class="sticky top-0 z-20 border-b border-zinc-200/70 bg-zinc-50/80 backdrop-blur-xl dark:border-zinc-800/70 dark:bg-zinc-950/80">
+            {{-- On large screens the bar only appears when the page has actions. --}}
+            <header @class(['sticky top-0 z-20 border-b border-zinc-200/70 bg-zinc-50/80 backdrop-blur-xl dark:border-zinc-800/70 dark:bg-zinc-950/80', 'lg:hidden' => ! isset($actions)])>
                 <div class="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-10">
                     <button type="button" @click="drawer = true" class="-ml-1 rounded-lg p-2 text-zinc-600 hover:bg-zinc-100 lg:hidden dark:text-zinc-300 dark:hover:bg-white/5">
                         <x-ui.icon name="menu" class="size-5" /><span class="sr-only">{{ __('Menu') }}</span>

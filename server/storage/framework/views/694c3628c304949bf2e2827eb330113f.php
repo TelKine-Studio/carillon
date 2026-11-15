@@ -150,8 +150,30 @@
 <?php unset($__componentOriginaldc723fd52a2a983147bc24be67950fe5); ?>
 <?php endif; ?>
             </fieldset>
-            <details class="mt-5 rounded-xl bg-zinc-50 p-4 text-sm text-zinc-600 dark:bg-white/[.03] dark:text-zinc-400">
-                <summary class="cursor-pointer font-medium text-zinc-800 dark:text-zinc-200"><?php echo e(__('How to get a key')); ?></summary>
+            <details class="group mt-5 rounded-xl border border-zinc-200/80 bg-zinc-50/60 p-4 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-white/[.02] dark:text-zinc-400">
+                <summary class="flex cursor-pointer items-center gap-2 font-medium text-zinc-800 select-none dark:text-zinc-200">
+                    <?php if (isset($component)) { $__componentOriginal56804098dcf376a0e2227cb77b6cd00a = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal56804098dcf376a0e2227cb77b6cd00a = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.icon','data' => ['name' => 'chevron-right','class' => 'size-4 text-zinc-400 transition group-open:rotate-90']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('ui.icon'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['name' => 'chevron-right','class' => 'size-4 text-zinc-400 transition group-open:rotate-90']); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal56804098dcf376a0e2227cb77b6cd00a)): ?>
+<?php $attributes = $__attributesOriginal56804098dcf376a0e2227cb77b6cd00a; ?>
+<?php unset($__attributesOriginal56804098dcf376a0e2227cb77b6cd00a); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal56804098dcf376a0e2227cb77b6cd00a)): ?>
+<?php $component = $__componentOriginal56804098dcf376a0e2227cb77b6cd00a; ?>
+<?php unset($__componentOriginal56804098dcf376a0e2227cb77b6cd00a); ?>
+<?php endif; ?><?php echo e(__('How to get a key')); ?>
+
+                </summary>
                 <ol class="mt-3 list-decimal space-y-1.5 pl-5">
                     <li><?php echo e(__('On developer.apple.com, open Certificates, IDs & Profiles → Keys and create a key with “Apple Push Notifications service (APNs)”.')); ?></li>
                     <li><?php echo e(__('Download the .p8 file (only once) and note its Key ID.')); ?></li>

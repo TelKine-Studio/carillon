@@ -53,7 +53,7 @@
                     <li>
                         <<?php echo e($tag); ?> <?php if($tag === 'a'): ?> href="<?php echo e($step['href']); ?>" <?php endif; ?> class="<?php echo \Illuminate\Support\Arr::toCssClasses(['flex h-full gap-3 rounded-2xl border p-4 transition', 'border-zinc-200 hover:border-brand-300 hover:bg-brand-50/40 dark:border-zinc-800 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/5' => ! $step['done'], 'border-zinc-100 bg-zinc-50/60 dark:border-zinc-800/60 dark:bg-white/[.02]' => $step['done']]); ?>">
                             <?php if($step['done']): ?>
-                                <span class="grid size-7 shrink-0 place-items-center rounded-full bg-emerald-500 text-white"><?php if (isset($component)) { $__componentOriginal56804098dcf376a0e2227cb77b6cd00a = $component; } ?>
+                                <span class="grid size-6 shrink-0 place-items-center rounded-md bg-emerald-500 text-white"><?php if (isset($component)) { $__componentOriginal56804098dcf376a0e2227cb77b6cd00a = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal56804098dcf376a0e2227cb77b6cd00a = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.icon','data' => ['name' => 'check','class' => 'size-4']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('ui.icon'); ?>
@@ -74,7 +74,7 @@
 <?php unset($__componentOriginal56804098dcf376a0e2227cb77b6cd00a); ?>
 <?php endif; ?></span>
                             <?php else: ?>
-                                <span class="grid size-7 shrink-0 place-items-center rounded-full bg-zinc-100 text-sm font-semibold text-zinc-600 dark:bg-white/10 dark:text-zinc-300"><?php echo e($index + 1); ?></span>
+                                <span class="grid size-6 shrink-0 place-items-center rounded-md bg-zinc-100 text-xs font-semibold text-zinc-600 dark:bg-white/10 dark:text-zinc-300"><?php echo e($index + 1); ?></span>
                             <?php endif; ?>
                             <span>
                                 <span class="<?php echo \Illuminate\Support\Arr::toCssClasses(['block text-sm font-medium', 'text-zinc-400 line-through decoration-zinc-300 dark:decoration-zinc-600' => $step['done'], 'text-zinc-900 dark:text-white' => ! $step['done']]); ?>"><?php echo e($step['title']); ?></span>

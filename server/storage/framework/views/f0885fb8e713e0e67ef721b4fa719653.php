@@ -29,8 +29,8 @@ foreach ($attributes->all() as $__key => $__value) {
 unset($__defined_vars, $__key, $__value); ?>
 <section <?php echo e($attributes->merge(['class' => 'card'])); ?>>
     <?php if($title || isset($actions)): ?>
-        <header class="flex flex-wrap items-start justify-between gap-3 px-5 pt-5 sm:px-6">
-            <div class="flex min-w-0 items-start gap-3">
+        <header class="flex flex-col gap-3 px-5 pt-5 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:px-6">
+            <div class="flex min-w-0 flex-1 items-start gap-3">
                 <?php if($icon): ?>
                     <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600 dark:bg-white/5 dark:text-zinc-300">
                         <?php if (isset($component)) { $__componentOriginal56804098dcf376a0e2227cb77b6cd00a = $component; } ?>
@@ -63,7 +63,7 @@ unset($__defined_vars, $__key, $__value); ?>
                 </div>
             </div>
             <?php if(isset($actions)): ?>
-                <div class="flex shrink-0 items-center gap-2"><?php echo e($actions); ?></div>
+                <div class="<?php echo \Illuminate\Support\Arr::toCssClasses(['flex shrink-0 items-center gap-2', 'pl-12 sm:pl-0' => $icon]); ?>"><?php echo e($actions); ?></div>
             <?php endif; ?>
         </header>
     <?php endif; ?>

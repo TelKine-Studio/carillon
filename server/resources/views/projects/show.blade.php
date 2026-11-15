@@ -16,9 +16,9 @@
                     <li>
                         <{{ $tag }} @if ($tag === 'a') href="{{ $step['href'] }}" @endif @class(['flex h-full gap-3 rounded-2xl border p-4 transition', 'border-zinc-200 hover:border-brand-300 hover:bg-brand-50/40 dark:border-zinc-800 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/5' => ! $step['done'], 'border-zinc-100 bg-zinc-50/60 dark:border-zinc-800/60 dark:bg-white/[.02]' => $step['done']])>
                             @if ($step['done'])
-                                <span class="grid size-7 shrink-0 place-items-center rounded-full bg-emerald-500 text-white"><x-ui.icon name="check" class="size-4" /></span>
+                                <span class="grid size-6 shrink-0 place-items-center rounded-md bg-emerald-500 text-white"><x-ui.icon name="check" class="size-4" /></span>
                             @else
-                                <span class="grid size-7 shrink-0 place-items-center rounded-full bg-zinc-100 text-sm font-semibold text-zinc-600 dark:bg-white/10 dark:text-zinc-300">{{ $index + 1 }}</span>
+                                <span class="grid size-6 shrink-0 place-items-center rounded-md bg-zinc-100 text-xs font-semibold text-zinc-600 dark:bg-white/10 dark:text-zinc-300">{{ $index + 1 }}</span>
                             @endif
                             <span>
                                 <span @class(['block text-sm font-medium', 'text-zinc-400 line-through decoration-zinc-300 dark:decoration-zinc-600' => $step['done'], 'text-zinc-900 dark:text-white' => ! $step['done']])>{{ $step['title'] }}</span>

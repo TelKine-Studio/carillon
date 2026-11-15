@@ -25,9 +25,9 @@
 <?php $component = $__componentOriginal91a231a9270579fa1ae9246bd51fb785; ?>
 <?php unset($__componentOriginal91a231a9270579fa1ae9246bd51fb785); ?>
 <?php endif; ?>
-<nav class="-mx-4 mb-6 flex gap-2 overflow-x-auto px-4 pb-1 lg:hidden">
+<nav class="-mx-4 mb-6 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] lg:hidden">
     <?php $__currentLoopData = $tabs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $tab): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-        <a href="<?php echo e(route('admin.settings.edit', $key)); ?>" class="<?php echo \Illuminate\Support\Arr::toCssClasses(['inline-flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition', 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900' => $section === $key, 'bg-white text-zinc-600 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-zinc-800' => $section !== $key]); ?>">
+        <a href="<?php echo e(route('admin.settings.edit', $key)); ?>" class="<?php echo \Illuminate\Support\Arr::toCssClasses(['inline-flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition', 'bg-white text-zinc-900 shadow-(--shadow-soft) ring-1 ring-zinc-300 dark:bg-zinc-900 dark:text-white dark:ring-zinc-700' => $section === $key, 'bg-white text-zinc-600 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-zinc-800' => $section !== $key]); ?>">
             <?php if (isset($component)) { $__componentOriginal56804098dcf376a0e2227cb77b6cd00a = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal56804098dcf376a0e2227cb77b6cd00a = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.icon','data' => ['name' => $tab['icon'],'class' => 'size-4']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>

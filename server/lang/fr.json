@@ -942,7 +942,7 @@
     "-20% this weekend only": "-20 % ce week-end seulement",
     ":count member|:count members": ":count membre|:count membres",
     ":count project|:count projects": ":count projet|:count projets",
-    ":done of :total steps completed": ":done étape(s) sur :total terminée(s)",
+    ":done of :total steps completed": ":done sur :total étapes terminées",
     ":inviter invited you to join :app, a self-hosted push notification service.": ":inviter vous invite à rejoindre :app, un service de notifications push auto-hébergé.",
     ":name no longer has access to the project.": ":name n’a plus accès au projet.",
     ":name now has access to the project.": ":name a maintenant accès au projet.",

@@ -39,7 +39,7 @@ unset($__defined_vars, $__key, $__value); ?>
     ];
     $dots = ['zinc' => 'bg-zinc-400', 'brand' => 'bg-brand-500', 'green' => 'bg-emerald-500', 'red' => 'bg-red-500', 'blue' => 'bg-sky-500', 'amber' => 'bg-amber-500', 'violet' => 'bg-violet-500'];
 ?>
-<span <?php echo e($attributes->merge(['class' => 'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap '.$colors[$color]])); ?>>
+<span <?php echo e($attributes->merge(['class' => 'inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium whitespace-nowrap '.$colors[$color]])); ?>>
     <?php if($dot): ?><span class="size-1.5 rounded-full <?php echo e($dots[$color]); ?>"></span><?php endif; ?>
     <?php if($icon): ?><?php if (isset($component)) { $__componentOriginal56804098dcf376a0e2227cb77b6cd00a = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal56804098dcf376a0e2227cb77b6cd00a = $attributes; } ?>
