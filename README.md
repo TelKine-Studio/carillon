@@ -49,6 +49,17 @@ docker run -d -p 8080:80 -v carillon-data:/data ghcr.io/telkine-studio/carillon:
 
 Open the address in your browser: the setup creates the first administrator.
 
+With PostgreSQL (recommended for large audiences), use
+[docker-compose.postgres.yml](docker-compose.postgres.yml):
+
+```bash
+POSTGRES_PASSWORD=change-me docker compose -f docker-compose.postgres.yml up -d
+```
+
+On Coolify, create a *Docker Compose* resource from this repository with
+`docker-compose.postgres.yml`, set `POSTGRES_PASSWORD`, and assign a domain
+to the `carillon` service (port 80).
+
 ## Development
 
 ```bash

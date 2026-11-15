@@ -35,7 +35,17 @@ fi
 chown -R www-data:www-data "$DATA_DIR"
 chmod 600 "$DATA_DIR/app.key" 2>/dev/null || true
 
-artisan migrate --force --no-interaction
+# The database may start after Carillon (PostgreSQL in the same compose).
+attempt=1
+until artisan migrate --force --no-interaction; do
+    if [ "$attempt" -ge 30 ]; then
+        echo "[carillon] The database is still unreachable, giving up." >&2
+        exit 1
+    fi
+    echo "[carillon] Waiting for the database ($attempt/30)..."
+    attempt=$((attempt + 1))
+    sleep 2
+done
 artisan optimize --no-interaction
 
 echo "[carillon] Ready — open the public URL in your browser to finish the setup."

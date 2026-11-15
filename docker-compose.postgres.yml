@@ -1,0 +1,52 @@
+# Carillon with PostgreSQL — recommended for large audiences.
+#
+# Coolify: create a "Docker Compose" resource pointing to this repository
+# with this file, set POSTGRES_PASSWORD in the environment variables, then
+# assign a domain to the "carillon" service (port 80).
+#
+# Plain Docker: POSTGRES_PASSWORD=… docker compose -f docker-compose.postgres.yml up -d
+# (uncomment the "ports" section below).
+
+services:
+  carillon:
+    image: ghcr.io/telkine-studio/carillon:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: carillon
+      DB_USERNAME: carillon
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - carillon-data:/data
+    # ports:
+    #   - "8000:80"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1/up"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: carillon
+      POSTGRES_USER: carillon
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U carillon -d carillon"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  carillon-data:
+  postgres-data:
