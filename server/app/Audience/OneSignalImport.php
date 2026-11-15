@@ -2,6 +2,7 @@
 
 namespace App\Audience;
 
+use App\Http\Controllers\Sdk\SubscriptionController;
 use App\Models\Project;
 use App\Models\Subscriber;
 use App\Models\Subscription;
@@ -13,7 +14,7 @@ use Throwable;
  * Reads the subscribers exported by OneSignal (CSV, optionally gzipped: the
  * "players" export and the newer "subscriptions" export) and creates the
  * people and devices. Apple and Firebase tokens keep working with your own
- * keys; web subscriptions are tied to the VAPID keys of OneSignal and are
+ * keys, email addresses are imported for the email channel; web subscriptions are tied to the VAPID keys of OneSignal and are
  * skipped (the web SDK subscribes the visitors again).
  */
 class OneSignalImport
@@ -114,7 +115,7 @@ class OneSignalImport
         if ($type === 'web') {
             return 'web';
         }
-        if (! in_array($type, ['ios', 'android'], true)) {
+        if (! in_array($type, ['ios', 'android', 'email'], true)) {
             return 'unsupported';
         }
 
@@ -124,6 +125,12 @@ class OneSignalImport
         }
         if ($type === 'ios' && ! preg_match('/^[0-9a-f]{64,200}$/i', $token)) {
             return 'invalid_token';
+        }
+        if ($type === 'email') {
+            $token = SubscriptionController::email($token);
+            if (! $token) {
+                return 'invalid_token';
+            }
         }
 
         $enabled = true;

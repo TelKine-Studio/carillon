@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Email\EmailSender;
 use App\Models\Message;
 use App\Models\Subscription;
 use App\Push\ApnsSender;
@@ -64,6 +65,7 @@ class SendBatch implements ShouldQueue
             'ios' => app(ApnsSender::class),
             'android' => app(FcmSender::class),
             'web' => app(WebPushSender::class),
+            'email' => app(EmailSender::class),
         };
     }
 

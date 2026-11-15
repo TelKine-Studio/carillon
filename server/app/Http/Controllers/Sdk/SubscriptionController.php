@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Sdk;
 
+use App\Audience\Events;
 use App\Audience\Identity;
 use App\Http\Controllers\Controller;
-use App\Models\Delivery;
 use App\Models\Project;
 use App\Models\Subscriber;
 use App\Models\Subscription;
@@ -143,25 +143,7 @@ class SubscriptionController extends Controller
             'action_id' => ['nullable', 'string', 'max:64'],
         ]);
 
-        $column = $data['event'].'_at';
-        $updated = Delivery::query()
-            ->where('message_id', $data['message_id'])
-            ->where('subscription_id', $subscription->id)
-            ->whereNull($column)
-            ->update([$column => now()]);
-
-        if ($updated) {
-            DB::table('messages')->where('id', $data['message_id'])->increment($data['event']);
-            DB::table('message_platforms')->where('message_id', $data['message_id'])->where('platform', $subscription->type)->increment($data['event']);
-
-            Webhooks::dispatch($subscription->project_id, 'notification.'.$data['event'], array_filter([
-                'message_id' => $data['message_id'],
-                'subscription_id' => $subscription->id,
-                'external_id' => $subscription->subscriber?->external_id,
-                'platform' => $subscription->type,
-                'action_id' => $data['event'] === 'clicked' ? ($data['action_id'] ?? null) : null,
-            ], fn ($value) => $value !== null));
-        }
+        Events::record($subscription, $data['message_id'], $data['event'], $data['action_id'] ?? null);
 
         // A click opens the app: it is a session too.
         if ($data['event'] === 'clicked') {
@@ -220,6 +202,12 @@ class SubscriptionController extends Controller
     /** Web push subscriptions are stored as canonical JSON (same browser = same token). */
     protected function normalizeToken(string $type, string $token): string
     {
+        if ($type === 'email') {
+            $email = self::email($token);
+            abort_unless($email, 422, 'Invalid email address.');
+
+            return $email;
+        }
         if ($type !== 'web') {
             return trim($token);
         }
@@ -248,6 +236,54 @@ class SubscriptionController extends Controller
     }
 
     /** @return array<string, mixed> */
+    /** Adds an email address to the person of this device (OneSignal addEmail). */
+    public function addEmail(Request $request, string $appId, string $id): JsonResponse
+    {
+        $device = $this->subscription($appId, $id);
+        $request->validate(['email' => ['required', 'string', 'max:255']]);
+        $email = self::email((string) $request->input('email'));
+        abort_unless($email, 422, 'Invalid email address.');
+
+        $subscription = Subscription::query()->firstOrNew(['project_id' => $device->project_id, 'token_hash' => hash('sha256', $email)]);
+        $created = ! $subscription->exists;
+        $subscription->fill(['subscriber_id' => $device->subscriber_id, 'type' => 'email', 'token' => $email, 'invalid_at' => null, 'sdk' => $device->sdk]);
+        // Someone who unsubscribed stays unsubscribed (their choice wins).
+        if ($created) {
+            $subscription->enabled = true;
+        }
+        $subscription->save();
+
+        if ($created) {
+            Webhooks::dispatch($device->project_id, 'subscription.created', $this->webhookData($subscription->fresh('subscriber')));
+        }
+
+        return response()->json(['id' => $subscription->id, 'email' => $email, 'enabled' => $subscription->enabled], $created ? 201 : 200);
+    }
+
+    /** Removes an email address of the person (OneSignal removeEmail). */
+    public function removeEmail(Request $request, string $appId, string $id): JsonResponse
+    {
+        $device = $this->subscription($appId, $id);
+        $email = self::email((string) $request->input('email'));
+
+        Subscription::query()
+            ->where('project_id', $device->project_id)
+            ->where('subscriber_id', $device->subscriber_id)
+            ->where('type', 'email')
+            ->when($email, fn ($q) => $q->where('token_hash', hash('sha256', $email)))
+            ->delete();
+
+        return response()->json(['success' => true]);
+    }
+
+    /** Lowercase address, or null if it is not one. */
+    public static function email(string $value): ?string
+    {
+        $email = mb_strtolower(trim($value));
+
+        return filter_var($email, FILTER_VALIDATE_EMAIL) && mb_strlen($email) <= 255 ? $email : null;
+    }
+
     /** @return array<string, mixed> */
     protected function webhookData(Subscription $subscription, ?string $reason = null): array
     {

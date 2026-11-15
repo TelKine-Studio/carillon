@@ -44,7 +44,7 @@ class DispatchMessage implements ShouldQueue
         $total = 0;
         $localTime = $message->option('delayed_option') === 'timezone' ? LocalTime::parse($message->option('delivery_time_of_day')) : null;
 
-        foreach (Subscription::TYPES as $type) {
+        foreach ($message->channel === 'email' ? ['email'] : Subscription::PUSH_TYPES as $type) {
             $query = $audience->query($project, $message->targeting)->where('subscriptions.type', $type);
             $count = (clone $query)->count();
             if ($count === 0) {

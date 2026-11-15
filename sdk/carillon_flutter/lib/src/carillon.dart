@@ -102,6 +102,13 @@ class CarillonUser {
 
   Future<void> addTag(String key, Object value) => addTags({key: value});
 
+  /// Adds an email address to this person, for the email channel.
+  Future<void> addEmail(String email) =>
+      Carillon._ready.email(email, add: true);
+
+  Future<void> removeEmail(String email) =>
+      Carillon._ready.email(email, add: false);
+
   Future<void> addTags(Map<String, Object> tags) => Carillon._ready.setTags(
     tags.map((key, value) => MapEntry(key, '$value')),
   );
@@ -217,6 +224,17 @@ class _Engine with WidgetsBindingObserver {
     if (id == null) return;
     final result = await _guard(() => api.logout(id));
     _absorb(result);
+  }
+
+  Future<void> email(String email, {required bool add}) async {
+    // Needs the device to be registered first.
+    await (_syncing ?? Future.value());
+    final id = store.subscriptionId;
+    if (id == null) {
+      throw StateError('Carillon: this device is not registered yet.');
+    }
+    final address = email.trim().toLowerCase();
+    add ? await api.addEmail(id, address) : await api.removeEmail(id, address);
   }
 
   Future<void> setTags(Map<String, String?> tags) async {

@@ -25,6 +25,12 @@ class CarillonApi {
   Future<Map<String, dynamic>> logout(String id) =>
       _send('POST', '/subscriptions/$id/logout', const {});
 
+  Future<Map<String, dynamic>> addEmail(String id, String email) =>
+      _send('POST', '/subscriptions/$id/email', {'email': email});
+
+  Future<Map<String, dynamic>> removeEmail(String id, String email) =>
+      _send('DELETE', '/subscriptions/$id/email', {'email': email});
+
   Future<Map<String, dynamic>> tags(String id, Map<String, dynamic> tags) =>
       _send('PUT', '/subscriptions/$id/tags', {'tags': tags});
 

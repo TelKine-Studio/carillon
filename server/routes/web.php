@@ -11,6 +11,8 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Auth\TwoFactorController;
+use App\Http\Controllers\EmailSettingsController;
+use App\Http\Controllers\EmailTrackingController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
@@ -23,6 +25,14 @@ use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Middleware\RequireTwoFactor;
 use Illuminate\Support\Facades\Route;
+
+// Links inside the emails (signed, no account).
+Route::middleware('signed:relative')->prefix('e')->name('email.')->group(function () {
+    Route::get('o/{message}/{subscription}', [EmailTrackingController::class, 'open'])->name('open');
+    Route::get('c/{message}/{subscription}', [EmailTrackingController::class, 'click'])->name('click');
+    Route::get('u/{subscription}', [EmailTrackingController::class, 'unsubscribe'])->name('unsubscribe');
+    Route::post('u/{subscription}', [EmailTrackingController::class, 'confirm'])->name('unsubscribe.confirm');
+});
 
 Route::redirect('/', '/projects');
 
@@ -95,6 +105,9 @@ Route::middleware('auth')->group(function () {
         Route::put('templates/{template}', [TemplateController::class, 'update'])->name('templates.update');
         Route::delete('templates/{template}', [TemplateController::class, 'destroy'])->name('templates.destroy');
 
+        Route::put('email-settings', [EmailSettingsController::class, 'update'])->name('email.update');
+        Route::post('email-settings/test', [EmailSettingsController::class, 'test'])->name('email.test');
+        Route::post('email-settings/port', [EmailSettingsController::class, 'checkPort'])->name('email.port');
         Route::put('push/{provider}', [PushCredentialController::class, 'update'])->name('push.update');
         Route::post('push/webpush/generate', [PushCredentialController::class, 'generateWebPush'])->name('push.webpush.generate');
         Route::delete('push/{provider}', [PushCredentialController::class, 'destroy'])->name('push.destroy');

@@ -17,10 +17,13 @@ class Subscription extends Model
 {
     use HasUuids;
 
-    public const TYPES = ['ios', 'android', 'web'];
+    public const TYPES = ['ios', 'android', 'web', 'email'];
+
+    /** Types reached by push notifications (the email channel is apart). */
+    public const PUSH_TYPES = ['ios', 'android', 'web'];
 
     /** Provider handling each type of device. */
-    public const PROVIDERS = ['ios' => 'apns', 'android' => 'fcm', 'web' => 'webpush'];
+    public const PROVIDERS = ['ios' => 'apns', 'android' => 'fcm', 'web' => 'webpush', 'email' => 'email'];
 
     protected static function booted(): void
     {

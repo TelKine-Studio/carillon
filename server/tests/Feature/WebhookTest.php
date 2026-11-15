@@ -132,7 +132,8 @@ class WebhookTest extends TestCase
         DispatchMessage::complete($message->id);
 
         $types = collect(Queue::pushed(DeliverWebhook::class))->map(fn ($job) => $job->payload['type'])->countBy()->all();
-        $this->assertSame(['subscription.created' => 1, 'subscription.unsubscribed' => 1, 'notification.clicked' => 1, 'notification.received' => 1, 'message.sent' => 1], $types);
+        ksort($types);
+        $this->assertSame(['message.sent' => 1, 'notification.clicked' => 1, 'notification.received' => 1, 'subscription.created' => 1, 'subscription.unsubscribed' => 1], $types);
 
         $clicked = collect(Queue::pushed(DeliverWebhook::class))->first(fn ($job) => $job->payload['type'] === 'notification.clicked');
         $this->assertSame(['message_id' => $message->id, 'subscription_id' => $id, 'external_id' => 'u1', 'platform' => 'ios', 'action_id' => 'track'], $clicked->payload['data']);

@@ -42,6 +42,7 @@ await Carillon.login(user.id);
 await Carillon.logout();
 
 await Carillon.user.addTags({'plan': 'pro', 'level': 3});
+await Carillon.user.addEmail('ada@example.com'); // email channel
 await Carillon.user.removeTag('level');
 
 Carillon.notifications.addClickListener((event) {

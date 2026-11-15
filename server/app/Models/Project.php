@@ -18,7 +18,7 @@ class Project extends Model
     /** @use HasFactory<ProjectFactory> */
     use HasFactory;
 
-    public const PROVIDERS = ['apns', 'fcm', 'webpush'];
+    public const PROVIDERS = ['apns', 'fcm', 'webpush', 'email'];
 
     protected static function booted(): void
     {

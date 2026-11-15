@@ -91,12 +91,40 @@ final class ComposerInput
             }
         }
 
+        if ($request->input('channel') === 'email') {
+            $input = self::email($request, $input);
+        }
+
         if ($request->input('schedule') === 'timezone') {
             $input['delayed_option'] = 'timezone';
             $input['delivery_time_of_day'] = (string) $request->input('delivery_time');
         }
 
         return $input;
+    }
+
+    /**
+     * The email fields replace the push ones; "devices" become addresses.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
+    protected static function email(Request $request, array $input): array
+    {
+        $kept = array_intersect_key($input, array_flip(['name', 'included_segments', 'excluded_segments', 'include_aliases', 'send_after']));
+        $kept['target_channel'] = 'email';
+
+        if ($request->input('audience') === 'devices') {
+            $kept['include_email_tokens'] = self::list($request->input('email_addresses'));
+        }
+
+        foreach (['email_subject', 'email_preheader', 'email_body', 'email_from_name'] as $field) {
+            if (filled($request->input($field))) {
+                $kept[$field] = (string) $request->input($field);
+            }
+        }
+
+        return $kept;
     }
 
     /** @return list<string> */

@@ -197,6 +197,10 @@ Alpine.data('messageComposer', (config) => ({
     buttons: config.buttons,
     data: config.data,
     schedule: config.schedule,
+    channel: config.channel ?? 'push',
+    emailSubject: config.emailSubject ?? '',
+    emailPreheader: config.emailPreheader ?? '',
+    emailBody: config.emailBody ?? '',
     advanced: false,
     estimate: { total: null, platforms: {}, error: null, loading: false },
     timer: null,
@@ -206,6 +210,7 @@ Alpine.data('messageComposer', (config) => ({
         this.$watch('included', () => this.refresh());
         this.$watch('excluded', () => this.refresh());
         this.$watch('platforms', () => this.refresh());
+        this.$watch('channel', () => this.refresh());
         this.refresh();
     },
 
@@ -219,6 +224,18 @@ Alpine.data('messageComposer', (config) => ({
             buttons: this.buttons.map((b) => b.text).filter(Boolean),
         };
     },
+
+    /** The email as a sample person sees it (variables filled in). */
+    get emailPreview() {
+        const sample = { email: 'ada@example.com', external_id: 'user-42', unsubscribe_url: '#' };
+        const body = this.emailBody.trim() || '<p style="color:#a1a1aa;font:14px sans-serif">…</p>';
+        return body.replace(/\{\{\s*([a-z_]+)(?:\.([A-Za-z0-9_\-]+))?\s*(?:\|\s*default:\s*"([^"]*)")?\s*\}\}/g, (all, name, key, fallback) => {
+            if (name === 'tags' || name === 'tag') return fallback ?? (key === 'first_name' ? 'Ada' : '');
+            return sample[name] ?? fallback ?? '';
+        });
+    },
+
+    starterEmail: config.starterEmail ?? '',
 
     get unusedLanguages() {
         const used = this.texts.map((t) => t.language);

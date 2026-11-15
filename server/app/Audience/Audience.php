@@ -15,7 +15,9 @@ use Illuminate\Validation\ValidationException;
  * - include_subscription_ids / include_aliases.external_id: these devices
  *   or people only;
  * - otherwise included_segments (minus excluded_segments) and/or filters;
- * - platforms (ios, android, web) restrict the result.
+ * - platforms (ios, android, web) restrict the result;
+ * - channel "email" targets email addresses instead of devices (and
+ *   "emails" lists addresses).
  *
  * Filters are AND-ed, an {"operator": "OR"} entry starts a new group.
  */
@@ -40,8 +42,15 @@ class Audience
             ->whereNull('subscriptions.invalid_at')
             ->whereNotNull('subscriptions.token');
 
+        $email = ($targeting['channel'] ?? 'push') === 'email';
+        $query->whereIn('subscriptions.type', $email ? ['email'] : Subscription::PUSH_TYPES);
+
         if ($platforms = $targeting['platforms'] ?? null) {
             $query->whereIn('subscriptions.type', $platforms);
+        }
+
+        if ($email && ($emails = $targeting['emails'] ?? null)) {
+            return $query->whereIn('subscriptions.token_hash', array_map(fn ($address) => hash('sha256', $address), $emails));
         }
 
         if ($ids = $targeting['subscription_ids'] ?? null) {

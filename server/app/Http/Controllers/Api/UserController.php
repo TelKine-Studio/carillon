@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Sdk\SubscriptionController;
 use App\Models\Project;
 use App\Models\Subscriber;
 use App\Models\Subscription;
@@ -10,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * People and their devices, OneSignal "Users" API format:
@@ -18,7 +20,7 @@ use Illuminate\Validation\Rule;
 class UserController extends Controller
 {
     /** OneSignal subscription types and ours. */
-    public const TYPES = ['iOSPush' => 'ios', 'AndroidPush' => 'android', 'ChromePush' => 'web', 'SafariPush' => 'web', 'FirefoxPush' => 'web', 'SafariLegacyPush' => 'web'];
+    public const TYPES = ['iOSPush' => 'ios', 'AndroidPush' => 'android', 'ChromePush' => 'web', 'SafariPush' => 'web', 'FirefoxPush' => 'web', 'SafariLegacyPush' => 'web', 'Email' => 'email'];
 
     /** Creates (or updates) a person with devices: used to import an audience. */
     public function store(Request $request, string $appId): JsonResponse
@@ -52,6 +54,10 @@ class UserController extends Controller
 
             foreach ($data['subscriptions'] ?? [] as $item) {
                 $type = self::TYPES[$item['type']];
+                if ($type === 'email') {
+                    $item['token'] = SubscriptionController::email($item['token'])
+                        ?? throw ValidationException::withMessages(['subscriptions' => 'Invalid email address.']);
+                }
                 $subscription = Subscription::query()->firstOrNew(['project_id' => $project->id, 'token_hash' => hash('sha256', $item['token'])]);
                 $subscription->fill([
                     'subscriber_id' => $subscriber->id,

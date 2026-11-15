@@ -43,6 +43,7 @@ await Carillon.logout();
 
 await Carillon.user.addTags({ plan: 'pro' });
 await Carillon.user.removeTag('plan');
+await Carillon.user.addEmail('ada@example.com'); // email channel (once subscribed)
 
 Carillon.notifications.addClickListener(({ notification, actionId }) => {
   // notification.data, notification.url…

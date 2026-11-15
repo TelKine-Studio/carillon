@@ -3,7 +3,8 @@
     $n = fn ($v) => number_format((int) $v, 0, ',', ' ');
     $pct = fn ($part, $total) => $total > 0 ? number_format($part / $total * 100, 1, ',', ' ').' %' : '—';
     $live = in_array($message->status, ['queued', 'sending'], true);
-    $platformNames = ['ios' => ['iOS', 'apple'], 'android' => ['Android', 'android'], 'web' => ['Web', 'globe-web']];
+    $platformNames = ['ios' => ['iOS', 'apple'], 'android' => ['Android', 'android'], 'web' => ['Web', 'globe-web'], 'email' => [__('Email'), 'mail']];
+    $isEmail = $message->channel === 'email';
     $preview = [
         'title' => \App\Models\Message::localized($message->headings, $lang),
         'subtitle' => \App\Models\Message::localized($message->subtitle, $lang),
@@ -67,7 +68,7 @@
     <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <x-ui.stat :label="__('Recipients')" :value="$n($message->recipients)" icon="users" :hint="$live ? __(':count remaining', ['count' => $n($message->remaining())]) : null" />
         <x-ui.stat :label="__('Delivered')" :value="$n($message->successful)" icon="send" :hint="__(':rate of recipients', ['rate' => $pct($message->successful, $message->recipients)])" />
-        <x-ui.stat :label="__('Received')" :value="$n($message->received)" icon="smartphone" :hint="__(':rate confirmed by the SDK', ['rate' => $pct($message->received, $message->successful)])" />
+        <x-ui.stat :label="$isEmail ? __('Opened') : __('Received')" :value="$n($message->received)" :icon="$isEmail ? 'mail' : 'smartphone'" :hint="$isEmail ? __(':rate open rate', ['rate' => $pct($message->received, $message->successful)]) : __(':rate confirmed by the SDK', ['rate' => $pct($message->received, $message->successful)])" />
         <x-ui.stat :label="__('Clicked')" :value="$n($message->clicked)" icon="external" :hint="__(':rate click rate', ['rate' => $pct($message->clicked, $message->successful)])" />
     </div>
 
@@ -80,7 +81,7 @@
                     @foreach ([
                         [__('Recipients'), $message->recipients, 'bg-zinc-300 dark:bg-zinc-600'],
                         [__('Delivered'), $message->successful, 'bg-brand-500'],
-                        [__('Received'), $message->received, 'bg-brand-400'],
+                        [$isEmail ? __('Opened') : __('Received'), $message->received, 'bg-brand-400'],
                         [__('Clicked'), $message->clicked, 'bg-emerald-500'],
                     ] as [$label, $value, $color])
                         <div class="grid grid-cols-[96px_minmax(0,1fr)_72px] items-center gap-3 text-sm">
@@ -127,7 +128,7 @@
             @endif
 
             @if ($errors_summary->isNotEmpty())
-                <x-ui.card :title="__('Errors')" :description="__('Reasons given by Apple, Google or the browsers.')" icon="alert" :padding="false">
+                <x-ui.card :title="__('Errors')" :description="$isEmail ? __('Reasons given by the email service or the receiving servers.') : __('Reasons given by Apple, Google or the browsers.')" icon="alert" :padding="false">
                     <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
                         @foreach ($errors_summary as $row)
                             <li class="flex items-center justify-between gap-4 px-5 py-3 text-sm sm:px-6">
@@ -140,6 +141,23 @@
             @endif
 
             {{-- Content --}}
+            @if ($isEmail)
+                @php
+                    $subject = $message->option('email_subject');
+                    $emailDetails = array_filter([
+                        __('Subject') => is_array($subject) ? \App\Models\Message::localized($subject, $lang) : $subject,
+                        __('Preview text') => is_string($message->option('email_preheader')) ? $message->option('email_preheader') : null,
+                        __('Sender name') => $message->option('email_from_name'),
+                    ], fn ($v) => filled($v));
+                @endphp
+                <x-ui.card :title="__('Content')" icon="mail">
+                    <dl class="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+                        @foreach ($emailDetails as $label => $value)
+                            <div class="min-w-0"><dt class="text-xs text-zinc-500">{{ $label }}</dt><dd class="truncate text-zinc-800 dark:text-zinc-200">{{ $value }}</dd></div>
+                        @endforeach
+                    </dl>
+                </x-ui.card>
+            @else
             <x-ui.card :title="__('Content')" icon="message">
                 <dl class="space-y-4 text-sm">
                     @foreach ($message->contents as $language => $body)
@@ -171,14 +189,26 @@
                     @endif
                 </dl>
             </x-ui.card>
+            @endif
         </div>
 
         <aside class="space-y-4 lg:sticky lg:top-6">
+            @if ($isEmail)
+                @php
+                    $body = $message->option('email_body');
+                    $body = is_array($body) ? \App\Models\Message::localized($body, $lang) : (string) $body;
+                    $sample = \App\Email\EmailBuilder::render($body, ['email' => 'ada@example.com', 'external_id' => 'user-42', 'tags' => ['first_name' => 'Ada'], 'unsubscribe_url' => '#'], true);
+                @endphp
+                <x-ui.card :title="__('Preview')" icon="mail" :padding="false">
+                    <iframe title="{{ __('Preview') }}" class="mt-1 block h-[28rem] w-full rounded-b-2xl border-t border-zinc-100 bg-white dark:border-zinc-800" sandbox="" srcdoc="{{ $sample }}"></iframe>
+                </x-ui.card>
+            @else
             <x-ui.card :title="__('Preview')" icon="smartphone">
                 <div x-data="{ preview: @js($preview) }">
                     <x-messages.preview :project="$project" />
                 </div>
             </x-ui.card>
+            @endif
         </aside>
     </div>
 </x-layouts.app>

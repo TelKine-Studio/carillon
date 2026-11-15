@@ -52,6 +52,11 @@ no subscriber limits, no per-message bill, your data stays with you.
 - **Web SDK**: push notifications for websites, served by your instance.
   See [sdk/web](sdk/web).
 
+- **Email channel**: newsletters and transactional emails to the same
+  audience, with personalization, open and click tracking, one-click
+  unsubscribe, bounces and complaints. Each instance chooses how emails
+  leave: SMTP, Resend, Amazon SES, Postmark, Mailgun, or direct delivery
+  from the server (DKIM included).
 - **Moving from OneSignal**: import the exported subscribers (they keep
   receiving notifications), then follow
   [docs/migrate-from-onesignal.md](docs/migrate-from-onesignal.md).

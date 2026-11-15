@@ -39,7 +39,7 @@
                         <li class="flex flex-wrap items-center gap-3 px-5 py-4 sm:px-6">
                             <x-audience.device :subscription="$subscription" />
                             <div class="min-w-0 flex-1">
-                                <p class="text-sm font-medium text-zinc-900 dark:text-white">{{ $subscription->device_model ?: ucfirst($subscription->type) }}
+                                <p class="text-sm font-medium text-zinc-900 dark:text-white">{{ $subscription->type === 'email' ? $subscription->token : ($subscription->device_model ?: ucfirst($subscription->type)) }}
                                     @if ($subscription->environment === 'sandbox')<x-ui.badge color="violet" class="ml-1">{{ __('Development') }}</x-ui.badge>@endif
                                 </p>
                                 <p class="text-xs text-zinc-500">{{ collect([$subscription->device_os, $subscription->app_version ? 'v'.$subscription->app_version : null, $subscription->sdk, trans_choice(':count session|:count sessions', $subscription->sessions)])->filter()->implode(' · ') }}</p>

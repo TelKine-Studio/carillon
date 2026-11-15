@@ -369,6 +369,19 @@
         });
       },
 
+      /** Adds an email address to this person, for the email channel. */
+      addEmail: function (email) {
+        return withSubscription(function (id) {
+          return api('POST', '/subscriptions/' + id + '/email', { email: String(email).trim().toLowerCase() });
+        });
+      },
+
+      removeEmail: function (email) {
+        return withSubscription(function (id) {
+          return api('DELETE', '/subscriptions/' + id + '/email', { email: String(email).trim().toLowerCase() });
+        });
+      },
+
       removeTag: function (key) {
         return Carillon.user.removeTags([key]);
       },

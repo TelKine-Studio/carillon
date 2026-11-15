@@ -30,6 +30,7 @@ class CreateMessage
         'android_channel_id', 'android_accent_color', 'small_icon', 'large_icon', 'android_group', 'android_visibility',
         'priority', 'ttl', 'collapse_id', 'web_push_topic', 'content_available', 'require_interaction',
         'delayed_option', 'delivery_time_of_day',
+        'email_subject', 'email_body', 'email_preheader', 'email_from_name', 'email_from_address', 'email_reply_to_address', 'disable_email_click_tracking',
     ];
 
     /** Recipients that can be listed explicitly in one call. */
@@ -84,6 +85,7 @@ class CreateMessage
 
         $message = new Message([
             'project_id' => $project->id,
+            'channel' => self::isEmail($input) ? 'email' : 'push',
             'created_by' => $author?->id,
             'api_key_id' => $apiKey?->id,
             'template_id' => $template?->id,
@@ -122,7 +124,7 @@ class CreateMessage
         $text = ['nullable', 'array'];
 
         Validator::make($input, [
-            'contents' => [empty($input['content_available']) ? 'required' : 'nullable', 'array', 'min:1'],
+            'contents' => [empty($input['content_available']) && ! self::isEmail($input) ? 'required' : 'nullable', 'array', 'min:1'],
             'contents.*' => ['nullable', 'string', 'max:4000'],
             'headings' => $text, 'headings.*' => ['nullable', 'string', 'max:500'],
             'subtitle' => $text, 'subtitle.*' => ['nullable', 'string', 'max:500'],
@@ -150,13 +152,31 @@ class CreateMessage
             'include_external_user_ids' => ['nullable', 'array', 'max:'.self::MAX_IDS],
             'include_aliases' => ['nullable', 'array'],
             'include_aliases.external_id' => ['nullable', 'array', 'max:'.self::MAX_IDS],
-            'target_channel' => ['nullable', 'in:push'],
+            'target_channel' => ['nullable', 'in:push,email'],
             'send_after' => ['nullable', 'string', 'max:100'],
             'delayed_option' => ['nullable', 'in:timezone,last-active,immediate'],
+            'email_subject' => [self::isEmail($input) ? 'required' : 'nullable', function ($attribute, $value, $fail) {
+                if (! is_string($value) && ! is_array($value)) {
+                    $fail('email_subject must be a text or a {"en": ...} map.');
+                }
+            }],
+            'email_body' => [self::isEmail($input) ? 'required' : 'nullable', function ($attribute, $value, $fail) {
+                if ((! is_string($value) && ! is_array($value)) || strlen(json_encode($value)) > 500000) {
+                    $fail('email_body must be HTML (500 KB at most), or a {"en": ...} map.');
+                }
+            }],
+            'email_preheader' => ['nullable'],
+            'email_from_name' => ['nullable', 'string', 'max:100'],
+            'email_from_address' => ['nullable', 'email', 'max:255'],
+            'email_reply_to_address' => ['nullable', 'email', 'max:255'],
+            'include_email_tokens' => ['nullable', 'array', 'max:'.self::MAX_IDS],
+            'include_email_tokens.*' => ['string', 'max:255'],
             'delivery_time_of_day' => ['nullable', 'string', 'max:16'],
         ], [
+            'email_subject.required' => 'Email messages need an email_subject.',
+            'email_body.required' => 'Email messages need an email_body.',
             'contents.required' => 'Message Notifications must have English language content',
-            'target_channel.in' => 'Only push notifications are supported.',
+            'target_channel.in' => 'target_channel is push or email.',
         ])->after(function ($validator) use ($input) {
             if (($input['delayed_option'] ?? null) === 'timezone' && ! LocalTime::parse($input['delivery_time_of_day'] ?? null)) {
                 $validator->errors()->add('delivery_time_of_day', 'delivery_time_of_day must be a time of day like "9:00AM" when delayed_option is "timezone".');
@@ -177,9 +197,23 @@ class CreateMessage
         ))));
         $segments = array_values($input['included_segments'] ?? []);
         $filters = array_values($input['filters'] ?? []);
+        // Addresses (OneSignal include_email_tokens): email channel only.
+        $emails = array_values(array_unique(array_map(fn ($email) => mb_strtolower(trim((string) $email)), $input['include_email_tokens'] ?? [])));
 
-        if ($ids === [] && $externalIds === [] && $segments === [] && $filters === []) {
+        if ($ids === [] && $externalIds === [] && $segments === [] && $filters === [] && $emails === []) {
             throw ValidationException::withMessages(['targeting' => 'You must include which players, segments, or tags you wish to send this notification to.']);
+        }
+
+        if (self::isEmail($input)) {
+            return array_filter([
+                'channel' => 'email',
+                'subscription_ids' => $ids,
+                'external_ids' => $externalIds,
+                'emails' => $emails,
+                'segments' => $segments,
+                'excluded_segments' => array_values($input['excluded_segments'] ?? []),
+                'filters' => $filters,
+            ]);
         }
 
         // Platform flags of OneSignal: only those set to true are kept.
@@ -194,6 +228,16 @@ class CreateMessage
             'filters' => $filters,
             'platforms' => $platforms,
         ]);
+    }
+
+    /** An email (OneSignal: target_channel "email", or email fields without push contents). */
+    public static function isEmail(array $input): bool
+    {
+        if (isset($input['target_channel'])) {
+            return $input['target_channel'] === 'email';
+        }
+
+        return (filled($input['email_body'] ?? null) || filled($input['include_email_tokens'] ?? null)) && blank($input['contents'] ?? null);
     }
 
     protected function sendAfter(mixed $value): ?CarbonImmutable

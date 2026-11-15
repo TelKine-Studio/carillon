@@ -16,7 +16,7 @@ class PushCredentialController extends Controller
     public function update(Request $request, Project $project, string $provider): RedirectResponse
     {
         $this->authorize('configure', $project);
-        abort_unless(in_array($provider, Project::PROVIDERS, true), 404);
+        abort_unless(in_array($provider, ['apns', 'fcm', 'webpush'], true), 404);
 
         $existing = $project->credential($provider);
 

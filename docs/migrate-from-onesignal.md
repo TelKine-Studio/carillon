@@ -12,6 +12,8 @@ in OneSignal (*Settings → Platforms*):
 - **Apple**: a `.p8` key of the same Apple team, and the same bundle id.
 - **Android**: the service account key of the same Firebase project.
 - **Web**: generate new VAPID keys (OneSignal does not give its own).
+- **Email** (if you use it): your SMTP server or service (Resend, SES,
+  Postmark, Mailgun), or direct delivery.
 
 ## 2. Import your audience
 
@@ -20,6 +22,7 @@ file. In Carillon, *Audience → Import from OneSignal*, send the file.
 
 - iOS and Android devices work right away: their tokens are used with your
   own keys. People keep their external id and tags.
+- Email addresses are imported too, with their state.
 - Web subscriptions are tied to the keys of OneSignal and cannot be moved:
   the web SDK subscribes your visitors again on their next visit.
 - Importing again updates the devices (run it again just before switching

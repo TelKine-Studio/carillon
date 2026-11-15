@@ -73,6 +73,45 @@ and sent right away.
 (texts, link, image, buttons, options); the fields of the request override
 it. The message keeps the template for its statistics.
 
+## Send an email
+
+The same endpoint sends emails (OneSignal format), with the email settings
+of the project (*Settings → Platforms → Email*):
+
+```json
+{
+  "app_id": "…",
+  "target_channel": "email",
+  "included_segments": ["Subscribed Users"],
+  "email_subject": "Hello {{ tags.first_name | default: \"there\" }}",
+  "email_preheader": "Our new collection is here",
+  "email_body": "<html><body><p>…</p></body></html>"
+}
+```
+
+- Audience: the same segments, filters and `include_aliases.external_id`
+  (their email addresses), or `include_email_tokens` (addresses).
+- `email_subject`, `email_body` and `email_preheader` accept a text or a
+  `{"en": …, "fr": …}` map (the language of each person).
+- Personalization: `{{ email }}`, `{{ external_id }}`, `{{ tags.key }}`, with
+  a fallback: `{{ tags.key | default: "…" }}`.
+- `email_from_name`, `email_from_address`, `email_reply_to_address`,
+  `disable_email_click_tracking`.
+- An unsubscribe link is added at the bottom, unless the body contains
+  `{{ unsubscribe_url }}`; the one-click unsubscribe headers required by
+  Gmail and Yahoo are always set.
+- Statistics: `received` counts opens, `converted` clicks.
+
+Addresses are added with the SDKs (`addEmail`), the users API
+(`{"type": "Email", "token": "ada@example.com"}`) or the OneSignal import.
+
+**Delivery**: each instance chooses how its emails leave, per project:
+SMTP (any server), Resend, Amazon SES, Postmark, Mailgun, or direct delivery
+from the server itself (MX lookup, DKIM signature, opportunistic TLS; needs
+outgoing port 25 and a good IP reputation). Bounces and complaints reported
+by the services disable the addresses (webhook address shown in the
+settings).
+
 ## Templates
 
 - `POST /api/v1/templates` — `name`, `headings`, `subtitle`, `contents`
@@ -158,7 +197,8 @@ body to your URL for the events you choose.
 | `notification.received` | Shown on a device (reported by the SDK) | `message_id`, `subscription_id`, `external_id`, `platform` |
 | `notification.clicked` | Opened, once per device | the same, and `action_id` for a button |
 | `subscription.created` | A new device registered | `subscription_id`, `subscriber_id`, `external_id`, `platform`, `language`, `device_model`, `app_version` |
-| `subscription.unsubscribed` | Notifications turned off (`reason: opted_out`) or token refused by Apple/Google (`reason: token_invalid`) | `subscription_id`, `subscriber_id`, `external_id`, `platform`, `reason` |
+| `subscription.unsubscribed` | Notifications turned off (`reason: opted_out`), token refused by Apple/Google (`token_invalid`), email unsubscribed, bounced or complained (`unsubscribed`, `bounced`, `complained`) | `subscription_id`, `subscriber_id`, `external_id`, `platform`, `reason` |
+| `email.opened` / `email.clicked` | An email opened, or a link clicked, once per address | `message_id`, `subscription_id`, `external_id` |
 
 ```json
 {

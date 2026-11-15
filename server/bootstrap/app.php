@@ -32,6 +32,9 @@ $app = Application::configure(basePath: dirname(__DIR__))
 
         $middleware->api(append: [SetLocale::class]);
 
+        // Unsubscribe links are posted by mail apps (one click), without session.
+        $middleware->validateCsrfTokens(except: ['e/*']);
+
         // Send visitors to the first-run setup before asking them to log in.
         $middleware->prependToPriorityList(
             before: AuthenticatesRequests::class,

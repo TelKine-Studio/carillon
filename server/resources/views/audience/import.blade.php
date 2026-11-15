@@ -4,7 +4,7 @@
     $fcm = $project->credential('fcm')?->isUsable();
     $reasons = [
         'web' => __('web subscriptions (tied to the keys of OneSignal)'),
-        'unsupported' => __('other channels (email, SMS, Amazon, Huawei)'),
+        'unsupported' => __('other channels (SMS, Amazon, Huawei)'),
         'no_token' => __('without push token'),
         'invalid_token' => __('invalid tokens'),
     ];

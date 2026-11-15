@@ -22,7 +22,7 @@
             <input type="search" name="q" value="{{ $search }}" placeholder="{{ __('External id, tag value, device id…') }}" class="form-control pl-9">
         </div>
         <div class="grid grid-cols-2 gap-3 sm:flex">
-            <x-ui.select name="platform" size="sm" class="sm:w-40" :value="$platform" :options="['' => __('All platforms'), 'ios' => 'iOS', 'android' => 'Android', 'web' => 'Web']" onchange="this.form.submit()" />
+            <x-ui.select name="platform" size="sm" class="sm:w-40" :value="$platform" :options="['' => __('All platforms'), 'ios' => 'iOS', 'android' => 'Android', 'web' => 'Web', 'email' => __('Email')]" onchange="this.form.submit()" />
             <x-ui.select name="state" size="sm" class="sm:w-44" :value="$state" :options="['' => __('All states'), 'subscribed' => __('Subscribed'), 'unsubscribed' => __('Unsubscribed'), 'invalid' => __('Unreachable')]" onchange="this.form.submit()" />
         </div>
     </form>
@@ -37,7 +37,7 @@
                 <div class="flex min-w-0 items-center gap-3">
                     <x-audience.device :subscription="$subscription" />
                     <div class="min-w-0">
-                        <p class="truncate text-sm font-medium text-zinc-900 dark:text-white">{{ $subscription->device_model ?: ucfirst($subscription->type) }}</p>
+                        <p class="truncate text-sm font-medium text-zinc-900 dark:text-white">{{ $subscription->type === 'email' ? $subscription->token : ($subscription->device_model ?: ucfirst($subscription->type)) }}</p>
                         <p class="truncate text-xs text-zinc-500">{{ collect([$subscription->device_os, $subscription->app_version ? 'v'.$subscription->app_version : null])->filter()->implode(' · ') ?: '—' }}</p>
                     </div>
                     <span class="ml-auto lg:hidden"><x-audience.state :subscription="$subscription" /></span>

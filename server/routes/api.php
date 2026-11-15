@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Sdk\ConfigController;
+use App\Http\Controllers\Sdk\EmailEventsController;
 use App\Http\Controllers\Sdk\SubscriptionController;
 use App\Http\Middleware\AuthenticateApiKey;
 use Illuminate\Support\Facades\Route;
@@ -32,6 +33,9 @@ Route::prefix('v1')->group(function () {
         Route::delete('apps/{app_id}/users/by/external_id/{externalId}', [UserController::class, 'destroy']);
     });
 
+    // Bounces and complaints from the email service of a project.
+    Route::post('email/{appId}/{provider}/{secret}', [EmailEventsController::class, 'store'])->middleware('throttle:email-events');
+
     // Called by the SDKs inside the apps (App ID only).
     Route::prefix('sdk/apps/{appId}')->middleware('throttle:sdk')->group(function () {
         Route::get('config', [ConfigController::class, 'show']);
@@ -42,5 +46,7 @@ Route::prefix('v1')->group(function () {
         Route::post('subscriptions/{id}/logout', [SubscriptionController::class, 'logout']);
         Route::put('subscriptions/{id}/tags', [SubscriptionController::class, 'tags']);
         Route::post('subscriptions/{id}/events', [SubscriptionController::class, 'event']);
+        Route::post('subscriptions/{id}/email', [SubscriptionController::class, 'addEmail']);
+        Route::delete('subscriptions/{id}/email', [SubscriptionController::class, 'removeEmail']);
     });
 });

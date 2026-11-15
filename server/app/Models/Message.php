@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Email\EmailBuilder;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** A notification sent (or to send) to part of a project's audience. */
-#[Fillable(['project_id', 'created_by', 'api_key_id', 'template_id', 'name', 'idempotency_key', 'headings', 'subtitle', 'contents', 'options', 'targeting', 'status', 'send_after', 'recipients', 'successful', 'failed', 'errored', 'received', 'clicked', 'error', 'started_at', 'completed_at', 'canceled_at'])]
+#[Fillable(['project_id', 'channel', 'created_by', 'api_key_id', 'template_id', 'name', 'idempotency_key', 'headings', 'subtitle', 'contents', 'options', 'targeting', 'status', 'send_after', 'recipients', 'successful', 'failed', 'errored', 'received', 'clicked', 'error', 'started_at', 'completed_at', 'canceled_at'])]
 class Message extends Model
 {
     use HasUuids;
@@ -125,7 +126,17 @@ class Message extends Model
     /** Title shown in the lists: name, else heading, else text. */
     public function label(): string
     {
-        return $this->name ?: (self::localized($this->headings, app()->getLocale()) ?? mb_strimwidth((string) self::localized($this->contents, app()->getLocale()), 0, 80, '…'));
+        if ($this->name) {
+            return $this->name;
+        }
+        if ($this->channel === 'email') {
+            $subject = $this->option('email_subject');
+
+            // Variables shown with their fallback ("Hello {{ tags.name | default: "you" }}" → "Hello you").
+            return trim(EmailBuilder::render((string) (is_array($subject) ? self::localized($subject, app()->getLocale()) : $subject), [], false));
+        }
+
+        return self::localized($this->headings, app()->getLocale()) ?? mb_strimwidth((string) self::localized($this->contents, app()->getLocale()), 0, 80, '…');
     }
 
     public function rate(int $value): ?float

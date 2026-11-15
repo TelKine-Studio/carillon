@@ -97,12 +97,14 @@ class OneSignalImportTest extends TestCase
         $this->actingAs($this->owner)->post(route('projects.imports.store', $this->project), ['file' => UploadedFile::fake()->createWithContent('again.csv', $content)])->assertRedirect();
 
         [$first, $second] = AudienceImport::query()->orderBy('id')->get();
-        $this->assertSame([1, 0, 1], [$first->created, $first->updated, $first->skipped]);
-        $this->assertSame([0, 1, 1], [$second->created, $second->updated, $second->skipped]);
+        // The email address is imported too (email channel).
+        $this->assertSame([2, 0, 0], [$first->created, $first->updated, $first->skipped]);
+        $this->assertSame([0, 2, 0], [$second->created, $second->updated, $second->skipped]);
 
         $person = $this->project->subscribers()->where('external_id', 'u-9')->first();
         $this->assertSame(['America/Sao_Paulo', 'BR', 'pt'], [$person->timezone, $person->country, $person->language]);
-        $this->assertSame(1, $this->project->subscriptions()->count());
+        $this->assertSame(['android', 'email'], $this->project->subscriptions()->orderBy('type')->pluck('type')->all());
+        $this->assertSame('a@b.c', $this->project->subscriptions()->where('type', 'email')->value('token'));
     }
 
     public function test_rejects_other_files(): void

@@ -86,6 +86,8 @@ class AppServiceProvider extends ServiceProvider
 
         // SDK calls of the apps, per device address.
         RateLimiter::for('sdk', fn (Request $request) => Limit::perMinute(120)->by('sdk:'.$request->ip()));
+        // Email services send bounces in bursts, from few addresses.
+        RateLimiter::for('email-events', fn (Request $request) => Limit::perMinute(3000)->by('email-events:'.$request->ip()));
 
         RateLimiter::for('login', fn (Request $request) => Limit::perMinute(5)
             ->by(mb_strtolower((string) $request->input('email')).'|'.$request->ip()));

@@ -105,6 +105,8 @@
         </x-ui.card>
     </form>
 
+    @include('projects.settings.partials.email')
+
     @if ($web?->isUsable())
         @php $origin = rtrim(url('/'), '/'); @endphp
         <x-ui.card :title="__('Add notifications to your website')" icon="code">
@@ -130,7 +132,7 @@
         </x-ui.card>
     @endif
 
-    @foreach (['apns', 'fcm', 'webpush'] as $provider)
+    @foreach (['apns', 'fcm', 'webpush', 'email'] as $provider)
         <form id="remove-{{ $provider }}" method="POST" action="{{ route('projects.push.destroy', [$project, $provider]) }}" class="hidden"
             data-confirm-title="{{ __('Remove these keys?') }}" data-confirm="{{ __('Devices of this platform stop receiving notifications until you add keys again.') }}" data-confirm-action="{{ __('Remove') }}">
             @csrf
