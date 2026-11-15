@@ -1,0 +1,44 @@
+import 'dart:async';
+
+import 'models.dart';
+
+/// What each operating system provides to the SDK.
+abstract class PushPlatform {
+  /// "ios" or "android" (the device type known by the server).
+  String get type;
+
+  /// APNs environment of iOS builds ("sandbox" for development builds).
+  Future<String?> environment() async => null;
+
+  /// Push token, or null while it is not available.
+  Future<String?> token();
+
+  /// New tokens (refreshed by the system).
+  Stream<String> get tokens;
+
+  /// "granted", "denied" or "not_determined".
+  Future<String> permission();
+
+  Future<bool> requestPermission();
+
+  /// Notifications tapped while the app runs.
+  Stream<CarillonClickEvent> get clicks;
+
+  /// The tap that launched the app, if any.
+  Future<CarillonClickEvent?> initialClick();
+
+  /// Called for a notification received while the app is open: returns
+  /// whether it is shown.
+  set foregroundHandler(FutureOr<bool> Function(CarillonNotification notification)? handler);
+
+  /// Notifications received while the app is open (reported as received).
+  Stream<CarillonNotification> get displayed;
+
+  Future<void> start();
+
+  Future<void> clearAll();
+
+  /// Makes the server, project and device known to the notification
+  /// service extension (iOS), which reports receptions.
+  Future<void> share(Map<String, String?> values) async {}
+}

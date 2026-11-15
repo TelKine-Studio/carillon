@@ -7,9 +7,9 @@ Carillon lets you send them to all the apps of your team from your own server:
 no subscriber limits, no per-message bill, your data stays with you.
 
 > 🚧 Work in progress. Available: projects and members, push keys per
-> project, the OneSignal-compatible REST API and the sending engine. Coming
-> next: the dashboard (composer, audience, segments, statistics) and the
-> Flutter and web SDKs.
+> project, the OneSignal-compatible REST API, the sending engine, the
+> dashboard and the Flutter SDK. Coming next: per-timezone delivery,
+> templates, webhooks and the web SDK.
 
 ## Features
 
@@ -32,8 +32,14 @@ no subscriber limits, no per-message bill, your data stays with you.
   push, in parallel batches of 500 devices, dead tokens disabled
   automatically, statistics per platform (sent, failed, received, clicked).
 
-Planned: dashboard composer and statistics, per-timezone delivery, templates,
-webhooks, Flutter and web SDKs.
+- **Dashboard**: message composer with live preview and audience estimate,
+  audience (people and devices, tags, test sends), segments with a filter
+  builder, statistics per message and per platform.
+- **Flutter SDK**: APNs on iOS (no Firebase there), FCM on Android, images,
+  buttons, clicks, users and tags, with the API of the OneSignal SDK. See
+  [sdk/carillon_flutter](sdk/carillon_flutter).
+
+Planned: per-timezone delivery, templates, webhooks, web SDK.
 
 ## Install
 
