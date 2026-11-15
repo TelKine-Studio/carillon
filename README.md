@@ -1,6 +1,11 @@
-# Carillon
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/carillon-logo-dark.svg">
+    <img src="docs/assets/brand/carillon-logo-light.svg" alt="Carillon" height="48">
+  </picture>
+</p>
 
-**Self-hosted, open-source push notifications — an alternative to OneSignal.**
+<p align="center"><strong>Self-hosted, open-source push notifications — an alternative to OneSignal.</strong></p>
 
 Push notifications are free at Apple (APNs) and Google (Firebase Cloud Messaging).
 Carillon lets you send them to all the apps of your team from your own server:

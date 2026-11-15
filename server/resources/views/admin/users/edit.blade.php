@@ -40,7 +40,7 @@
                         @error('role')<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror
                     </fieldset>
                     <div class="border-t border-zinc-100 pt-6 dark:border-zinc-800">
-                        <x-ui.toggle name="is_active" :checked="$user->is_active" :label="__('Active account')" :description="__('Disabled users cannot log in, their tokens are revoked and their devices stop receiving private topics.')" />
+                        <x-ui.toggle name="is_active" :checked="$user->is_active" :label="__('Active account')" :description="__('Disabled users cannot log in and lose access to their projects.')" />
                     </div>
                 </div>
                 <x-slot:footer>

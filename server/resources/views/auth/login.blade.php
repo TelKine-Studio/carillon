@@ -1,4 +1,4 @@
-<x-layouts.guest :title="__('Log in')" :heading="__('Welcome back')" :subheading="__('Sign in to manage your topics and notifications.')">
+<x-layouts.guest :title="__('Log in')" :heading="__('Welcome back')" :subheading="__('Sign in to manage your projects and notifications.')">
     <form method="POST" action="{{ route('login') }}" class="space-y-5">
         @csrf
         <x-ui.input name="email" type="email" :label="__('Email')" required autofocus autocomplete="username" icon="mail" placeholder="you@example.com" />

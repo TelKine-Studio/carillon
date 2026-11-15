@@ -1,9 +1,8 @@
 @props(['class' => 'size-8'])
-<span {{ $attributes->merge(['class' => "inline-flex shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-brand-400 to-brand-700 text-white shadow-sm shadow-brand-700/30 ring-1 ring-inset ring-white/20 $class"]) }}>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="size-[58%]" aria-hidden="true">
-        <path d="M10.268 21a2 2 0 0 0 3.464 0"/>
-        <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/>
-        <path d="M2 4.5c.6-1 1.4-1.8 2.3-2.4"/>
-        <path d="M22 4.5c-.6-1-1.4-1.8-2.3-2.4"/>
+{{-- Carillon mark: a "C" and its clapper (sources in docs/assets/brand). --}}
+<span {{ $attributes->merge(['class' => "inline-flex shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-brand-500 to-brand-700 text-white shadow-sm shadow-brand-700/30 ring-1 ring-inset ring-white/15 $class"]) }}>
+    <svg viewBox="0 0 32 32" class="size-full" aria-hidden="true">
+        <path d="M23 8.6A10 10 0 1 0 23 23.4" fill="none" stroke="currentColor" stroke-width="4.2" stroke-linecap="round"/>
+        <circle cx="17.2" cy="16" r="3.3" fill="currentColor"/>
     </svg>
 </span>

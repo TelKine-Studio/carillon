@@ -13,7 +13,7 @@
         <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
             @forelse ($logs as $log)
                 @php
-                    $danger = in_array($log->action, ['auth.login_failed', 'auth.2fa_failed', 'auth.2fa_disabled', 'user.deleted', 'topic.deleted', 'token.revoked'], true);
+                    $danger = in_array($log->action, ['auth.login_failed', 'auth.2fa_failed', 'auth.2fa_disabled', 'user.deleted', 'project.deleted', 'api_key.revoked', 'webhook.deleted'], true);
                 @endphp
                 <li class="flex flex-wrap items-start gap-x-4 gap-y-1 px-4 py-3 text-sm sm:px-6">
                     <span @class(['mt-1.5 size-2 shrink-0 rounded-full', 'bg-red-500' => $danger, 'bg-zinc-300 dark:bg-zinc-600' => ! $danger])></span>

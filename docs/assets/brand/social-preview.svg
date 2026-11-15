@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640">
+  <rect width="1280" height="640" fill="#18181B"/>
+  <g transform="translate(120 215) scale(5)">
+    <rect width="32" height="32" rx="7" fill="#E4531E"/>
+    <path d="M23 8.6A10 10 0 1 0 23 23.4" fill="none" stroke="#fff" stroke-width="4.2" stroke-linecap="round"/>
+    <circle cx="17.2" cy="16" r="3.3" fill="#fff"/>
+  </g>
+  <text x="330" y="345" fill="#FAFAFA" font-family="Inter, -apple-system, Helvetica, Arial, sans-serif" font-size="104" font-weight="700" letter-spacing="-3">Carillon</text>
+  <text x="334" y="417" fill="#A1A1AA" font-family="Inter, -apple-system, Helvetica, Arial, sans-serif" font-size="38" font-weight="400">Self-hosted push notifications.</text>
+  <text x="334" y="465" fill="#A1A1AA" font-family="Inter, -apple-system, Helvetica, Arial, sans-serif" font-size="38" font-weight="400">An open-source alternative to OneSignal.</text>
+</svg>
