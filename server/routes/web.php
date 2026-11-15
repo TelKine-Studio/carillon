@@ -18,6 +18,7 @@ use App\Http\Controllers\PushCredentialController;
 use App\Http\Controllers\SegmentController;
 use App\Http\Controllers\SetupController;
 use App\Http\Controllers\SubscriberController;
+use App\Http\Controllers\TemplateController;
 use App\Http\Middleware\RequireTwoFactor;
 use Illuminate\Support\Facades\Route;
 
@@ -81,6 +82,13 @@ Route::middleware('auth')->group(function () {
         Route::get('segments/{segment}/edit', [SegmentController::class, 'edit'])->name('segments.edit');
         Route::put('segments/{segment}', [SegmentController::class, 'update'])->name('segments.update');
         Route::delete('segments/{segment}', [SegmentController::class, 'destroy'])->name('segments.destroy');
+
+        Route::get('templates', [TemplateController::class, 'index'])->name('templates.index');
+        Route::get('templates/create', [TemplateController::class, 'create'])->name('templates.create');
+        Route::post('templates', [TemplateController::class, 'store'])->name('templates.store');
+        Route::get('templates/{template}/edit', [TemplateController::class, 'edit'])->name('templates.edit');
+        Route::put('templates/{template}', [TemplateController::class, 'update'])->name('templates.update');
+        Route::delete('templates/{template}', [TemplateController::class, 'destroy'])->name('templates.destroy');
 
         Route::put('push/{provider}', [PushCredentialController::class, 'update'])->name('push.update');
         Route::post('push/webpush/generate', [PushCredentialController::class, 'generateWebPush'])->name('push.webpush.generate');

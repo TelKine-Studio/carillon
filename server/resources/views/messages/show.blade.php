@@ -52,6 +52,10 @@
         </span>
         <span>·</span>
         <span>{{ $message->author?->name ?? ($message->api_key_id ? __('Sent with the API') : '—') }}</span>
+        @if ($message->template)
+            <span>·</span>
+            <a href="{{ route('projects.templates.edit', [$project, $message->template]) }}" class="inline-flex items-center gap-1 hover:text-zinc-900 dark:hover:text-white"><x-ui.icon name="file" class="size-3.5" />{{ $message->template->name }}</a>
+        @endif
     </div>
 
     @if ($message->error)

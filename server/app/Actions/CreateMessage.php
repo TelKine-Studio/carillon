@@ -12,6 +12,7 @@ use App\Push\LocalTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -43,6 +44,17 @@ class CreateMessage
      */
     public function handle(Project $project, array $input, ?User $author = null, ?ApiKey $apiKey = null): Message
     {
+        // A template gives the content; the fields of the request win.
+        $template = null;
+        if (filled($input['template_id'] ?? null)) {
+            $id = (string) $input['template_id'];
+            $template = Str::isUuid($id) ? $project->templates()->find($id) : null;
+            if (! $template) {
+                throw ValidationException::withMessages(['template_id' => 'Template not found.']);
+            }
+            $input = array_replace($template->toInput(), array_filter($input, fn ($value) => $value !== null));
+        }
+
         $this->validate($input);
 
         if (filled($input['idempotency_key'] ?? $input['external_id'] ?? null)) {
@@ -74,6 +86,7 @@ class CreateMessage
             'project_id' => $project->id,
             'created_by' => $author?->id,
             'api_key_id' => $apiKey?->id,
+            'template_id' => $template?->id,
             'name' => $input['name'] ?? null,
             'idempotency_key' => $input['idempotency_key'] ?? $input['external_id'] ?? null,
             'headings' => $this->texts($input['headings'] ?? null),
@@ -199,7 +212,7 @@ class CreateMessage
     }
 
     /** @return array<string, string>|null */
-    protected function texts(mixed $texts): ?array
+    public function texts(mixed $texts): ?array
     {
         if (! is_array($texts)) {
             return null;

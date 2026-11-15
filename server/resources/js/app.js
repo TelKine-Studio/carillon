@@ -243,6 +243,8 @@ Alpine.data('messageComposer', (config) => ({
 
     /** Recipients for the current audience (debounced). */
     refresh() {
+        // Template editor: no audience.
+        if (!config.estimateUrl) return;
         clearTimeout(this.timer);
         this.timer = setTimeout(async () => {
             this.estimate.loading = true;
@@ -320,6 +322,8 @@ Alpine.data('segmentBuilder', (config) => ({
     },
 
     refresh() {
+        // Template editor: no audience.
+        if (!config.estimateUrl) return;
         clearTimeout(this.timer);
         this.timer = setTimeout(async () => {
             this.loading = true;

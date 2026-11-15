@@ -1,4 +1,8 @@
 <?php
+    // The same composer edits templates ($template set, or $templateMode for a new one).
+    $template ??= null;
+    $templateMode = ($templateMode ?? false) || $template !== null;
+    $templates ??= collect();
     $locale = in_array(app()->getLocale(), array_keys($languages), true) ? app()->getLocale() : 'en';
     $texts = collect($source?->contents ?? [$locale => ''])->keys()->map(fn ($language) => [
         'language' => $language,
@@ -9,7 +13,7 @@
     $targeting = $source?->targeting ?? [];
     $ready = array_keys(array_filter($platforms, fn ($p) => $p['ready']));
     $config = [
-        'estimateUrl' => route('projects.messages.estimate', $project),
+        'estimateUrl' => $templateMode ? null : route('projects.messages.estimate', $project),
         'languages' => $languages,
         'texts' => old('texts', $texts),
         'audience' => old('audience', ! empty($targeting['external_ids']) ? 'users' : (! empty($targeting['subscription_ids']) ? 'devices' : 'segments')),
@@ -25,28 +29,35 @@
     $deviceIds = old('subscription_ids', implode(PHP_EOL, $targeting['subscription_ids'] ?? []));
     $builtIn = ['Subscribed Users' => __('Subscribed Users'), 'Active Users' => __('Active Users'), 'Engaged Users' => __('Engaged Users'), 'Inactive Users' => __('Inactive Users')];
 ?>
+<?php
+    $heading = $templateMode ? ($template ? __('Edit the template') : __('New template')) : __('New message');
+?>
 <?php if (isset($component)) { $__componentOriginal5863877a5171c196453bfa0bd807e410 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal5863877a5171c196453bfa0bd807e410 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.layouts.app','data' => ['title' => __('New message').' · '.$project->name]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.layouts.app','data' => ['title' => $heading.' · '.$project->name]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('layouts.app'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('New message').' · '.$project->name)]); ?>
+<?php $component->withAttributes(['title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($heading.' · '.$project->name)]); ?>
     <?php if (isset($component)) { $__componentOriginal91a231a9270579fa1ae9246bd51fb785 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal91a231a9270579fa1ae9246bd51fb785 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.page-header','data' => ['title' => __('New message'),'description' => __('Write a push notification and choose who receives it.')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.page-header','data' => ['title' => $heading,'description' => $templateMode ? __('Content you can reuse from the composer or with template_id in the API.') : __('Write a push notification and choose who receives it.')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('ui.page-header'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('New message')),'description' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Write a push notification and choose who receives it.'))]); ?>
+<?php $component->withAttributes(['title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($heading),'description' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($templateMode ? __('Content you can reuse from the composer or with template_id in the API.') : __('Write a push notification and choose who receives it.'))]); ?>
          <?php $__env->slot('breadcrumb', null, []); ?> 
-            <a href="<?php echo e(route('projects.messages.index', $project)); ?>" class="hover:text-zinc-900 dark:hover:text-white"><?php echo e(__('Messages')); ?></a>
+            <?php if($templateMode): ?>
+                <a href="<?php echo e(route('projects.templates.index', $project)); ?>" class="hover:text-zinc-900 dark:hover:text-white"><?php echo e(__('Templates')); ?></a>
+            <?php else: ?>
+                <a href="<?php echo e(route('projects.messages.index', $project)); ?>" class="hover:text-zinc-900 dark:hover:text-white"><?php echo e(__('Messages')); ?></a>
+            <?php endif; ?>
             <?php if (isset($component)) { $__componentOriginal56804098dcf376a0e2227cb77b6cd00a = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal56804098dcf376a0e2227cb77b6cd00a = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.icon','data' => ['name' => 'chevron-right','class' => 'size-3.5']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
@@ -67,8 +78,39 @@
 <?php $component = $__componentOriginal56804098dcf376a0e2227cb77b6cd00a; ?>
 <?php unset($__componentOriginal56804098dcf376a0e2227cb77b6cd00a); ?>
 <?php endif; ?>
-            <span><?php echo e(__('New')); ?></span>
+            <span><?php echo e($template ? $template->name : __('New')); ?></span>
          <?php $__env->endSlot(); ?>
+        <?php if(! $templateMode && $templates->isNotEmpty()): ?>
+            <div x-data="{ open: false }" class="relative">
+                <?php if (isset($component)) { $__componentOriginala8bb031a483a05f647cb99ed3a469847 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginala8bb031a483a05f647cb99ed3a469847 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.button','data' => ['type' => 'button','variant' => 'secondary','icon' => 'file','xOn:click' => 'open = !open']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('ui.button'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['type' => 'button','variant' => 'secondary','icon' => 'file','x-on:click' => 'open = !open']); ?><?php echo e(__('Start from a template')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginala8bb031a483a05f647cb99ed3a469847)): ?>
+<?php $attributes = $__attributesOriginala8bb031a483a05f647cb99ed3a469847; ?>
+<?php unset($__attributesOriginala8bb031a483a05f647cb99ed3a469847); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginala8bb031a483a05f647cb99ed3a469847)): ?>
+<?php $component = $__componentOriginala8bb031a483a05f647cb99ed3a469847; ?>
+<?php unset($__componentOriginala8bb031a483a05f647cb99ed3a469847); ?>
+<?php endif; ?>
+                <div x-show="open" x-cloak x-on:click.outside="open = false" x-transition.opacity class="absolute right-0 z-30 mt-1 max-h-72 w-64 overflow-y-auto rounded-lg border border-zinc-200 bg-white p-1 shadow-(--shadow-lift) dark:border-zinc-800 dark:bg-zinc-900">
+                    <?php $__currentLoopData = $templates; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <a href="<?php echo e(route('projects.messages.create', [$project, 'template' => $item->id])); ?>" class="block rounded-md px-2.5 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-white/5">
+                            <span class="block truncate font-medium text-zinc-900 dark:text-white"><?php echo e($item->name); ?></span>
+                            <span class="block truncate text-xs text-zinc-500"><?php echo e(\App\Models\Message::localized($item->headings, app()->getLocale()) ?? \App\Models\Message::localized($item->contents, app()->getLocale())); ?></span>
+                        </a>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                </div>
+            </div>
+        <?php endif; ?>
      <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal91a231a9270579fa1ae9246bd51fb785)): ?>
@@ -106,12 +148,88 @@
         </div>
     <?php endif; ?>
 
-    <form method="POST" action="<?php echo e(route('projects.messages.store', $project)); ?>" x-data="messageComposer(<?php echo \Illuminate\Support\Js::from($config)->toHtml() ?>)" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+    <form method="POST" action="<?php echo e($template ? route('projects.templates.update', [$project, $template]) : ($templateMode ? route('projects.templates.store', $project) : route('projects.messages.store', $project))); ?>" x-data="messageComposer(<?php echo \Illuminate\Support\Js::from($config)->toHtml() ?>)" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
         <?php echo csrf_field(); ?>
+        <?php if($template): ?>
+            <?php echo method_field('PUT'); ?>
+        <?php endif; ?>
+        <?php if($usedTemplate ?? null): ?>
+            <input type="hidden" name="template_id" value="<?php echo e($usedTemplate->id); ?>">
+        <?php endif; ?>
         <input type="hidden" name="timezone" x-init="$el.value = Intl.DateTimeFormat().resolvedOptions().timeZone">
 
         <div class="min-w-0 space-y-6">
+            <?php if($templateMode): ?>
+                <?php if (isset($component)) { $__componentOriginaldae4cd48acb67888a4631e1ba48f2f93 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginaldae4cd48acb67888a4631e1ba48f2f93 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.card','data' => ['title' => __('Template'),'icon' => 'file']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('ui.card'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Template')),'icon' => 'file']); ?>
+                    <?php if (isset($component)) { $__componentOriginal65bd7e7dbd93cec773ad6501ce127e46 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal65bd7e7dbd93cec773ad6501ce127e46 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.input','data' => ['name' => 'template_name','label' => __('Name'),'value' => old('template_name', $template?->name),'required' => true,'maxlength' => '255','placeholder' => __('e.g. Order shipped'),'hint' => __('Only shown in the dashboard and the API.')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('ui.input'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['name' => 'template_name','label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Name')),'value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(old('template_name', $template?->name)),'required' => true,'maxlength' => '255','placeholder' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('e.g. Order shipped')),'hint' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Only shown in the dashboard and the API.'))]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal65bd7e7dbd93cec773ad6501ce127e46)): ?>
+<?php $attributes = $__attributesOriginal65bd7e7dbd93cec773ad6501ce127e46; ?>
+<?php unset($__attributesOriginal65bd7e7dbd93cec773ad6501ce127e46); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal65bd7e7dbd93cec773ad6501ce127e46)): ?>
+<?php $component = $__componentOriginal65bd7e7dbd93cec773ad6501ce127e46; ?>
+<?php unset($__componentOriginal65bd7e7dbd93cec773ad6501ce127e46); ?>
+<?php endif; ?>
+                 <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginaldae4cd48acb67888a4631e1ba48f2f93)): ?>
+<?php $attributes = $__attributesOriginaldae4cd48acb67888a4631e1ba48f2f93; ?>
+<?php unset($__attributesOriginaldae4cd48acb67888a4631e1ba48f2f93); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginaldae4cd48acb67888a4631e1ba48f2f93)): ?>
+<?php $component = $__componentOriginaldae4cd48acb67888a4631e1ba48f2f93; ?>
+<?php unset($__componentOriginaldae4cd48acb67888a4631e1ba48f2f93); ?>
+<?php endif; ?>
+            <?php endif; ?>
+
+            <?php if($usedTemplate ?? null): ?>
+                <div class="flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-white/5 dark:text-zinc-400">
+                    <?php if (isset($component)) { $__componentOriginal56804098dcf376a0e2227cb77b6cd00a = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal56804098dcf376a0e2227cb77b6cd00a = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.icon','data' => ['name' => 'file','class' => 'size-4 shrink-0 text-zinc-400']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('ui.icon'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['name' => 'file','class' => 'size-4 shrink-0 text-zinc-400']); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal56804098dcf376a0e2227cb77b6cd00a)): ?>
+<?php $attributes = $__attributesOriginal56804098dcf376a0e2227cb77b6cd00a; ?>
+<?php unset($__attributesOriginal56804098dcf376a0e2227cb77b6cd00a); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal56804098dcf376a0e2227cb77b6cd00a)): ?>
+<?php $component = $__componentOriginal56804098dcf376a0e2227cb77b6cd00a; ?>
+<?php unset($__componentOriginal56804098dcf376a0e2227cb77b6cd00a); ?>
+<?php endif; ?>
+                    <span class="min-w-0 flex-1"><?php echo __('Started from the template :name: change anything before sending.', ['name' => '<strong class="font-semibold text-zinc-900 dark:text-white">'.e($usedTemplate->name).'</strong>']); ?></span>
+                </div>
+            <?php endif; ?>
+
             
+            <?php if (! ($templateMode)): ?>
             <?php if (isset($component)) { $__componentOriginaldae4cd48acb67888a4631e1ba48f2f93 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginaldae4cd48acb67888a4631e1ba48f2f93 = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.card','data' => ['title' => __('Audience'),'icon' => 'users']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
@@ -269,6 +387,7 @@
 <?php $component = $__componentOriginaldae4cd48acb67888a4631e1ba48f2f93; ?>
 <?php unset($__componentOriginaldae4cd48acb67888a4631e1ba48f2f93); ?>
 <?php endif; ?>
+            <?php endif; ?>
 
             
             <?php if (isset($component)) { $__componentOriginaldae4cd48acb67888a4631e1ba48f2f93 = $component; } ?>
@@ -502,14 +621,15 @@
             
             <?php if (isset($component)) { $__componentOriginaldae4cd48acb67888a4631e1ba48f2f93 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginaldae4cd48acb67888a4631e1ba48f2f93 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.card','data' => ['title' => __('Delivery'),'icon' => 'clock']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.card','data' => ['title' => $templateMode ? __('Options') : __('Delivery'),'icon' => 'clock']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('ui.card'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Delivery')),'icon' => 'clock']); ?>
+<?php $component->withAttributes(['title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($templateMode ? __('Options') : __('Delivery')),'icon' => 'clock']); ?>
+                <?php if (! ($templateMode)): ?>
                 <div class="grid gap-2">
                     <?php $__currentLoopData = ['now' => [__('Send now'), __('Delivered within seconds.')], 'later' => [__('Schedule'), __('At a date and time of your choice.')], 'timezone' => [__('Local time'), __('At the same hour for everyone, in their time zone.')]]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => [$label, $text]): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <label class="flex cursor-pointer gap-3 rounded-lg border border-zinc-200 p-3.5 transition has-checked:border-brand-500 has-checked:bg-brand-50/50 dark:border-zinc-800 dark:has-checked:bg-brand-500/5">
@@ -562,8 +682,9 @@
 <?php unset($__componentOriginal65bd7e7dbd93cec773ad6501ce127e46); ?>
 <?php endif; ?>
                 </div>
+                <?php endif; ?>
 
-                <button type="button" class="mt-5 flex items-center gap-2 text-sm font-medium text-zinc-600 dark:text-zinc-400" x-on:click="advanced = !advanced">
+                <button type="button" class="<?php echo \Illuminate\Support\Arr::toCssClasses(['flex items-center gap-2 text-sm font-medium text-zinc-600 dark:text-zinc-400', 'mt-5' => ! $templateMode]); ?>" x-on:click="advanced = !advanced">
                     <?php if (isset($component)) { $__componentOriginal56804098dcf376a0e2227cb77b6cd00a = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal56804098dcf376a0e2227cb77b6cd00a = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.icon','data' => ['name' => 'chevron-right','class' => 'size-4 text-zinc-400 transition',':class' => 'advanced && \'rotate-90\'']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
@@ -728,16 +849,17 @@
 <?php $component = $__componentOriginal65bd7e7dbd93cec773ad6501ce127e46; ?>
 <?php unset($__componentOriginal65bd7e7dbd93cec773ad6501ce127e46); ?>
 <?php endif; ?>
-                        <?php if (isset($component)) { $__componentOriginal65bd7e7dbd93cec773ad6501ce127e46 = $component; } ?>
+                        <?php if (! ($templateMode)): ?>
+                            <?php if (isset($component)) { $__componentOriginal65bd7e7dbd93cec773ad6501ce127e46 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal65bd7e7dbd93cec773ad6501ce127e46 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.input','data' => ['name' => 'name','label' => __('Internal name'),'value' => old('name', $source ? $source->name : null),'hint' => __('Only shown in the dashboard.'),'optional' => true]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.input','data' => ['name' => 'name','label' => __('Internal name'),'value' => old('name', $source instanceof \App\Models\Message ? $source->name : null),'hint' => __('Only shown in the dashboard.'),'optional' => true]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('ui.input'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['name' => 'name','label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Internal name')),'value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(old('name', $source ? $source->name : null)),'hint' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Only shown in the dashboard.')),'optional' => true]); ?>
+<?php $component->withAttributes(['name' => 'name','label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Internal name')),'value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(old('name', $source instanceof \App\Models\Message ? $source->name : null)),'hint' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Only shown in the dashboard.')),'optional' => true]); ?>
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal65bd7e7dbd93cec773ad6501ce127e46)): ?>
@@ -748,6 +870,7 @@
 <?php $component = $__componentOriginal65bd7e7dbd93cec773ad6501ce127e46; ?>
 <?php unset($__componentOriginal65bd7e7dbd93cec773ad6501ce127e46); ?>
 <?php endif; ?>
+                        <?php endif; ?>
                     </div>
                 </div>
              <?php echo $__env->renderComponent(); ?>
@@ -805,6 +928,27 @@
 <?php unset($__componentOriginaldae4cd48acb67888a4631e1ba48f2f93); ?>
 <?php endif; ?>
 
+            <?php if($templateMode): ?>
+                <?php if (isset($component)) { $__componentOriginala8bb031a483a05f647cb99ed3a469847 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginala8bb031a483a05f647cb99ed3a469847 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.button','data' => ['class' => 'w-full','size' => 'lg','icon' => 'check']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('ui.button'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['class' => 'w-full','size' => 'lg','icon' => 'check']); ?><?php echo e($template ? __('Save the template') : __('Create the template')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginala8bb031a483a05f647cb99ed3a469847)): ?>
+<?php $attributes = $__attributesOriginala8bb031a483a05f647cb99ed3a469847; ?>
+<?php unset($__attributesOriginala8bb031a483a05f647cb99ed3a469847); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginala8bb031a483a05f647cb99ed3a469847)): ?>
+<?php $component = $__componentOriginala8bb031a483a05f647cb99ed3a469847; ?>
+<?php unset($__componentOriginala8bb031a483a05f647cb99ed3a469847); ?>
+<?php endif; ?>
+            <?php else: ?>
             <div class="card p-5">
                 <div class="flex items-start justify-between gap-3">
                     <div>
@@ -864,6 +1008,7 @@
 <?php unset($__componentOriginala8bb031a483a05f647cb99ed3a469847); ?>
 <?php endif; ?>
             </div>
+            <?php endif; ?>
         </aside>
     </form>
  <?php echo $__env->renderComponent(); ?>

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Sdk\SubscriptionController;
 use App\Http\Middleware\AuthenticateApiKey;
@@ -17,6 +18,12 @@ Route::prefix('v1')->group(function () {
         Route::get('notifications', [NotificationController::class, 'index']);
         Route::get('notifications/{id}', [NotificationController::class, 'show']);
         Route::delete('notifications/{id}', [NotificationController::class, 'destroy']);
+
+        Route::get('templates', [TemplateController::class, 'index']);
+        Route::post('templates', [TemplateController::class, 'store']);
+        Route::get('templates/{id}', [TemplateController::class, 'show']);
+        Route::patch('templates/{id}', [TemplateController::class, 'update']);
+        Route::delete('templates/{id}', [TemplateController::class, 'destroy']);
 
         Route::post('apps/{app_id}/users', [UserController::class, 'store']);
         Route::get('apps/{app_id}/users/by/external_id/{externalId}', [UserController::class, 'show']);

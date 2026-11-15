@@ -69,6 +69,21 @@ Devices without a known time zone use UTC. Combined with `send_after`, the
 last time zone is reached. `"delayed_option": "last-active"` is accepted
 and sent right away.
 
+**Templates**: `"template_id": "…"` sends the content of a template
+(texts, link, image, buttons, options); the fields of the request override
+it. The message keeps the template for its statistics.
+
+## Templates
+
+- `POST /api/v1/templates` — `name`, `headings`, `subtitle`, `contents`
+  and any content option of a notification (`url`, `big_picture`,
+  `buttons`, `data`, `ttl`…). The audience and the delivery are chosen when
+  sending.
+- `GET /api/v1/templates?limit=50&offset=0` — templates of the project.
+- `GET /api/v1/templates/{id}`
+- `PATCH /api/v1/templates/{id}` — only the fields given change.
+- `DELETE /api/v1/templates/{id}`
+
 ## Follow a notification
 
 - `GET /api/v1/notifications/{id}` — status, `successful`, `failed`

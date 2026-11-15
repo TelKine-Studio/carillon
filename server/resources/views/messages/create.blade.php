@@ -1,4 +1,8 @@
 @php
+    // The same composer edits templates ($template set, or $templateMode for a new one).
+    $template ??= null;
+    $templateMode = ($templateMode ?? false) || $template !== null;
+    $templates ??= collect();
     $locale = in_array(app()->getLocale(), array_keys($languages), true) ? app()->getLocale() : 'en';
     $texts = collect($source?->contents ?? [$locale => ''])->keys()->map(fn ($language) => [
         'language' => $language,
@@ -9,7 +13,7 @@
     $targeting = $source?->targeting ?? [];
     $ready = array_keys(array_filter($platforms, fn ($p) => $p['ready']));
     $config = [
-        'estimateUrl' => route('projects.messages.estimate', $project),
+        'estimateUrl' => $templateMode ? null : route('projects.messages.estimate', $project),
         'languages' => $languages,
         'texts' => old('texts', $texts),
         'audience' => old('audience', ! empty($targeting['external_ids']) ? 'users' : (! empty($targeting['subscription_ids']) ? 'devices' : 'segments')),
@@ -25,13 +29,33 @@
     $deviceIds = old('subscription_ids', implode(PHP_EOL, $targeting['subscription_ids'] ?? []));
     $builtIn = ['Subscribed Users' => __('Subscribed Users'), 'Active Users' => __('Active Users'), 'Engaged Users' => __('Engaged Users'), 'Inactive Users' => __('Inactive Users')];
 @endphp
-<x-layouts.app :title="__('New message').' · '.$project->name">
-    <x-ui.page-header :title="__('New message')" :description="__('Write a push notification and choose who receives it.')">
+@php
+    $heading = $templateMode ? ($template ? __('Edit the template') : __('New template')) : __('New message');
+@endphp
+<x-layouts.app :title="$heading.' · '.$project->name">
+    <x-ui.page-header :title="$heading" :description="$templateMode ? __('Content you can reuse from the composer or with template_id in the API.') : __('Write a push notification and choose who receives it.')">
         <x-slot:breadcrumb>
-            <a href="{{ route('projects.messages.index', $project) }}" class="hover:text-zinc-900 dark:hover:text-white">{{ __('Messages') }}</a>
+            @if ($templateMode)
+                <a href="{{ route('projects.templates.index', $project) }}" class="hover:text-zinc-900 dark:hover:text-white">{{ __('Templates') }}</a>
+            @else
+                <a href="{{ route('projects.messages.index', $project) }}" class="hover:text-zinc-900 dark:hover:text-white">{{ __('Messages') }}</a>
+            @endif
             <x-ui.icon name="chevron-right" class="size-3.5" />
-            <span>{{ __('New') }}</span>
+            <span>{{ $template ? $template->name : __('New') }}</span>
         </x-slot:breadcrumb>
+        @if (! $templateMode && $templates->isNotEmpty())
+            <div x-data="{ open: false }" class="relative">
+                <x-ui.button type="button" variant="secondary" icon="file" x-on:click="open = !open">{{ __('Start from a template') }}</x-ui.button>
+                <div x-show="open" x-cloak x-on:click.outside="open = false" x-transition.opacity class="absolute right-0 z-30 mt-1 max-h-72 w-64 overflow-y-auto rounded-lg border border-zinc-200 bg-white p-1 shadow-(--shadow-lift) dark:border-zinc-800 dark:bg-zinc-900">
+                    @foreach ($templates as $item)
+                        <a href="{{ route('projects.messages.create', [$project, 'template' => $item->id]) }}" class="block rounded-md px-2.5 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-white/5">
+                            <span class="block truncate font-medium text-zinc-900 dark:text-white">{{ $item->name }}</span>
+                            <span class="block truncate text-xs text-zinc-500">{{ \App\Models\Message::localized($item->headings, app()->getLocale()) ?? \App\Models\Message::localized($item->contents, app()->getLocale()) }}</span>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        @endif
     </x-ui.page-header>
 
     @if ($errors->has('alert'))
@@ -40,12 +64,32 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('projects.messages.store', $project) }}" x-data="messageComposer(@js($config))" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+    <form method="POST" action="{{ $template ? route('projects.templates.update', [$project, $template]) : ($templateMode ? route('projects.templates.store', $project) : route('projects.messages.store', $project)) }}" x-data="messageComposer(@js($config))" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
         @csrf
+        @if ($template)
+            @method('PUT')
+        @endif
+        @if ($usedTemplate ?? null)
+            <input type="hidden" name="template_id" value="{{ $usedTemplate->id }}">
+        @endif
         <input type="hidden" name="timezone" x-init="$el.value = Intl.DateTimeFormat().resolvedOptions().timeZone">
 
         <div class="min-w-0 space-y-6">
+            @if ($templateMode)
+                <x-ui.card :title="__('Template')" icon="file">
+                    <x-ui.input name="template_name" :label="__('Name')" :value="old('template_name', $template?->name)" required maxlength="255" :placeholder="__('e.g. Order shipped')" :hint="__('Only shown in the dashboard and the API.')" />
+                </x-ui.card>
+            @endif
+
+            @if ($usedTemplate ?? null)
+                <div class="flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-white/5 dark:text-zinc-400">
+                    <x-ui.icon name="file" class="size-4 shrink-0 text-zinc-400" />
+                    <span class="min-w-0 flex-1">{!! __('Started from the template :name: change anything before sending.', ['name' => '<strong class="font-semibold text-zinc-900 dark:text-white">'.e($usedTemplate->name).'</strong>']) !!}</span>
+                </div>
+            @endif
+
             {{-- Audience --}}
+            @unless ($templateMode)
             <x-ui.card :title="__('Audience')" icon="users">
                 <div class="grid grid-cols-3 gap-1 rounded-lg bg-zinc-100 p-1 text-sm dark:bg-white/5">
                     @foreach (['segments' => __('Segments'), 'users' => __('Users'), 'devices' => __('Devices')] as $key => $label)
@@ -109,6 +153,7 @@
                     </div>
                 </div>
             </x-ui.card>
+            @endunless
 
             {{-- Message --}}
             <x-ui.card :title="__('Message')" icon="message">
@@ -193,7 +238,8 @@
             </x-ui.card>
 
             {{-- Delivery --}}
-            <x-ui.card :title="__('Delivery')" icon="clock">
+            <x-ui.card :title="$templateMode ? __('Options') : __('Delivery')" icon="clock">
+                @unless ($templateMode)
                 <div class="grid gap-2">
                     @foreach (['now' => [__('Send now'), __('Delivered within seconds.')], 'later' => [__('Schedule'), __('At a date and time of your choice.')], 'timezone' => [__('Local time'), __('At the same hour for everyone, in their time zone.')]] as $key => [$label, $text])
                         <label class="flex cursor-pointer gap-3 rounded-lg border border-zinc-200 p-3.5 transition has-checked:border-brand-500 has-checked:bg-brand-50/50 dark:border-zinc-800 dark:has-checked:bg-brand-500/5">
@@ -208,8 +254,9 @@
                 <div x-show="schedule === 'timezone'" x-cloak class="mt-5 max-w-xs">
                     <x-ui.input name="delivery_time" type="time" :value="old('delivery_time', $source?->option('delivery_time_of_day') ?? '09:00')" :label="__('Time of day')" :hint="__('Each device receives it at this time in its own time zone, within the next 24 hours.')" />
                 </div>
+                @endunless
 
-                <button type="button" class="mt-5 flex items-center gap-2 text-sm font-medium text-zinc-600 dark:text-zinc-400" x-on:click="advanced = !advanced">
+                <button type="button" @class(['flex items-center gap-2 text-sm font-medium text-zinc-600 dark:text-zinc-400', 'mt-5' => ! $templateMode]) x-on:click="advanced = !advanced">
                     <x-ui.icon name="chevron-right" class="size-4 text-zinc-400 transition" ::class="advanced && 'rotate-90'" />{{ __('Advanced options') }}
                 </button>
                 <div x-show="advanced" x-collapse x-cloak>
@@ -221,7 +268,9 @@
                         <x-ui.input name="ios_sound" :label="__('iOS sound')" :value="old('ios_sound', $source?->option('ios_sound'))" placeholder="default" optional />
                         <x-ui.input name="android_channel_id" :label="__('Android channel')" :value="old('android_channel_id', $source?->option('android_channel_id'))" optional />
                         <x-ui.input name="thread_id" :label="__('Thread (iOS grouping)')" :value="old('thread_id', $source?->option('thread_id'))" optional />
-                        <x-ui.input name="name" :label="__('Internal name')" :value="old('name', $source ? $source->name : null)" :hint="__('Only shown in the dashboard.')" optional />
+                        @unless ($templateMode)
+                            <x-ui.input name="name" :label="__('Internal name')" :value="old('name', $source instanceof \App\Models\Message ? $source->name : null)" :hint="__('Only shown in the dashboard.')" optional />
+                        @endunless
                     </div>
                 </div>
             </x-ui.card>
@@ -233,6 +282,9 @@
                 <x-messages.preview :project="$project" />
             </x-ui.card>
 
+            @if ($templateMode)
+                <x-ui.button class="w-full" size="lg" icon="check">{{ $template ? __('Save the template') : __('Create the template') }}</x-ui.button>
+            @else
             <div class="card p-5">
                 <div class="flex items-start justify-between gap-3">
                     <div>
@@ -255,6 +307,7 @@
                     <span x-text="schedule !== 'now' ? @js(__('Schedule the message')) : @js(__('Send the message'))">{{ __('Send the message') }}</span>
                 </x-ui.button>
             </div>
+            @endif
         </aside>
     </form>
 </x-layouts.app>

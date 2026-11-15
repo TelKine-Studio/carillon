@@ -76,6 +76,12 @@ class Project extends Model
         return $this->hasMany(Message::class);
     }
 
+    /** @return HasMany<Template, $this> */
+    public function templates(): HasMany
+    {
+        return $this->hasMany(Template::class);
+    }
+
     /** @return HasMany<Segment, $this> */
     public function segments(): HasMany
     {

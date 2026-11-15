@@ -4,16 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Actions\CreateMessage;
 use App\Audience\Audience;
+use App\Http\ComposerInput;
 use App\Models\Message;
 use App\Models\Project;
-use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
-use Throwable;
 
 /** Messages of a project in the dashboard: list, composer, statistics. */
 class MessageController extends Controller
@@ -56,12 +56,15 @@ class MessageController extends Controller
         $this->authorize('send', $project);
         $project->load('credentials');
 
-        // "Duplicate": the composer starts from an existing message.
-        $source = $request->query('from') ? $project->messages()->find($request->query('from')) : null;
+        // "Duplicate" starts from an existing message, "Use" from a template.
+        $source = $request->query('from') && Str::isUuid($request->query('from')) ? $project->messages()->find($request->query('from')) : null;
+        $usedTemplate = $request->query('template') && Str::isUuid($request->query('template')) ? $project->templates()->find($request->query('template')) : null;
 
         return view('messages.create', [
             'project' => $project,
-            'source' => $source,
+            'source' => $usedTemplate ?? $source,
+            'usedTemplate' => $usedTemplate,
+            'templates' => $project->templates()->orderBy('name')->get(['id', 'name', 'headings', 'contents']),
             'segments' => $project->segments()->orderBy('name')->pluck('name'),
             'languages' => self::LANGUAGES,
             'platforms' => $this->platforms($project),
@@ -73,7 +76,12 @@ class MessageController extends Controller
         $this->authorize('send', $project);
 
         try {
-            $message = $create->handle($project, $this->input($request), $request->user());
+            $message = $create->handle($project, ComposerInput::fromRequest($request), $request->user());
+
+            // Sent from a template: kept for its statistics (the content is the form's).
+            if ($template = Str::isUuid((string) $request->input('template_id')) ? $project->templates()->find($request->input('template_id')) : null) {
+                $message->forceFill(['template_id' => $template->id])->save();
+            }
         } catch (ValidationException $e) {
             throw ValidationException::withMessages(['alert' => $this->explain($e)]);
         }
@@ -90,7 +98,7 @@ class MessageController extends Controller
         $this->authorize('view', $project);
 
         try {
-            $input = $this->input($request);
+            $input = ComposerInput::fromRequest($request);
             $targeting = app(CreateMessage::class)->targeting($input);
             $query = $audience->query($project, $targeting);
             $byType = (clone $query)->select('subscriptions.type', DB::raw('count(*) as total'))->groupBy('subscriptions.type')->pluck('total', 'type');
@@ -133,101 +141,6 @@ class MessageController extends Controller
         $message->forceFill(['status' => 'canceled', 'canceled_at' => now()])->save();
 
         return back()->with('status', __('Message canceled.'));
-    }
-
-    /**
-     * Composer form → OneSignal format.
-     *
-     * @return array<string, mixed>
-     */
-    protected function input(Request $request): array
-    {
-        $input = ['name' => $request->input('name')];
-
-        foreach ((array) $request->input('texts', []) as $text) {
-            $language = strtolower((string) ($text['language'] ?? ''));
-            if (! preg_match('/^[a-z]{2}$/', $language)) {
-                continue;
-            }
-            foreach (['title' => 'headings', 'subtitle' => 'subtitle', 'body' => 'contents'] as $field => $key) {
-                if (filled($text[$field] ?? null)) {
-                    $input[$key][$language] = $text[$field];
-                }
-            }
-        }
-
-        match ($request->input('audience', 'segments')) {
-            'users' => $input['include_aliases'] = ['external_id' => $this->list($request->input('external_ids'))],
-            'devices' => $input['include_subscription_ids'] = $this->list($request->input('subscription_ids')),
-            default => [
-                $input['included_segments'] = array_values((array) $request->input('included_segments', [])),
-                $input['excluded_segments'] = array_values((array) $request->input('excluded_segments', [])),
-            ],
-        };
-
-        $platforms = (array) $request->input('platforms', []);
-        if ($platforms !== [] && count($platforms) < 3) {
-            $input['isIos'] = in_array('ios', $platforms, true);
-            $input['isAndroid'] = in_array('android', $platforms, true);
-            $input['isAnyWeb'] = in_array('web', $platforms, true);
-        }
-
-        foreach (['url', 'big_picture', 'collapse_id', 'ios_sound', 'thread_id', 'android_channel_id'] as $field) {
-            if (filled($request->input($field))) {
-                $input[$field] = trim((string) $request->input($field));
-            }
-        }
-        $input['priority'] = (int) $request->input('priority', 10) === 5 ? 5 : 10;
-        if (filled($request->input('ttl'))) {
-            $input['ttl'] = (int) $request->input('ttl');
-        }
-        if (filled($request->input('ios_badge'))) {
-            $input['ios_badgeType'] = 'SetTo';
-            $input['ios_badgeCount'] = (int) $request->input('ios_badge');
-        }
-
-        $data = [];
-        foreach ((array) $request->input('data', []) as $row) {
-            if (filled($row['key'] ?? null)) {
-                $data[trim($row['key'])] = (string) ($row['value'] ?? '');
-            }
-        }
-        if ($data !== []) {
-            $input['data'] = $data;
-        }
-
-        $buttons = [];
-        foreach ((array) $request->input('buttons', []) as $row) {
-            if (filled($row['text'] ?? null)) {
-                $buttons[] = ['id' => trim($row['id'] ?? '') ?: 'button-'.(count($buttons) + 1), 'text' => trim($row['text'])];
-            }
-        }
-        if ($buttons !== []) {
-            $input['buttons'] = array_slice($buttons, 0, 3);
-            $input['web_buttons'] = array_map(fn ($b) => ['id' => $b['id'], 'text' => $b['text']], array_slice($buttons, 0, 2));
-        }
-
-        // The date is typed in the browser's time zone.
-        if ($request->input('schedule') === 'later' && filled($request->input('send_at'))) {
-            try {
-                $input['send_after'] = CarbonImmutable::parse($request->input('send_at'), $request->input('timezone') ?: config('app.timezone'))->utc()->toIso8601String();
-            } catch (Throwable) {
-                throw ValidationException::withMessages(['send_at' => __('Invalid date.')]);
-            }
-        }
-
-        if ($request->input('schedule') === 'timezone') {
-            $input['delayed_option'] = 'timezone';
-            $input['delivery_time_of_day'] = (string) $request->input('delivery_time');
-        }
-
-        return $input;
-    }
-
-    /** @return list<string> */
-    protected function list(mixed $value): array
-    {
-        return array_values(array_filter(array_map('trim', preg_split('/[\s,;]+/', (string) $value) ?: [])));
     }
 
     /** Readable message for the API errors shown in the composer. */

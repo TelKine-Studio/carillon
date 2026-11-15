@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** A notification sent (or to send) to part of a project's audience. */
-#[Fillable(['project_id', 'created_by', 'api_key_id', 'name', 'idempotency_key', 'headings', 'subtitle', 'contents', 'options', 'targeting', 'status', 'send_after', 'recipients', 'successful', 'failed', 'errored', 'received', 'clicked', 'error', 'started_at', 'completed_at', 'canceled_at'])]
+#[Fillable(['project_id', 'created_by', 'api_key_id', 'template_id', 'name', 'idempotency_key', 'headings', 'subtitle', 'contents', 'options', 'targeting', 'status', 'send_after', 'recipients', 'successful', 'failed', 'errored', 'received', 'clicked', 'error', 'started_at', 'completed_at', 'canceled_at'])]
 class Message extends Model
 {
     use HasUuids;
@@ -53,6 +53,12 @@ class Message extends Model
     public function deliveries(): HasMany
     {
         return $this->hasMany(Delivery::class);
+    }
+
+    /** @return BelongsTo<Template, $this> */
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(Template::class);
     }
 
     public function option(string $key, mixed $default = null): mixed
