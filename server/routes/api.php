@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Sdk\ConfigController;
 use App\Http\Controllers\Sdk\SubscriptionController;
 use App\Http\Middleware\AuthenticateApiKey;
 use Illuminate\Support\Facades\Route;
@@ -33,6 +34,8 @@ Route::prefix('v1')->group(function () {
 
     // Called by the SDKs inside the apps (App ID only).
     Route::prefix('sdk/apps/{appId}')->middleware('throttle:sdk')->group(function () {
+        Route::get('config', [ConfigController::class, 'show']);
+        Route::get('icon', [ConfigController::class, 'icon']);
         Route::post('subscriptions', [SubscriptionController::class, 'store']);
         Route::patch('subscriptions/{id}', [SubscriptionController::class, 'update']);
         Route::post('subscriptions/{id}/login', [SubscriptionController::class, 'login']);

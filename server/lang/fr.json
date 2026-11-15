@@ -1362,5 +1362,9 @@
     "New secret generated: update your server.": "Nouveau secret généré : mettez à jour votre serveur.",
     "Test event delivered.": "Événement de test livré.",
     "The test event could not be delivered: see the attempts below.": "L’événement de test n’a pas pu être livré : voir les tentatives ci-dessous.",
-    "Choose at least one event.": "Choisissez au moins un événement."
+    "Choose at least one event.": "Choisissez au moins un événement.",
+    "Add notifications to your website": "Ajouter les notifications à votre site",
+    "Serve a :file file at the root of your site, with this line:": "Servez un fichier :file à la racine de votre site, avec cette ligne :",
+    "Load the SDK in your pages, then ask for the permission after a click of the visitor:": "Chargez le SDK dans vos pages, puis demandez l’autorisation après un clic du visiteur :",
+    "Your site must use HTTPS (localhost works for development).": "Votre site doit être en HTTPS (localhost fonctionne pour le développement)."
 }

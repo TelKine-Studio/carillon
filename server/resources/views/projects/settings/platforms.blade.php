@@ -105,6 +105,31 @@
         </x-ui.card>
     </form>
 
+    @if ($web?->isUsable())
+        @php $origin = rtrim(url('/'), '/'); @endphp
+        <x-ui.card :title="__('Add notifications to your website')" icon="code">
+            <ol class="space-y-5 text-sm text-zinc-600 dark:text-zinc-400">
+                <li>
+                    <p class="mb-2"><span class="font-semibold text-zinc-900 dark:text-white">1.</span> {!! __('Serve a :file file at the root of your site, with this line:', ['file' => '<code class="font-mono text-xs">/carillon-sw.js</code>']) !!}</p>
+                    <x-ui.code label="carillon-sw.js">importScripts('{{ $origin }}/sdk/carillon-sw.js');</x-ui.code>
+                </li>
+                <li>
+                    <p class="mb-2"><span class="font-semibold text-zinc-900 dark:text-white">2.</span> {{ __('Load the SDK in your pages, then ask for the permission after a click of the visitor:') }}</p>
+                    <x-ui.code label="HTML">&lt;script src="{{ $origin }}/sdk/carillon.js" defer&gt;&lt;/script&gt;
+&lt;script&gt;
+  window.CarillonDeferred = window.CarillonDeferred || [];
+  CarillonDeferred.push(async (Carillon) =&gt; {
+    await Carillon.init({ appId: '{{ $project->app_id }}' });
+    // Carillon.login('user-42'), Carillon.user.addTags({ plan: 'pro' })…
+  });
+  // document.querySelector('#notify').onclick = () =&gt; Carillon.notifications.requestPermission();
+&lt;/script&gt;</x-ui.code>
+                </li>
+            </ol>
+            <p class="mt-4 text-xs text-zinc-500">{{ __('Your site must use HTTPS (localhost works for development).') }}</p>
+        </x-ui.card>
+    @endif
+
     @foreach (['apns', 'fcm', 'webpush'] as $provider)
         <form id="remove-{{ $provider }}" method="POST" action="{{ route('projects.push.destroy', [$project, $provider]) }}" class="hidden"
             data-confirm-title="{{ __('Remove these keys?') }}" data-confirm="{{ __('Devices of this platform stop receiving notifications until you add keys again.') }}" data-confirm-action="{{ __('Remove') }}">

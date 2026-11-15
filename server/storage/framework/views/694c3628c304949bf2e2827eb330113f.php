@@ -572,6 +572,85 @@
 <?php endif; ?>
     </form>
 
+    <?php if($web?->isUsable()): ?>
+        <?php $origin = rtrim(url('/'), '/'); ?>
+        <?php if (isset($component)) { $__componentOriginaldae4cd48acb67888a4631e1ba48f2f93 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginaldae4cd48acb67888a4631e1ba48f2f93 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.card','data' => ['title' => __('Add notifications to your website'),'icon' => 'code']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('ui.card'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Add notifications to your website')),'icon' => 'code']); ?>
+            <ol class="space-y-5 text-sm text-zinc-600 dark:text-zinc-400">
+                <li>
+                    <p class="mb-2"><span class="font-semibold text-zinc-900 dark:text-white">1.</span> <?php echo __('Serve a :file file at the root of your site, with this line:', ['file' => '<code class="font-mono text-xs">/carillon-sw.js</code>']); ?></p>
+                    <?php if (isset($component)) { $__componentOriginal1b324299853ee89c95c87cc1f1320373 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal1b324299853ee89c95c87cc1f1320373 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.code','data' => ['label' => 'carillon-sw.js']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('ui.code'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['label' => 'carillon-sw.js']); ?>importScripts('<?php echo e($origin); ?>/sdk/carillon-sw.js'); <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal1b324299853ee89c95c87cc1f1320373)): ?>
+<?php $attributes = $__attributesOriginal1b324299853ee89c95c87cc1f1320373; ?>
+<?php unset($__attributesOriginal1b324299853ee89c95c87cc1f1320373); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal1b324299853ee89c95c87cc1f1320373)): ?>
+<?php $component = $__componentOriginal1b324299853ee89c95c87cc1f1320373; ?>
+<?php unset($__componentOriginal1b324299853ee89c95c87cc1f1320373); ?>
+<?php endif; ?>
+                </li>
+                <li>
+                    <p class="mb-2"><span class="font-semibold text-zinc-900 dark:text-white">2.</span> <?php echo e(__('Load the SDK in your pages, then ask for the permission after a click of the visitor:')); ?></p>
+                    <?php if (isset($component)) { $__componentOriginal1b324299853ee89c95c87cc1f1320373 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal1b324299853ee89c95c87cc1f1320373 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.code','data' => ['label' => 'HTML']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('ui.code'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['label' => 'HTML']); ?>&lt;script src="<?php echo e($origin); ?>/sdk/carillon.js" defer&gt;&lt;/script&gt;
+&lt;script&gt;
+  window.CarillonDeferred = window.CarillonDeferred || [];
+  CarillonDeferred.push(async (Carillon) =&gt; {
+    await Carillon.init({ appId: '<?php echo e($project->app_id); ?>' });
+    // Carillon.login('user-42'), Carillon.user.addTags({ plan: 'pro' })…
+  });
+  // document.querySelector('#notify').onclick = () =&gt; Carillon.notifications.requestPermission();
+&lt;/script&gt; <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal1b324299853ee89c95c87cc1f1320373)): ?>
+<?php $attributes = $__attributesOriginal1b324299853ee89c95c87cc1f1320373; ?>
+<?php unset($__attributesOriginal1b324299853ee89c95c87cc1f1320373); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal1b324299853ee89c95c87cc1f1320373)): ?>
+<?php $component = $__componentOriginal1b324299853ee89c95c87cc1f1320373; ?>
+<?php unset($__componentOriginal1b324299853ee89c95c87cc1f1320373); ?>
+<?php endif; ?>
+                </li>
+            </ol>
+            <p class="mt-4 text-xs text-zinc-500"><?php echo e(__('Your site must use HTTPS (localhost works for development).')); ?></p>
+         <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginaldae4cd48acb67888a4631e1ba48f2f93)): ?>
+<?php $attributes = $__attributesOriginaldae4cd48acb67888a4631e1ba48f2f93; ?>
+<?php unset($__attributesOriginaldae4cd48acb67888a4631e1ba48f2f93); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginaldae4cd48acb67888a4631e1ba48f2f93)): ?>
+<?php $component = $__componentOriginaldae4cd48acb67888a4631e1ba48f2f93; ?>
+<?php unset($__componentOriginaldae4cd48acb67888a4631e1ba48f2f93); ?>
+<?php endif; ?>
+    <?php endif; ?>
+
     <?php $__currentLoopData = ['apns', 'fcm', 'webpush']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $provider): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <form id="remove-<?php echo e($provider); ?>" method="POST" action="<?php echo e(route('projects.push.destroy', [$project, $provider])); ?>" class="hidden"
             data-confirm-title="<?php echo e(__('Remove these keys?')); ?>" data-confirm="<?php echo e(__('Devices of this platform stop receiving notifications until you add keys again.')); ?>" data-confirm-action="<?php echo e(__('Remove')); ?>">

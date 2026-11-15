@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Carillon web SDK example</title>
+  <style>
+    :root { color-scheme: light dark; --line: #e4e4e7; --muted: #71717a; --accent: #e5532d; }
+    @media (prefers-color-scheme: dark) { :root { --line: #27272a; --muted: #a1a1aa; } }
+    body { font: 15px/1.5 system-ui, sans-serif; max-width: 640px; margin: 48px auto; padding: 0 16px; }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    p.lead { color: var(--muted); margin: 0 0 24px; }
+    section { border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; margin-bottom: 16px; }
+    h2 { font-size: 14px; margin: 0 0 10px; }
+    dl { display: grid; grid-template-columns: 120px 1fr; gap: 4px 12px; margin: 0 0 12px; font-size: 14px; }
+    dt { color: var(--muted); } dd { margin: 0; word-break: break-all; }
+    button { font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: inherit; cursor: pointer; }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    input { font: inherit; font-size: 14px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: inherit; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; }
+    #log { font: 13px/1.6 ui-monospace, monospace; color: var(--muted); white-space: pre-wrap; margin: 0; }
+  </style>
+</head>
+<body>
+  <h1>Carillon web SDK</h1>
+  <p class="lead">Push notifications for this site, from your Carillon server.</p>
+
+  <section>
+    <h2>Browser</h2>
+    <dl>
+      <dt>Permission</dt><dd id="permission">—</dd>
+      <dt>Subscription</dt><dd id="subscription">—</dd>
+      <dt>Opted in</dt><dd id="opted">—</dd>
+    </dl>
+    <div class="row">
+      <button class="primary" id="allow">Allow notifications</button>
+      <button id="toggle">Opt out</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>User</h2>
+    <div class="row">
+      <input id="external" placeholder="External id">
+      <button id="login">Log in</button>
+      <button id="logout">Log out</button>
+      <button id="tag">Add plan=pro</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Events</h2>
+    <pre id="log">Send a notification from the dashboard.</pre>
+  </section>
+
+  <script src="http://localhost:8000/sdk/carillon.js" defer></script>
+  <script>
+    const appId = new URLSearchParams(location.search).get('app') || 'YOUR-APP-ID';
+    const $ = (id) => document.getElementById(id);
+    const log = (text) => { $('log').textContent = new Date().toLocaleTimeString() + '  ' + text + '\n' + ($('log').dataset.used ? $('log').textContent : ''); $('log').dataset.used = 1; };
+
+    window.CarillonDeferred = window.CarillonDeferred || [];
+    CarillonDeferred.push(async (Carillon) => {
+      const render = () => {
+        $('permission').textContent = Carillon.notifications.permission;
+        $('subscription').textContent = Carillon.user.pushSubscription.id || '—';
+        $('opted').textContent = Carillon.user.pushSubscription.optedIn ? 'Yes' : 'No';
+        $('toggle').textContent = Carillon.user.pushSubscription.optedIn ? 'Opt out' : 'Opt in';
+        $('external').value = Carillon.user.externalId || '';
+      };
+
+      await Carillon.init({ appId });
+      render();
+
+      Carillon.notifications.addClickListener((event) => log('Clicked: ' + (event.notification.title || event.notification.body) + (event.actionId ? ' (button ' + event.actionId + ')' : '')));
+      Carillon.notifications.addPermissionChangeListener(render);
+
+      $('allow').onclick = async () => { await Carillon.notifications.requestPermission(); render(); };
+      $('toggle').onclick = async () => { Carillon.user.pushSubscription.optedIn ? await Carillon.user.pushSubscription.optOut() : await Carillon.user.pushSubscription.optIn(); render(); };
+      $('login').onclick = async () => { await Carillon.login($('external').value.trim()); log('Logged in as ' + $('external').value.trim()); };
+      $('logout').onclick = async () => { await Carillon.logout(); render(); log('Logged out'); };
+      $('tag').onclick = async () => { await Carillon.user.addTags({ plan: 'pro' }); log('Tags: ' + JSON.stringify(Carillon.user.tags)); };
+    });
+  </script>
+</body>
+</html>

@@ -2,6 +2,7 @@
 
 namespace App\Push;
 
+use App\Http\Controllers\Sdk\ConfigController;
 use App\Models\Message;
 
 /**
@@ -106,7 +107,8 @@ final class Payload
             'id' => $message->id,
             'title' => $common['title'] ?? null,
             'body' => $common['body'] ?? null,
-            'icon' => $message->option('chrome_web_icon') ?? $message->option('firefox_icon'),
+            'icon' => $message->option('chrome_web_icon') ?? $message->option('firefox_icon')
+                ?? ($message->project->icon_path ? ConfigController::iconUrl($message->project) : null),
             'image' => $message->option('chrome_web_image') ?? ($common['img'] ?? null),
             'badge' => $message->option('chrome_web_badge'),
             'url' => $message->option('web_url') ?? $message->option('url') ?? $message->project->setting('default_url'),
