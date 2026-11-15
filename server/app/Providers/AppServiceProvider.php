@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -40,6 +41,13 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Gate::define('admin', fn (User $user) => $user->isAdmin());
+
+        // Identifiers are UUIDs: anything else is a 404 (and never reaches
+        // PostgreSQL, which rejects malformed UUIDs).
+        $uuid = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
+        foreach (['project', 'app_id', 'appId', 'id'] as $parameter) {
+            Route::pattern($parameter, $uuid);
+        }
 
         Password::defaults(fn () => Password::min(8)->letters()->numbers());
 
@@ -72,13 +80,12 @@ class AppServiceProvider extends ServiceProvider
 
     protected function configureRateLimiting(): void
     {
-        RateLimiter::for('api', fn (Request $request) => Limit::perMinute(120)
-            ->by($request->user()?->id ?: $request->ip()));
+        // Per API key: sending a message to a whole audience is one request.
+        RateLimiter::for('api', fn (Request $request) => Limit::perMinute(600)
+            ->by('api:'.($request->attributes->get('api_key')?->id ?: $request->ip())));
 
-        RateLimiter::for('publish', fn (Request $request) => Limit::perMinute(60)
-            ->by('publish:'.($request->user()?->id ?: $request->ip())));
-
-        RateLimiter::for('relay-register', fn (Request $request) => Limit::perHour(5)->by('relay:'.$request->ip()));
+        // SDK calls of the apps, per device address.
+        RateLimiter::for('sdk', fn (Request $request) => Limit::perMinute(120)->by('sdk:'.$request->ip()));
 
         RateLimiter::for('login', fn (Request $request) => Limit::perMinute(5)
             ->by(mb_strtolower((string) $request->input('email')).'|'.$request->ip()));

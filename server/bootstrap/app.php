@@ -8,6 +8,10 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Arr;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 $app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -41,6 +45,18 @@ $app = Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        // OneSignal error format: {"errors": ["..."]}, 400 for invalid input.
+        $exceptions->render(function (ValidationException $e, Request $request) {
+            if ($request->is('api/v1/*')) {
+                return response()->json(['errors' => array_values(Arr::flatten($e->errors()))], 400);
+            }
+        });
+        $exceptions->render(function (HttpExceptionInterface $e, Request $request) {
+            if ($request->is('api/v1/*')) {
+                return response()->json(['errors' => [$e->getMessage() ?: Response::$statusTexts[$e->getStatusCode()] ?? 'Error']], $e->getStatusCode(), $e->getHeaders());
+            }
+        });
     })->create();
 
 // All persistent data (SQLite database, logs, sessions, ...) can be moved to a

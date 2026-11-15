@@ -71,8 +71,8 @@ class ProjectController extends Controller
             'steps' => [
                 ['done' => $project->configuredProviders() !== [], 'title' => __('Add the push keys of your app'), 'text' => __('Apple (APNs), Android (Firebase) or web push.'), 'href' => route('projects.settings', [$project, 'platforms'])],
                 ['done' => $project->apiKeys()->exists(), 'title' => __('Create an API key'), 'text' => __('Your server uses it to send notifications.'), 'href' => route('projects.settings', [$project, 'api-keys'])],
-                ['done' => false, 'title' => __('Integrate the SDK in your app'), 'text' => __('Flutter or web: a few lines with the App ID below.'), 'href' => null],
-                ['done' => false, 'title' => __('Send your first notification'), 'text' => __('From the dashboard or the API.'), 'href' => null],
+                ['done' => $project->subscriptions()->exists(), 'title' => __('Integrate the SDK in your app'), 'text' => __('Flutter or web: a few lines with the App ID below.'), 'href' => null],
+                ['done' => $project->messages()->exists(), 'title' => __('Send your first notification'), 'text' => __('From the dashboard or the API.'), 'href' => null],
             ],
         ]);
     }

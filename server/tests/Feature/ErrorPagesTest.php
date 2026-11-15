@@ -34,7 +34,7 @@ class ErrorPagesTest extends TestCase
         $this->get('/m/backups/extra/segments')->assertNotFound()->assertSee(__('Error :code', ['code' => '404']));
 
         // The API keeps answering in JSON.
-        $this->get('/api/v1/unknown')->assertNotFound()->assertJsonStructure(['message']);
-        $this->get('/projects/demo/api-keys')->assertStatus(405)->assertSee(__('This address does not open in a browser'));
+        $this->get('/api/v1/unknown')->assertNotFound()->assertJsonStructure(['errors']);
+        $this->get('/projects/9b2f4c6e-1d3a-4f5b-8c7d-0e1f2a3b4c5d/api-keys')->assertStatus(405)->assertSee(__('This address does not open in a browser'));
     }
 }

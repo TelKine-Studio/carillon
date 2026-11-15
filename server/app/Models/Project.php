@@ -58,6 +58,30 @@ class Project extends Model
         return $this->hasMany(ApiKey::class);
     }
 
+    /** @return HasMany<Subscriber, $this> */
+    public function subscribers(): HasMany
+    {
+        return $this->hasMany(Subscriber::class);
+    }
+
+    /** @return HasMany<Subscription, $this> */
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    /** @return HasMany<Message, $this> */
+    public function messages(): HasMany
+    {
+        return $this->hasMany(Message::class);
+    }
+
+    /** @return HasMany<Segment, $this> */
+    public function segments(): HasMany
+    {
+        return $this->hasMany(Segment::class);
+    }
+
     /** @return HasMany<PushCredential, $this> */
     public function credentials(): HasMany
     {

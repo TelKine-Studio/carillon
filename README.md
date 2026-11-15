@@ -6,9 +6,10 @@ Push notifications are free at Apple (APNs) and Google (Firebase Cloud Messaging
 Carillon lets you send them to all the apps of your team from your own server:
 no subscriber limits, no per-message bill, your data stays with you.
 
-> 🚧 Work in progress. This first version provides the foundation: projects,
-> members and roles, API keys and push keys per project. Sending, the
-> audience, segments, statistics and the SDKs come next.
+> 🚧 Work in progress. Available: projects and members, push keys per
+> project, the OneSignal-compatible REST API and the sending engine. Coming
+> next: the dashboard (composer, audience, segments, statistics) and the
+> Flutter and web SDKs.
 
 ## Features
 
@@ -23,9 +24,16 @@ no subscriber limits, no per-message bill, your data stays with you.
 - **One container**: a single Docker image (nginx, PHP-FPM, queue and
   scheduler), SQLite or PostgreSQL, ready for Coolify.
 
-Planned: OneSignal-compatible REST API (`/api/v1/notifications`), subscribers
-with external ids and tags, segments, scheduling and per-timezone delivery,
-statistics, templates, webhooks, import from OneSignal, Flutter and web SDKs.
+- **OneSignal-compatible API**: `POST /api/v1/notifications` with segments,
+  filters, external ids and device ids, localized contents, data, images,
+  buttons, scheduling, idempotency; users API to import your audience. See
+  [docs/api.md](docs/api.md).
+- **Sending engine**: Apple (HTTP/2, .p8 key), Firebase (HTTP v1) and web
+  push, in parallel batches of 500 devices, dead tokens disabled
+  automatically, statistics per platform (sent, failed, received, clicked).
+
+Planned: dashboard composer and statistics, per-timezone delivery, templates,
+webhooks, Flutter and web SDKs.
 
 ## Install
 
