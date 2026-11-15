@@ -1,6 +1,9 @@
 @php $n = fn ($v) => number_format((int) $v, 0, ',', ' '); @endphp
 <x-layouts.app :title="__('Audience').' · '.$project->name">
     <x-ui.page-header :title="__('Audience')" :description="__('The devices registered by your apps and the people they belong to.')">
+        @can('configure', $project)
+            <x-ui.button variant="secondary" :href="route('projects.imports.create', $project)" icon="upload">{{ __('Import from OneSignal') }}</x-ui.button>
+        @endcan
         @can('send', $project)
             <x-ui.button variant="secondary" :href="route('projects.segments.index', $project)" icon="layers">{{ __('Segments') }}</x-ui.button>
         @endcan

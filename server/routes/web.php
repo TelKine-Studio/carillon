@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\InvitationController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ApiKeyController;
+use App\Http\Controllers\AudienceImportController;
 use App\Http\Controllers\Auth\AcceptInvitationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
@@ -71,6 +72,9 @@ Route::middleware('auth')->group(function () {
         Route::post('messages/{message}/cancel', [MessageController::class, 'cancel'])->name('messages.cancel');
 
         Route::get('audience', [SubscriberController::class, 'index'])->name('subscribers.index');
+        Route::get('audience/import', [AudienceImportController::class, 'create'])->name('imports.create');
+        Route::post('audience/import', [AudienceImportController::class, 'store'])->name('imports.store');
+        Route::get('audience/import/{import}', [AudienceImportController::class, 'show'])->whereNumber('import')->name('imports.show');
         Route::get('audience/{subscriber}', [SubscriberController::class, 'show'])->name('subscribers.show');
         Route::put('audience/{subscriber}/tags', [SubscriberController::class, 'updateTags'])->name('subscribers.tags');
         Route::post('audience/{subscriber}/test', [SubscriberController::class, 'test'])->name('subscribers.test');

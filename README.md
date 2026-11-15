@@ -9,7 +9,7 @@ no subscriber limits, no per-message bill, your data stays with you.
 > 🚧 Work in progress. Available: projects and members, push keys per
 > project, the OneSignal-compatible REST API, the sending engine, the
 > dashboard, the Flutter SDK, delivery at local time, templates and
-> webhooks, the web SDK. Coming next: the OneSignal import.
+> webhooks, the web SDK and the OneSignal import.
 
 ## Features
 
@@ -47,7 +47,9 @@ no subscriber limits, no per-message bill, your data stays with you.
 - **Web SDK**: push notifications for websites, served by your instance.
   See [sdk/web](sdk/web).
 
-Planned: OneSignal import.
+- **Moving from OneSignal**: import the exported subscribers (they keep
+  receiving notifications), then follow
+  [docs/migrate-from-onesignal.md](docs/migrate-from-onesignal.md).
 
 ## Install
 
