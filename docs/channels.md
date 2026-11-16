@@ -17,6 +17,13 @@ The Flutter SDK registers iOS and Android devices by itself. Huawei and Amazon
 devices are registered by the app with
 `Carillon.notifications.setPushToken(token, service: 'huawei' | 'amazon')`.
 
+Counting devices: on iOS a device exists in Carillon only once the person
+allowed notifications (Apple gives no token before). On Android the FCM token
+exists from the first launch, so a device can be subscribed while
+notifications are turned off on the phone; it shows as *unsubscribed* once
+the SDK sees the permission is refused. Compare iOS and Android audiences with
+this in mind.
+
 Notification icon: the small icon of Android is a drawable of the app
 (`ic_stat_carillon`); the large one comes from the message, else the icon of
 the project. iOS always shows the icon of the app.
