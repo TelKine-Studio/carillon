@@ -1629,5 +1629,8 @@
     "No test device yet: open a person of your audience and mark their device as a test device.": "Aucun appareil de test : ouvrez une personne de votre audience et marquez son appareil comme appareil de test.",
     "Test sent to :count device.|Test sent to :count devices.": "Test envoyé à :count appareil.|Test envoyé à :count appareils.",
     "Test device added: it receives the tests sent from the composer.": "Appareil de test ajouté : il reçoit les tests envoyés depuis l’éditeur.",
-    "No longer a test device.": "Ce n’est plus un appareil de test."
+    "No longer a test device.": "Ce n’est plus un appareil de test.",
+    "Every device: delivered, received, clicked (CSV).": "Chaque appareil : délivré, reçu, cliqué (CSV).",
+    "Clicks over time": "Clics dans le temps",
+    "Per hour, during the first two days.": "Par heure, pendant les deux premiers jours."
 }

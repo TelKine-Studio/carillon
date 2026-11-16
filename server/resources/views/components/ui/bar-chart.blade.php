@@ -1,4 +1,4 @@
-@props(['points' => [], 'label', 'height' => 'h-40', 'empty' => null])
+@props(['points' => [], 'label', 'height' => 'h-40', 'empty' => null, 'tickFormat' => 'D MMM', 'tooltip' => null])
 @php
     // One series of daily values: bars from the baseline, a recessive grid,
     // the maximum on the axis and a tooltip on hover.
@@ -9,7 +9,8 @@
     $scale = max(2, collect([1, 2, 5, 10])->map(fn ($m) => $m * $magnitude)->first(fn ($v) => $v >= $max));
     $count = count($points);
     $n = fn ($v) => number_format((int) $v, 0, ',', ' ');
-    $data = array_map(fn ($p) => ['d' => $p['date']->isoFormat($count > 31 ? 'D MMM' : 'ddd D MMM'), 'v' => $n($p['value'])], $points);
+    $tooltip ??= $count > 31 ? 'D MMM' : 'ddd D MMM';
+    $data = array_map(fn ($p) => ['d' => $p['date']->isoFormat($tooltip), 'v' => $n($p['value'])], $points);
     $ticks = $count > 1 ? array_unique([0, intdiv($count - 1, 2), $count - 1]) : [0];
 @endphp
 <figure {{ $attributes->merge(['class' => 'min-w-0']) }} x-data="{ active: null, points: @js($data) }" x-on:mouseleave="active = null">
@@ -46,7 +47,7 @@
         <div class="relative mt-2 ml-9 h-4 text-[10px] text-zinc-400">
             @foreach ($ticks as $tick)
                 <span @class(['absolute', '-translate-x-1/2' => $tick !== 0 && $tick !== $count - 1, 'right-0' => $tick === $count - 1 && $count > 1])
-                    @if ($tick !== $count - 1 || $count === 1) style="left: {{ $tick === 0 ? 0 : ($tick + 0.5) / $count * 100 }}%" @endif>{{ $points[$tick]['date']->isoFormat('D MMM') }}</span>
+                    @if ($tick !== $count - 1 || $count === 1) style="left: {{ $tick === 0 ? 0 : ($tick + 0.5) / $count * 100 }}%" @endif>{{ $points[$tick]['date']->isoFormat($tickFormat) }}</span>
             @endforeach
         </div>
     @endif

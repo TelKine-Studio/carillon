@@ -317,4 +317,25 @@ class SendingTest extends TestCase
         // Test sends stay out of the statistics.
         $this->actingAs($owner)->get(route('projects.stats', $this->project))->assertOk()->assertSee('Statistics');
     }
+
+    public function test_a_message_report_shows_clicks_over_time_and_exports_deliveries(): void
+    {
+        $owner = $this->project->members()->first();
+        $this->device('ios', 'live-ios');
+        $this->device('android', 'live-android');
+        $id = $this->api()->postJson('/api/v1/notifications', ['included_segments' => ['All'], 'contents' => ['en' => 'Promo']])->json('id');
+        $message = Message::findOrFail($id);
+        $message->deliveries()->first()->forceFill(['clicked_at' => $message->started_at->copy()->addMinutes(20)])->save();
+        $message->forceFill(['clicked' => 1])->save();
+
+        $this->actingAs($owner)->get(route('projects.messages.show', [$this->project, $message]))
+            ->assertOk()->assertSee('Clicks over time')->assertSee(route('projects.messages.export', [$this->project, $message]), false);
+
+        $csv = $this->actingAs($owner)->get(route('projects.messages.export', [$this->project, $message]))->assertOk()->streamedContent();
+        $lines = array_values(array_filter(explode("\n", $csv)));
+        $this->assertCount(3, $lines);
+        $this->assertStringStartsWith('subscription_id,external_id,platform', $lines[0]);
+        $this->assertStringContainsString(',sent,', $csv);
+        $this->assertStringContainsString('ios', $csv);
+    }
 }

@@ -34,6 +34,9 @@
             @endif
             <x-ui.button variant="secondary" :href="route('projects.messages.create', [$project, 'from' => $message->id])" icon="copy">{{ __('Duplicate') }}</x-ui.button>
         @endcan
+        @if ($message->recipients > 0)
+            <x-ui.button variant="secondary" :href="route('projects.messages.export', [$project, $message])" icon="file" title="{{ __('Every device: delivered, received, clicked (CSV).') }}">{{ __('Export') }}</x-ui.button>
+        @endif
     </x-ui.page-header>
 
     <div class="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-zinc-500 dark:text-zinc-400">
@@ -98,6 +101,12 @@
                     </p>
                 @endif
             </x-ui.card>
+
+            @if ($clicks)
+                <x-ui.card :title="__('Clicks over time')" :description="__('Per hour, during the first two days.')" icon="external">
+                    <x-ui.bar-chart :points="$clicks" :label="__('Clicks over time')" tick-format="ddd HH[h]" tooltip="ddd D MMM, HH[h]" height="h-32" />
+                </x-ui.card>
+            @endif
 
             {{-- Per platform --}}
             @if ($message->platformStats->isNotEmpty())

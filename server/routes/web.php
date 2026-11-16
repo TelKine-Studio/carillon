@@ -84,6 +84,7 @@ Route::middleware('auth')->group(function () {
         Route::post('messages/test', [MessageController::class, 'test'])->name('messages.test');
         Route::get('messages/{message}', [MessageController::class, 'show'])->name('messages.show');
         Route::post('messages/{message}/cancel', [MessageController::class, 'cancel'])->name('messages.cancel');
+        Route::get('messages/{message}/export', [MessageController::class, 'export'])->name('messages.export');
 
         Route::get('audience', [SubscriberController::class, 'index'])->name('subscribers.index');
         Route::get('audience/import', [AudienceImportController::class, 'create'])->name('imports.create');

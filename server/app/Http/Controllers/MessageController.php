@@ -7,6 +7,7 @@ use App\Audience\Audience;
 use App\Http\ComposerInput;
 use App\Models\Message;
 use App\Models\Project;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /** Messages of a project in the dashboard: list, composer, statistics. */
 class MessageController extends Controller
@@ -150,6 +152,7 @@ class MessageController extends Controller
         return view('messages.show', [
             'project' => $project,
             'message' => $message,
+            'clicks' => $this->clicksPerHour($message),
             'errors_summary' => $message->deliveries()
                 ->whereNotNull('error')
                 ->select('error', DB::raw('count(*) as total'))
@@ -158,6 +161,65 @@ class MessageController extends Controller
                 ->limit(8)
                 ->get(),
         ]);
+    }
+
+    /** Every delivery of a message as CSV: who received it, who clicked. */
+    public function export(Project $project, Message $message): StreamedResponse
+    {
+        $this->authorize('view', $project);
+        abort_unless($message->project_id === $project->id, 404);
+
+        $name = 'carillon-'.Str::slug(Str::limit($message->label(), 40, '')).'-'.($message->started_at ?? $message->created_at)->format('Y-m-d').'.csv';
+
+        return response()->streamDownload(function () use ($message) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['subscription_id', 'external_id', 'platform', 'device', 'app_version', 'status', 'error', 'sent_at', 'received_at', 'clicked_at'], escape: '\\');
+            $message->deliveries()
+                ->with('subscription:id,subscriber_id,type,device_model,app_version', 'subscription.subscriber:id,external_id')
+                ->orderBy('id')
+                ->chunk(1000, function ($deliveries) use ($out) {
+                    foreach ($deliveries as $delivery) {
+                        fputcsv($out, [
+                            $delivery->subscription_id,
+                            $delivery->subscription?->subscriber?->external_id,
+                            $delivery->subscription?->type,
+                            $delivery->subscription?->device_model,
+                            $delivery->subscription?->app_version,
+                            $delivery->status,
+                            $delivery->error,
+                            $delivery->sent_at?->toIso8601String(),
+                            $delivery->received_at?->toIso8601String(),
+                            $delivery->clicked_at?->toIso8601String(),
+                        ], escape: '\\');
+                    }
+                });
+            fclose($out);
+        }, $name, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /**
+     * Clicks per hour during the first two days after sending (from the
+     * per-device details, kept for the retention period).
+     *
+     * @return list<array{date: CarbonImmutable, value: int}>
+     */
+    protected function clicksPerHour(Message $message): array
+    {
+        $start = $message->started_at ? CarbonImmutable::parse($message->started_at)->startOfHour() : null;
+        if (! $start || $message->clicked === 0) {
+            return [];
+        }
+
+        $hours = (int) min(48, max(1, $start->diffInHours(now()->min($start->addHours(48))) + 1));
+        $counts = array_fill(0, $hours, 0);
+        $message->deliveries()->whereNotNull('clicked_at')->pluck('clicked_at')->each(function ($at) use ($start, $hours, &$counts) {
+            $hour = (int) floor($start->diffInMinutes(CarbonImmutable::parse($at)) / 60);
+            if ($hour >= 0 && $hour < $hours) {
+                $counts[$hour]++;
+            }
+        });
+
+        return array_map(fn (int $hour) => ['date' => $start->addHours($hour), 'value' => $counts[$hour]], array_keys($counts));
     }
 
     public function cancel(Project $project, Message $message): RedirectResponse
