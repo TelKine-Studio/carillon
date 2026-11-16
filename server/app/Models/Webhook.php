@@ -20,6 +20,7 @@ class Webhook extends Model
         'notification.clicked',
         'subscription.created',
         'subscription.unsubscribed',
+        'onesignal_sync.failed',
     ];
 
     /** Disabled after this many events in a row could not be delivered. */

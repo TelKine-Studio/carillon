@@ -29,6 +29,10 @@ class AuthenticateApiKey
             return response()->json(['errors' => ['This API key does not belong to app_id '.$appId.'.']], 403);
         }
 
+        if (! $key->allows($request->method(), $request->route()?->uri() ?? $request->path())) {
+            return response()->json(['errors' => ['This API key can only send notifications and read their statistics: use a key with full access.']], 403);
+        }
+
         if (! $key->last_used_at || $key->last_used_at->lt(now()->subMinute())) {
             $key->forceFill(['last_used_at' => now()])->saveQuietly();
         }

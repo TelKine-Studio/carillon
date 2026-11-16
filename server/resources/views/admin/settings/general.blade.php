@@ -33,7 +33,7 @@
                     :description="__('When disabled, only administrators create projects and add members to them.')" />
             </x-settings.section>
 
-            <x-settings.section :title="__('History')" :description="__('Delivery details kept on the server.')" icon="inbox" :fields="['retention_days']">
+            <x-settings.section :title="__('History')" :description="__('How long the details per device (delivered, received, clicked) are kept. Messages, their contents and totals stay for the reports.')" icon="inbox" :fields="['retention_days']">
                 <x-slot:summary>
                     <x-settings.summary :columns="1">
                         <x-settings.value :label="__('Retention')" :value="trans_choice(':count day|:count days', $settings->integer('messages.retention_days'))" />

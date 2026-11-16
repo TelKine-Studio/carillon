@@ -14,9 +14,9 @@ class ApiKeyController extends Controller
     {
         $this->authorize('configure', $project);
 
-        $data = $request->validate(['name' => ['required', 'string', 'max:80']]);
+        $data = $request->validate(['name' => ['required', 'string', 'max:80'], 'scope' => ['nullable', 'in:full,send']]);
 
-        [$key, $plain] = ApiKey::generate($project, $data['name'], $request->user());
+        [$key, $plain] = ApiKey::generate($project, $data['name'], $request->user(), $data['scope'] ?? 'full');
         Audit::log('api_key.created', $key, ['project' => $project->app_id, 'name' => $key->name]);
 
         return back()

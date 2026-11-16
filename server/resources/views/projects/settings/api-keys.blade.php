@@ -17,7 +17,7 @@
                 <li class="flex flex-wrap items-center gap-4 px-5 py-4 sm:px-6">
                     <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-zinc-100 text-zinc-500 dark:bg-white/5"><x-ui.icon name="key" class="size-[18px]" /></span>
                     <div class="min-w-0 flex-1">
-                        <p class="truncate text-sm font-medium text-zinc-900 dark:text-white">{{ $key->name }}</p>
+                        <p class="flex items-center gap-2 text-sm font-medium text-zinc-900 dark:text-white"><span class="truncate">{{ $key->name }}</span><x-ui.badge :color="$key->scope === 'send' ? 'blue' : 'zinc'" class="shrink-0">{{ $key->scope === 'send' ? __('Sending only') : __('Full access') }}</x-ui.badge></p>
                         <p class="text-xs text-zinc-500">
                             <span class="font-mono">{{ $key->prefix }}…</span>
                             · {{ __('created :date', ['date' => $key->created_at->diffForHumans()]) }}@if ($key->creator) {{ __('by :name', ['name' => $key->creator->name]) }}@endif
@@ -46,6 +46,18 @@
             <form method="POST" action="{{ route('projects.api-keys.store', $project) }}">
                 @csrf
                 <x-ui.input name="name" :label="__('Name')" :placeholder="__('e.g. Production backend')" required maxlength="80" autofocus />
+                <fieldset class="mt-5" x-data="{ scope: 'send' }">
+                    <legend class="mb-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Access') }}</legend>
+                    <input type="hidden" name="scope" :value="scope">
+                    <div class="grid gap-2 sm:grid-cols-2">
+                        @foreach (['send' => [__('Sending only'), __('Send notifications, read their statistics, report events. Recommended for an app backend.')], 'full' => [__('Full access'), __('Also read, change and delete the audience (users API), manage templates.')]] as $value => [$label, $text])
+                            <button type="button" x-on:click="scope = '{{ $value }}'" class="rounded-xl border p-3 text-left transition" :class="scope === '{{ $value }}' ? 'border-brand-500 bg-brand-50/50 ring-4 ring-brand-500/10 dark:bg-brand-500/10' : 'border-zinc-200 hover:border-zinc-300 dark:border-zinc-800'">
+                                <span class="block text-sm font-semibold text-zinc-900 dark:text-white">{{ $label }}</span>
+                                <span class="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-400">{{ $text }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+                </fieldset>
                 <div class="mt-6 flex justify-end gap-3">
                     <x-ui.button type="button" variant="ghost" x-on:click="open = false">{{ __('Cancel') }}</x-ui.button>
                     <x-ui.button icon="plus">{{ __('Create key') }}</x-ui.button>

@@ -10,6 +10,11 @@ Authorization: Key crl_…        (Basic and Bearer are accepted too)
 Content-Type: application/json
 ```
 
+Keys have an access level, chosen when they are created: **sending only**
+(notifications, reading templates, custom events and stats: the right one for
+an app backend) or **full access** (also the users API and template changes).
+A sending key used elsewhere gets a `403`.
+
 Errors use the OneSignal shape: `{"errors": ["…"]}` with status 400 (invalid
 request), 403 (missing or wrong key) or 404.
 
@@ -204,7 +209,14 @@ settings).
 - `GET /api/v1/notifications/{id}` — status, `successful`, `failed`
   (refused, the device is disabled), `errored`, `received`, `converted`
   (clicks), `remaining`, `platform_delivery_stats` per platform.
+- `legacy`: devices of this message still on the OneSignal SDK (their
+  receptions and clicks are not reported).
 - `GET /api/v1/notifications?limit=50&offset=0` — latest notifications.
+- `GET /api/v1/apps/{app_id}/stats` — reachable devices (`devices`,
+  `platforms`), how many still run the OneSignal SDK (`legacy`,
+  `legacy_share` in %, `carillon_sdk`), email, SMS and WhatsApp
+  subscriptions, people online now, state of the OneSignal sync. The figure to
+  watch before switching OneSignal off.
 - `DELETE /api/v1/notifications/{id}` — cancels a scheduled notification
   (or the time zones not reached yet of a local time delivery).
 
@@ -297,6 +309,7 @@ body to your URL for the events you choose.
 | `subscription.created` | A new device registered | `subscription_id`, `subscriber_id`, `external_id`, `platform`, `language`, `device_model`, `app_version` |
 | `subscription.unsubscribed` | Notifications turned off (`reason: opted_out`), token refused by Apple/Google (`token_invalid`), email unsubscribed, bounced or complained (`unsubscribed`, `bounced`, `complained`) | `subscription_id`, `subscriber_id`, `external_id`, `platform`, `reason` |
 | `email.opened` / `email.clicked` | An email opened, or a link clicked, once per address | `message_id`, `subscription_id`, `external_id` |
+| `onesignal_sync.failed` | The nightly import of the OneSignal app failed (sent once per new error) | `onesignal_app_id`, `error`, `last_synced_at` |
 
 ```json
 {

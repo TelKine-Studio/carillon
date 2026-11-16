@@ -6,6 +6,7 @@ use App\Actions\CreateMessage;
 use App\Http\Controllers\Controller;
 use App\Models\Message;
 use App\Models\Project;
+use App\Models\Subscription;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -106,6 +107,8 @@ class NotificationController extends Controller
             'failed' => $message->failed,
             'errored' => $message->errored,
             'received' => $message->received,
+            // Devices of this message still on the OneSignal SDK (no reception or click reports).
+            'legacy' => $message->deliveries()->whereHas('subscription', fn ($q) => $q->where('sdk', Subscription::ONESIGNAL_SDK))->count(),
             'converted' => $message->clicked,
             'remaining' => in_array($message->status, ['scheduled', 'queued', 'sending'], true) ? $message->remaining() : 0,
             'queued_at' => $message->created_at?->getTimestamp(),

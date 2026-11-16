@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Webhooks\Webhooks;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,6 +23,20 @@ class OneSignalSync extends Model
             'requested_at' => 'datetime',
             'last_synced_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // A failing nightly sync is told once (not at every retry of the same error).
+        static::saved(function (OneSignalSync $sync) {
+            if ($sync->last_error && $sync->wasChanged('last_error')) {
+                Webhooks::dispatch($sync->project_id, 'onesignal_sync.failed', [
+                    'onesignal_app_id' => $sync->app_id,
+                    'error' => $sync->last_error,
+                    'last_synced_at' => $sync->last_synced_at?->toIso8601String(),
+                ]);
+            }
+        });
     }
 
     /** @return BelongsTo<Project, $this> */

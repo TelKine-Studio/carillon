@@ -2092,5 +2092,12 @@
     "Carillon :version · PHP :php": "Carillon :version · PHP :php",
     "Everything works": "Tout fonctionne",
     "Needs attention": "À vérifier",
-    "For an external monitoring tool: GET /up answers 200 when the application runs.": "Pour un outil de supervision externe : GET /up répond 200 quand l’application tourne."
+    "For an external monitoring tool: GET /up answers 200 when the application runs.": "Pour un outil de supervision externe : GET /up répond 200 quand l’application tourne.",
+    "How long the details per device (delivered, received, clicked) are kept. Messages, their contents and totals stay for the reports.": "Durée de conservation des détails par appareil (délivré, reçu, cliqué). Les messages, leur contenu et leurs totaux restent pour les rapports.",
+    "OneSignal sync failed": "Échec de la synchronisation OneSignal",
+    "The nightly import of the OneSignal app failed: devices of the old app version are not up to date.": "L’import nocturne de l’app OneSignal a échoué : les appareils de l’ancienne version de l’app ne sont pas à jour.",
+    "Sending only": "Envoi seulement",
+    "Full access": "Accès complet",
+    "Send notifications, read their statistics, report events. Recommended for an app backend.": "Envoyer des notifications, lire leurs statistiques, signaler des événements. Recommandé pour le backend d’une app.",
+    "Also read, change and delete the audience (users API), manage templates.": "Aussi lire, modifier et supprimer l’audience (API utilisateurs), gérer les modèles."
 }

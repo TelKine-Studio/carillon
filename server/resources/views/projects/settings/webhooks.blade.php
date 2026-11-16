@@ -5,6 +5,7 @@
         'notification.clicked' => [__('Notification clicked'), __('Opened by a person, with the button pressed.')],
         'subscription.created' => [__('New device'), __('A device registered for notifications.')],
         'subscription.unsubscribed' => [__('Device unsubscribed'), __('Notifications turned off, or the app uninstalled.')],
+        'onesignal_sync.failed' => [__('OneSignal sync failed'), __('The nightly import of the OneSignal app failed: devices of the old app version are not up to date.')],
     ];
     $open = session('open_webhook');
 @endphp

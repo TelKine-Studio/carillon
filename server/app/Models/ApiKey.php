@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
-#[Fillable(['project_id', 'name', 'prefix', 'key_hash', 'created_by', 'last_used_at'])]
+#[Fillable(['project_id', 'name', 'scope', 'prefix', 'key_hash', 'created_by', 'last_used_at'])]
 #[Hidden(['key_hash'])]
 class ApiKey extends Model
 {
@@ -22,13 +22,28 @@ class ApiKey extends Model
      *
      * @return array{0: ApiKey, 1: string}
      */
-    public static function generate(Project $project, string $name, ?User $creator = null): array
+    public const SCOPES = ['full', 'send'];
+
+    /** What a "send" key may call: a leak lets nobody read or delete the audience. */
+    public function allows(string $method, string $uri): bool
+    {
+        if ($this->scope !== 'send') {
+            return true;
+        }
+
+        return str_starts_with($uri, 'api/v1/notifications')
+            || ($method === 'GET' && str_starts_with($uri, 'api/v1/templates'))
+            || preg_match('#^api/v1/apps/[^/]+/(custom_events|stats)$#', $uri) === 1;
+    }
+
+    public static function generate(Project $project, string $name, ?User $creator = null, string $scope = 'full'): array
     {
         $plain = 'crl_'.Str::random(44);
 
         $key = static::create([
             'project_id' => $project->id,
             'name' => $name,
+            'scope' => in_array($scope, self::SCOPES, true) ? $scope : 'full',
             'prefix' => substr($plain, 0, 12),
             'key_hash' => hash('sha256', $plain),
             'created_by' => $creator?->id,

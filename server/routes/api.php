@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AppStatsController;
 use App\Http\Controllers\Api\CustomEventController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\TemplateController;
@@ -34,6 +35,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('apps/{app_id}/users/by/external_id/{externalId}', [UserController::class, 'update']);
         Route::delete('apps/{app_id}/users/by/external_id/{externalId}', [UserController::class, 'destroy']);
         Route::post('apps/{app_id}/custom_events', [CustomEventController::class, 'store']);
+        Route::get('apps/{app_id}/stats', [AppStatsController::class, 'show']);
     });
 
     // Bounces and complaints from the email service of a project.
