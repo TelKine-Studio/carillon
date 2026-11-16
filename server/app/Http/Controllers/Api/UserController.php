@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Sdk\SubscriptionController;
+use App\Journeys\JourneyRunner;
 use App\Models\Project;
 use App\Models\Subscriber;
 use App\Models\Subscription;
@@ -49,8 +50,10 @@ class UserController extends Controller
                 ? Subscriber::query()->firstOrNew(['project_id' => $project->id, 'external_id' => $externalId])
                 : new Subscriber(['project_id' => $project->id]);
 
+            $tagsBefore = $subscriber->getOriginal('tags');
             $this->applyProperties($subscriber, $data['properties'] ?? []);
             $subscriber->save();
+            app(JourneyRunner::class)->tagsChanged($subscriber, $tagsBefore);
 
             foreach ($data['subscriptions'] ?? [] as $item) {
                 $type = self::TYPES[$item['type']];
@@ -97,8 +100,10 @@ class UserController extends Controller
             'properties.country' => ['nullable', 'string', 'size:2'],
         ]);
 
+        $tagsBefore = $subscriber->tags;
         $this->applyProperties($subscriber, $data['properties']);
         $subscriber->save();
+        app(JourneyRunner::class)->tagsChanged($subscriber, $tagsBefore);
 
         return response()->json(['properties' => $this->properties($subscriber)]);
     }

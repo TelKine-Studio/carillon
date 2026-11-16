@@ -89,6 +89,11 @@ class Project extends Model
     }
 
     /** @return HasMany<Segment, $this> */
+    public function journeys(): HasMany
+    {
+        return $this->hasMany(Journey::class);
+    }
+
     public function segments(): HasMany
     {
         return $this->hasMany(Segment::class);

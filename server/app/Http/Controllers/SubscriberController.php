@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\CreateMessage;
+use App\Journeys\JourneyRunner;
 use App\Models\Delivery;
 use App\Models\Project;
 use App\Models\Subscriber;
@@ -127,9 +128,11 @@ class SubscriberController extends Controller
             }
         }
 
+        $before = $subscriber->tags;
         $subscriber->tags = null;
         $subscriber->mergeTags($tags);
         $subscriber->save();
+        app(JourneyRunner::class)->tagsChanged($subscriber, $before);
 
         return back()->with('status', __('Tags saved.'));
     }

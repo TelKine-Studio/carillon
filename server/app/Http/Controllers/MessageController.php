@@ -35,7 +35,9 @@ class MessageController extends Controller
         $status = $request->query('status');
         $search = trim((string) $request->query('q'));
 
+        // Messages of journeys are reported on their journey, not here.
         $messages = $project->messages()
+            ->whereNull('journey_id')
             ->with('author')
             ->when(in_array($status, Message::STATUSES, true), fn ($q) => $q->where('status', $status))
             ->when($search !== '', fn ($q) => $q->where(fn ($q) => $q
@@ -49,7 +51,7 @@ class MessageController extends Controller
             'messages' => $messages,
             'status' => $status,
             'search' => $search,
-            'counts' => $project->messages()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),
+            'counts' => $project->messages()->whereNull('journey_id')->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),
         ]);
     }
 

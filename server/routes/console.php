@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\SyncOneSignal;
+use App\Journeys\JourneyRunner;
 use App\Models\OneSignalSync;
 use Illuminate\Support\Facades\Schedule;
 
@@ -22,3 +23,7 @@ Schedule::call(function () {
 Schedule::call(function () {
     OneSignalSync::query()->whereNotNull('pending_url')->pluck('id')->each(fn (int $id) => SyncOneSignal::dispatch($id));
 })->everyMinute()->name('onesignal-sync-download')->withoutOverlapping();
+
+// Journeys: people whose step is due move on; inactive people enter.
+Schedule::call(fn () => app(JourneyRunner::class)->run())->everyMinute()->name('journeys-run')->withoutOverlapping();
+Schedule::call(fn () => app(JourneyRunner::class)->sweepInactive())->hourly()->name('journeys-inactive')->withoutOverlapping();

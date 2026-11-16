@@ -130,6 +130,26 @@ Alpine.data('datePicker', (withTime = false, min = null) => ({
 // Drives components/ui/select.blade.php: a styled listbox in front of a
 // hidden native <select> (which still holds the value for forms, x-model
 // and onchange handlers).
+/* ---------------------------------------------------- Journey editor */
+
+// Steps of a journey: added, reordered and removed in place; the inputs are
+// named steps[index][...] so the form posts them in their order.
+Alpine.data('journeyEditor', (config) => ({
+    trigger: config.trigger,
+    steps: config.steps,
+    uid: config.steps.length,
+    labels: config.labels,
+    add(type) {
+        this.steps.push({ uid: ++this.uid, type, amount: 1, unit: 'days', template_id: '', title: '', subject: '', body: '', url: '', key: '', operator: 'is', value: '' });
+    },
+    move(index, offset) {
+        const target = index + offset;
+        if (target < 0 || target >= this.steps.length) return;
+        const [step] = this.steps.splice(index, 1);
+        this.steps.splice(target, 0, step);
+    },
+}));
+
 /* ---------------------------------------------------- Delight */
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

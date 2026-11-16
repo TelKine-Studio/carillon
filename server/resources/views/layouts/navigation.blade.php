@@ -8,6 +8,7 @@
         ['route' => 'projects.show', 'match' => 'projects.show', 'icon' => 'home', 'label' => __('Overview')],
         ['route' => 'projects.stats', 'match' => 'projects.stats', 'icon' => 'bar-chart', 'label' => __('Statistics')],
         ['route' => 'projects.messages.index', 'match' => 'projects.messages.*', 'icon' => 'send', 'label' => __('Messages')],
+        ['route' => 'projects.journeys.index', 'match' => 'projects.journeys.*', 'icon' => 'zap', 'label' => __('Journeys')],
         ['route' => 'projects.subscribers.index', 'match' => 'projects.subscribers.*', 'icon' => 'users', 'label' => __('Audience')],
         ['route' => 'projects.segments.index', 'match' => 'projects.segments.*', 'icon' => 'layers', 'label' => __('Segments')],
         ['route' => 'projects.templates.index', 'match' => 'projects.templates.*', 'icon' => 'file', 'label' => __('Templates')],

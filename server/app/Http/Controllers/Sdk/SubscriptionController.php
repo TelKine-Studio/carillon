@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Sdk;
 use App\Audience\Events;
 use App\Audience\Identity;
 use App\Http\Controllers\Controller;
+use App\Journeys\JourneyRunner;
 use App\Models\Project;
 use App\Models\Subscriber;
 use App\Models\Subscription;
@@ -62,10 +63,14 @@ class SubscriptionController extends Controller
         }
 
         $subscriber = $subscription->fresh()->subscriber;
+        $tagsBefore = $subscriber->tags;
         $this->applyPerson($subscriber, $data);
 
+        $journeys = app(JourneyRunner::class);
+        $journeys->tagsChanged($subscriber->fresh(), $tagsBefore);
         if ($created) {
             Webhooks::dispatch($project, 'subscription.created', $this->webhookData($subscription->fresh('subscriber')));
+            $journeys->trigger($project, 'new_device', $subscriber);
         }
 
         return response()->json($this->present($subscription->fresh('subscriber')), 201);
@@ -127,8 +132,10 @@ class SubscriptionController extends Controller
         $data = $request->validate(['tags' => ['present', 'array', 'max:'.Subscriber::MAX_TAGS]]);
 
         $subscriber = $subscription->subscriber;
+        $before = $subscriber->tags;
         $subscriber->mergeTags($data['tags']);
         $subscriber->save();
+        app(JourneyRunner::class)->tagsChanged($subscriber, $before);
 
         return response()->json(['tags' => (object) ($subscriber->tags ?? [])]);
     }
