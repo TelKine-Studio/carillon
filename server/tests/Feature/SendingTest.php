@@ -338,4 +338,42 @@ class SendingTest extends TestCase
         $this->assertStringContainsString(',sent,', $csv);
         $this->assertStringContainsString('ios', $csv);
     }
+
+    public function test_drafts_are_saved_without_sending_and_replaced_when_sent(): void
+    {
+        $owner = $this->project->members()->first();
+        $this->device('ios', 'live-ios');
+        $form = ['name' => 'Promo', 'audience' => 'segments', 'included_segments' => ['Subscribed Users'], 'texts' => [['language' => 'en', 'body' => 'Bonus today']]];
+
+        $this->actingAs($owner)->post(route('projects.messages.store', $this->project), $form + ['save_draft' => 1])
+            ->assertRedirect(route('projects.messages.index', [$this->project, 'status' => 'draft']));
+        $draft = Message::firstOrFail();
+        $this->assertSame('draft', $draft->status);
+        Http::assertNothingSent();
+
+        $this->actingAs($owner)->get(route('projects.messages.index', [$this->project, 'status' => 'draft']))->assertOk()->assertSee('Promo');
+        $this->actingAs($owner)->get(route('projects.messages.create', [$this->project, 'from' => $draft->id]))->assertOk()->assertSee('name="draft_id"', false);
+
+        // Sending from the draft: the draft goes away, the message goes out.
+        $this->actingAs($owner)->post(route('projects.messages.store', $this->project), $form + ['draft_id' => $draft->id])->assertRedirect();
+        $this->assertNull(Message::find($draft->id));
+        $this->assertSame(['sent'], Message::pluck('status')->all());
+    }
+
+    public function test_the_daily_cap_skips_devices_that_received_enough(): void
+    {
+        $this->device('ios', 'busy-ios');
+        $this->device('android', 'quiet-android');
+        $this->project->update(['settings' => ['frequency_cap' => 1]]);
+
+        $first = $this->api()->postJson('/api/v1/notifications', ['include_subscription_ids' => [Subscription::where('token', 'busy-ios')->value('id')], 'contents' => ['en' => 'One']])->json('id');
+        $this->assertSame(1, Message::find($first)->successful);
+
+        // The iPhone already got one today: only the Android phone receives the second.
+        $second = $this->api()->postJson('/api/v1/notifications', ['included_segments' => ['All'], 'contents' => ['en' => 'Two']])->json('id');
+        $message = Message::find($second);
+        $this->assertSame(1, $message->capped);
+        $this->assertSame(1, $message->recipients);
+        $this->assertSame(1, $message->successful);
+    }
 }

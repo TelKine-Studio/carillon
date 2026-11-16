@@ -12,15 +12,17 @@ return new class extends Migration
         Schema::table('subscriptions', function (Blueprint $table) {
             $table->boolean('is_test')->default(false);
         });
-        // Test sends stay out of the statistics.
+        // Test sends stay out of the statistics; devices left out by the
+        // daily cap of the project are counted.
         Schema::table('messages', function (Blueprint $table) {
             $table->boolean('is_test')->default(false);
+            $table->unsignedInteger('capped')->default(0);
         });
     }
 
     public function down(): void
     {
         Schema::table('subscriptions', fn (Blueprint $table) => $table->dropColumn('is_test'));
-        Schema::table('messages', fn (Blueprint $table) => $table->dropColumn('is_test'));
+        Schema::table('messages', fn (Blueprint $table) => $table->dropColumn(['is_test', 'capped']));
     }
 };

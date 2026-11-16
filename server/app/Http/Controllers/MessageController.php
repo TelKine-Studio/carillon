@@ -65,6 +65,7 @@ class MessageController extends Controller
         return view('messages.create', [
             'project' => $project,
             'source' => $usedTemplate ?? $source,
+            'draft' => $source?->status === 'draft' ? $source : null,
             'usedTemplate' => $usedTemplate,
             'templates' => $project->templates()->orderBy('name')->get(['id', 'name', 'headings', 'contents']),
             'segments' => $project->segments()->orderBy('name')->pluck('name'),
@@ -77,8 +78,15 @@ class MessageController extends Controller
     {
         $this->authorize('send', $project);
 
+        $draft = $request->boolean('save_draft');
+        // The draft being edited is replaced by what is sent or saved now.
+        $previous = Str::isUuid((string) $request->input('draft_id'))
+            ? $project->messages()->where('status', 'draft')->find($request->input('draft_id'))
+            : null;
+
         try {
-            $message = $create->handle($project, ComposerInput::fromRequest($request), $request->user());
+            $message = $create->handle($project, ComposerInput::fromRequest($request), $request->user(), draft: $draft);
+            $previous?->delete();
 
             // Sent from a template: kept for its statistics (the content is the form's).
             if ($template = Str::isUuid((string) $request->input('template_id')) ? $project->templates()->find($request->input('template_id')) : null) {
@@ -86,6 +94,10 @@ class MessageController extends Controller
             }
         } catch (ValidationException $e) {
             throw ValidationException::withMessages(['alert' => $this->explain($e)]);
+        }
+
+        if ($draft) {
+            return redirect()->route('projects.messages.index', [$project, 'status' => 'draft'])->with('status', __('Draft saved.'));
         }
 
         return redirect()->route('projects.messages.show', [$project, $message])
@@ -220,6 +232,15 @@ class MessageController extends Controller
         });
 
         return array_map(fn (int $hour) => ['date' => $start->addHours($hour), 'value' => $counts[$hour]], array_keys($counts));
+    }
+
+    public function destroyDraft(Project $project, Message $message): RedirectResponse
+    {
+        $this->authorize('send', $project);
+        abort_unless($message->project_id === $project->id && $message->status === 'draft', 404);
+        $message->delete();
+
+        return redirect()->route('projects.messages.index', [$project, 'status' => 'draft'])->with('status', __('Draft deleted.'));
     }
 
     public function cancel(Project $project, Message $message): RedirectResponse

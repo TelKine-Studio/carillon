@@ -1,5 +1,5 @@
 @php
-    $tabs = ['' => __('All'), 'sent' => __('Sent'), 'scheduled' => __('Scheduled'), 'sending' => __('Sending'), 'canceled' => __('Canceled')];
+    $tabs = ['' => __('All'), 'sent' => __('Sent'), 'scheduled' => __('Scheduled'), 'draft' => __('Drafts'), 'sending' => __('Sending'), 'canceled' => __('Canceled')];
 @endphp
 <x-layouts.app :title="__('Messages').' · '.$project->name">
     <x-ui.page-header :title="__('Messages')" :description="__('Notifications sent from the dashboard and the API.')">
@@ -37,7 +37,7 @@
 
     <div class="card overflow-hidden">
         @forelse ($messages as $message)
-            <a href="{{ route('projects.messages.show', [$project, $message]) }}" class="flex flex-col gap-3 border-t border-zinc-100 px-4 py-4 transition first:border-0 hover:bg-zinc-50/80 sm:px-5 lg:flex-row lg:items-center lg:gap-6 dark:border-zinc-800 dark:hover:bg-white/[.02]">
+            <a href="{{ $message->status === 'draft' && auth()->user()->can('send', $project) ? route('projects.messages.create', [$project, 'from' => $message->id]) : route('projects.messages.show', [$project, $message]) }}" class="flex flex-col gap-3 border-t border-zinc-100 px-4 py-4 transition first:border-0 hover:bg-zinc-50/80 sm:px-5 lg:flex-row lg:items-center lg:gap-6 dark:border-zinc-800 dark:hover:bg-white/[.02]">
                 <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-2">
                         <p class="flex min-w-0 items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-white"><span class="truncate">{{ $message->label() }}</span>@if ($message->is_test)<x-ui.badge color="violet" class="shrink-0">{{ __('Test') }}</x-ui.badge>@endif</p>

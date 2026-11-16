@@ -26,15 +26,25 @@
             <span class="font-mono text-xs">{{ \Illuminate\Support\Str::limit($message->id, 8, '') }}</span>
         </x-slot:breadcrumb>
         @can('send', $project)
+            @if ($message->status === 'draft')
+                <form method="POST" action="{{ route('projects.messages.destroy-draft', [$project, $message]) }}" data-confirm-title="{{ __('Delete this draft?') }}" data-confirm="{{ __('It cannot be recovered.') }}" data-confirm-action="{{ __('Delete') }}">
+                    @csrf
+                    @method('DELETE')
+                    <x-ui.button variant="ghost-danger" icon="trash">{{ __('Delete') }}</x-ui.button>
+                </form>
+                <x-ui.button :href="route('projects.messages.create', [$project, 'from' => $message->id])" icon="pencil">{{ __('Edit the draft') }}</x-ui.button>
+            @endif
             @if ($message->isCancelable())
                 <form method="POST" action="{{ route('projects.messages.cancel', [$project, $message]) }}" data-confirm-title="{{ __('Cancel this message?') }}" data-confirm="{{ __('It will not be sent.') }}" data-confirm-action="{{ __('Cancel the message') }}">
                     @csrf
                     <x-ui.button variant="secondary" icon="x">{{ __('Cancel') }}</x-ui.button>
                 </form>
             @endif
-            <x-ui.button variant="secondary" :href="route('projects.messages.create', [$project, 'from' => $message->id])" icon="copy">{{ __('Duplicate') }}</x-ui.button>
+            @if ($message->status !== 'draft')
+                <x-ui.button variant="secondary" :href="route('projects.messages.create', [$project, 'from' => $message->id])" icon="copy">{{ __('Duplicate') }}</x-ui.button>
+            @endif
         @endcan
-        @if ($message->recipients > 0)
+        @if ($message->recipients > 0 && $message->status !== 'draft')
             <x-ui.button variant="secondary" :href="route('projects.messages.export', [$project, $message])" icon="file" title="{{ __('Every device: delivered, received, clicked (CSV).') }}">{{ __('Export') }}</x-ui.button>
         @endif
     </x-ui.page-header>
@@ -94,6 +104,12 @@
                         </div>
                     @endforeach
                 </div>
+                @if ($message->capped)
+                    <p class="mt-5 flex items-start gap-2 border-t border-zinc-100 pt-4 text-sm text-zinc-500 dark:border-zinc-800">
+                        <x-ui.icon name="info" class="mt-0.5 size-4 shrink-0" />
+                        <span>{{ trans_choice(':count device skipped by the daily cap of the project.|:count devices skipped by the daily cap of the project.', $message->capped, ['count' => $n($message->capped)]) }}</span>
+                    </p>
+                @endif
                 @if ($message->failed || $message->errored)
                     <p class="mt-5 flex flex-wrap gap-x-4 gap-y-1 border-t border-zinc-100 pt-4 text-sm text-zinc-500 dark:border-zinc-800">
                         <span><strong class="font-semibold text-zinc-800 dark:text-zinc-200">{{ $n($message->failed) }}</strong> {{ __('refused (devices disabled)') }}</span>

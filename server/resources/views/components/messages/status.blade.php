@@ -1,6 +1,7 @@
 @props(['status'])
 @php
     [$color, $label] = match ($status) {
+        'draft' => ['amber', __('Draft')],
         'scheduled' => ['violet', __('Scheduled')],
         'queued' => ['zinc', __('Queued')],
         'sending' => ['blue', __('Sending')],

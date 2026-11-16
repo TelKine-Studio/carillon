@@ -43,7 +43,7 @@ class CreateMessage
      *
      * @throws ValidationException
      */
-    public function handle(Project $project, array $input, ?User $author = null, ?ApiKey $apiKey = null): Message
+    public function handle(Project $project, array $input, ?User $author = null, ?ApiKey $apiKey = null, bool $draft = false): Message
     {
         // A template gives the content; the fields of the request win.
         $template = null;
@@ -96,7 +96,7 @@ class CreateMessage
             'contents' => $this->texts($input['contents'] ?? null) ?? [],
             'options' => $options ?: null,
             'targeting' => $targeting,
-            'status' => $sendAfter ? 'scheduled' : 'queued',
+            'status' => $draft ? 'draft' : ($sendAfter ? 'scheduled' : 'queued'),
             'send_after' => $sendAfter,
         ]);
         $message->setRelation('project', $project);
@@ -104,14 +104,15 @@ class CreateMessage
         // Fails early on an unknown segment or filter.
         $recipients = $this->audience->query($project, $targeting)->count();
 
-        if ($recipients === 0 && ! $sendAfter) {
+        // A draft is saved as is: its audience may still be empty.
+        if ($recipients === 0 && ! $sendAfter && ! $draft) {
             throw ValidationException::withMessages(['recipients' => 'All included players are not subscribed']);
         }
 
         $message->recipients = $recipients;
         $message->save();
 
-        if (! $sendAfter) {
+        if (! $sendAfter && ! $draft) {
             DispatchMessage::dispatch($message->id);
         }
 

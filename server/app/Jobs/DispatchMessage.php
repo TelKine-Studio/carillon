@@ -44,8 +44,23 @@ class DispatchMessage implements ShouldQueue
         $total = 0;
         $localTime = $message->option('delayed_option') === 'timezone' ? LocalTime::parse($message->option('delivery_time_of_day')) : null;
 
+        // Daily cap of the project: devices that already received that many
+        // notifications in the last 24 hours are left out (tests are not capped).
+        $cap = (int) $project->setting('frequency_cap');
+        $capped = 0;
+
         foreach ($message->channel === 'email' ? ['email'] : Subscription::PUSH_TYPES as $type) {
             $query = $audience->query($project, $message->targeting)->where('subscriptions.type', $type);
+            if ($cap > 0 && ! $message->is_test && $type !== 'email') {
+                $before = (clone $query)->count();
+                $query->whereNotIn('subscriptions.id', DB::table('deliveries')
+                    ->select('subscription_id')
+                    ->where('status', 'sent')
+                    ->where('sent_at', '>=', now()->subDay())
+                    ->groupBy('subscription_id')
+                    ->havingRaw('count(*) >= ?', [$cap]));
+                $capped += $before - (clone $query)->count();
+            }
             $count = (clone $query)->count();
             if ($count === 0) {
                 continue;
@@ -75,7 +90,7 @@ class DispatchMessage implements ShouldQueue
             }, 'subscriptions.id', 'id');
         }
 
-        $message->forceFill(['recipients' => $total])->save();
+        $message->forceFill(['recipients' => $total, 'capped' => $capped])->save();
 
         if ($jobs === []) {
             $this->complete($message->id, $total === 0 ? 'No subscribed device matches the audience.' : null);

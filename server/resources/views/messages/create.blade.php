@@ -369,6 +369,10 @@
                 <x-ui.button class="mt-5 w-full" size="lg" icon="send">
                     <span x-text="schedule !== 'now' ? @js(__('Schedule the message')) : (channel === 'email' ? @js(__('Send the email')) : @js(__('Send the message')))">{{ __('Send the message') }}</span>
                 </x-ui.button>
+                @isset($draft)
+                    @if ($draft)<input type="hidden" name="draft_id" value="{{ $draft->id }}">@endif
+                @endisset
+                <x-ui.button type="submit" name="save_draft" value="1" variant="ghost" class="mt-2 w-full" icon="file">{{ __('Save as draft') }}</x-ui.button>
                 @php($testDevices = $project->subscriptions()->where('is_test', true)->where('enabled', true)->whereNull('invalid_at')->count())
                 <div class="mt-3 border-t border-zinc-100 pt-3 dark:border-zinc-800">
                     <x-ui.button type="button" variant="secondary" class="w-full" icon="smartphone" x-on:click="sendTest(@js(route('projects.messages.test', $project)))" ::disabled="test.sending">

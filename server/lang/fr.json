@@ -1632,5 +1632,18 @@
     "No longer a test device.": "Ce n’est plus un appareil de test.",
     "Every device: delivered, received, clicked (CSV).": "Chaque appareil : délivré, reçu, cliqué (CSV).",
     "Clicks over time": "Clics dans le temps",
-    "Per hour, during the first two days.": "Par heure, pendant les deux premiers jours."
+    "Per hour, during the first two days.": "Par heure, pendant les deux premiers jours.",
+    "Delete this draft?": "Supprimer ce brouillon ?",
+    "It cannot be recovered.": "Il ne pourra pas être récupéré.",
+    "Edit the draft": "Modifier le brouillon",
+    ":count device skipped by the daily cap of the project.|:count devices skipped by the daily cap of the project.": ":count appareil écarté par le plafond quotidien du projet.|:count appareils écartés par le plafond quotidien du projet.",
+    "Save as draft": "Enregistrer en brouillon",
+    "Drafts": "Brouillons",
+    "Draft": "Brouillon",
+    "Daily cap per device": "Plafond quotidien par appareil",
+    ":count notification per 24 hours|:count notifications per 24 hours": ":count notification par 24 heures|:count notifications par 24 heures",
+    "No cap": "Aucun plafond",
+    "A device that already received this many notifications in the last 24 hours is skipped. Tests are not capped.": "Un appareil qui a déjà reçu ce nombre de notifications ces dernières 24 heures est écarté. Les tests ne sont pas plafonnés.",
+    "Draft saved.": "Brouillon enregistré.",
+    "Draft deleted.": "Brouillon supprimé."
 }

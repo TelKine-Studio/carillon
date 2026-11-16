@@ -26,16 +26,19 @@
             </fieldset>
         </x-settings.section>
 
-        <x-settings.section class="mt-6" :title="__('Defaults')" :description="__('Used when a message does not specify them.')" icon="sliders" :editable="$canConfigure" :fields="['default_url', 'default_ttl']">
+        <x-settings.section class="mt-6" :title="__('Defaults')" :description="__('Used when a message does not specify them.')" icon="sliders" :editable="$canConfigure" :fields="['default_url', 'default_ttl', 'frequency_cap']">
             <x-slot:summary>
                 <x-settings.summary>
                     <x-settings.value :label="__('Default link')" :value="$project->setting('default_url')" mono />
+                    <x-settings.value :label="__('Daily cap per device')" :value="$project->setting('frequency_cap') ? trans_choice(':count notification per 24 hours|:count notifications per 24 hours', (int) $project->setting('frequency_cap')) : null" :empty="__('No cap')" />
                     <x-settings.value :label="__('Time to live')" :value="$project->setting('default_ttl') ? trans_choice(':count second|:count seconds', (int) $project->setting('default_ttl')) : null" :empty="__('3 days (default)')" />
                 </x-settings.summary>
             </x-slot:summary>
             <fieldset @disabled(! $canConfigure) class="grid gap-5 sm:grid-cols-2">
                 <x-ui.input name="default_url" type="url" :label="__('Default link')" :value="$project->setting('default_url')" placeholder="https://" :hint="__('Opened when a notification without link is tapped (web).')" optional />
                 <x-ui.input name="default_ttl" type="number" min="0" max="2419200" :label="__('Time to live (seconds)')" :value="$project->setting('default_ttl')" placeholder="259200" :hint="__('How long Apple and Google keep trying to deliver to a device that is offline. 3 days by default.')" optional />
+                <x-ui.input name="frequency_cap" type="number" min="0" max="100" :label="__('Daily cap per device')" :value="$project->setting('frequency_cap')" :placeholder="__('No cap')" optional
+                    :hint="__('A device that already received this many notifications in the last 24 hours is skipped. Tests are not capped.')" />
             </fieldset>
         </x-settings.section>
     </form>

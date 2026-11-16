@@ -72,7 +72,7 @@ class ProjectController extends Controller
             ->selectRaw('date(created_at) as day, count(*) as total')
             ->groupBy('day')
             ->pluck('total', 'day');
-        $recent = $project->messages()->where('is_test', false)->where('created_at', '>=', now()->subDays(30));
+        $recent = $project->messages()->where('is_test', false)->where('status', '!=', 'draft')->where('created_at', '>=', now()->subDays(30));
 
         return view('projects.show', [
             'project' => $project,
@@ -126,6 +126,7 @@ class ProjectController extends Controller
             'icon' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:1024'],
             'default_url' => ['nullable', 'url:http,https', 'max:500'],
             'default_ttl' => ['nullable', 'integer', 'min:0', 'max:2419200'],
+            'frequency_cap' => ['nullable', 'integer', 'min:0', 'max:100'],
         ]);
 
         $project->update([
@@ -133,6 +134,7 @@ class ProjectController extends Controller
             'settings' => array_merge($project->settings ?? [], [
                 'default_url' => $data['default_url'] ?? null,
                 'default_ttl' => isset($data['default_ttl']) ? (int) $data['default_ttl'] : null,
+                'frequency_cap' => ! empty($data['frequency_cap']) ? (int) $data['frequency_cap'] : null,
             ]),
         ]);
 
