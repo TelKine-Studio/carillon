@@ -217,6 +217,11 @@ class SubscriptionController extends Controller
                 $subscription->{$field} = $data[$field];
             }
         }
+        // Talking to this endpoint means the Carillon SDK runs on the device:
+        // the nightly OneSignal sync must leave it alone from now on.
+        if (! $subscription->sdk || $subscription->sdk === Subscription::ONESIGNAL_SDK) {
+            $subscription->sdk = 'carillon';
+        }
         $subscription->last_active_at ??= now();
     }
 

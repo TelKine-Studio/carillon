@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Audience\OneSignalImport;
 use App\Enums\ProjectRole;
 use App\Jobs\SyncOneSignal;
 use App\Models\AudienceImport;
@@ -199,5 +200,37 @@ class OneSignalImportTest extends TestCase
 
         $this->assertSame('failed', AudienceImport::query()->value('status'));
         $this->assertStringContainsString('no push tokens', AudienceImport::query()->value('error'));
+    }
+
+    public function test_the_sync_leaves_devices_moved_to_the_carillon_sdk_alone(): void
+    {
+        $header = ['id', 'identifier', 'device_type', 'external_user_id', 'tags', 'notification_types'];
+        $import = fn (array $rows) => (new OneSignalImport($this->project))->rows(array_map(fn ($row) => array_combine($header, $row), $rows));
+
+        $import([
+            ['p1', 'fcm-moved', '1', 'old-user', '{"plan":"free"}', '1'],
+            ['p2', 'fcm-dead', '1', '', '', '1'],
+        ]);
+        $moved = Subscription::query()->where('token_hash', hash('sha256', 'fcm-moved'))->first();
+        $dead = Subscription::query()->where('token_hash', hash('sha256', 'fcm-dead'))->first();
+
+        // The new app version registers the same FCM token, and the person says no.
+        $this->postJson("/api/v1/sdk/apps/{$this->project->app_id}/subscriptions", ['type' => 'android', 'token' => 'fcm-moved', 'external_id' => 'new-user', 'tags' => ['plan' => 'pro']])->assertSuccessful();
+        $this->patchJson("/api/v1/sdk/apps/{$this->project->app_id}/subscriptions/{$moved->id}", ['enabled' => false])->assertOk();
+        // Google refused the other token.
+        $dead->forceFill(['invalid_at' => now()])->save();
+
+        // Nightly sync: OneSignal still lists both as subscribed.
+        $import([
+            ['p1', 'fcm-moved', '1', 'old-user', '{"plan":"free"}', '1'],
+            ['p2', 'fcm-dead', '1', '', '', '1'],
+        ]);
+        $moved->refresh()->load('subscriber');
+        $this->assertFalse($moved->enabled);
+        $this->assertSame('new-user', $moved->subscriber->external_id);
+        $this->assertSame('pro', $moved->subscriber->tags['plan']);
+        $this->assertSame('p1', $moved->onesignal_id);
+        $this->assertNotNull($dead->refresh()->invalid_at);
+        $this->assertSame(1, Subscription::query()->where('token_hash', hash('sha256', 'fcm-moved'))->count());
     }
 }

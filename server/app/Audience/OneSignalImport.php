@@ -205,6 +205,18 @@ class OneSignalImport
             ->when(! in_array($device['type'], Subscription::PUSH_TYPES, true), fn ($q) => $q->where('type', $device['type']))
             ->first();
 
+        // A device the Carillon SDK registered (same FCM or APNs token as in
+        // OneSignal) is the app's: the export of the old app neither re-enables
+        // it, nor moves it to another person, nor brings back old tags.
+        if ($subscription && $subscription->sdk !== Subscription::ONESIGNAL_SDK) {
+            $this->counts['kept'] = ($this->counts['kept'] ?? 0) + 1;
+            if ($device['onesignal_id'] && ! $subscription->onesignal_id) {
+                $subscription->forceFill(['onesignal_id' => $device['onesignal_id']])->save();
+            }
+
+            return;
+        }
+
         $subscriber = $device['external_id']
             ? Subscriber::query()->firstOrNew(['project_id' => $this->project->id, 'external_id' => $device['external_id']])
             : ($subscription?->subscriber ?? new Subscriber(['project_id' => $this->project->id]));
@@ -230,7 +242,8 @@ class OneSignalImport
             'type' => $device['type'],
             'token' => $device['token'],
             'enabled' => $device['enabled'],
-            'invalid_at' => null,
+            // A token refused by Apple or Google stays dead: OneSignal does not know it yet.
+            'invalid_at' => $subscription->invalid_at,
             'environment' => $device['environment'],
             'app_version' => $device['app_version'] ?? $subscription->app_version,
             'device_model' => $device['device_model'] ?? $subscription->device_model,
