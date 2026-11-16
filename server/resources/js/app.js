@@ -701,6 +701,7 @@ Alpine.data('messageComposer', (config) => ({
     excluded: config.excluded,
     platforms: config.platforms,
     image: config.image ?? '',
+    icon: config.icon ?? '',
     buttons: config.buttons,
     data: config.data,
     schedule: config.schedule,
@@ -729,6 +730,7 @@ Alpine.data('messageComposer', (config) => ({
             subtitle: text.subtitle,
             body: text.body,
             image: this.image,
+            icon: this.icon,
             buttons: this.buttons.map((b) => b.text).filter(Boolean),
         };
     },

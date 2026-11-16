@@ -4,12 +4,14 @@ namespace Tests\Feature;
 
 use App\Enums\ProjectRole;
 use App\Models\ApiKey;
+use App\Models\Message;
 use App\Models\Project;
 use App\Models\PushCredential;
 use App\Models\Subscriber;
 use App\Models\Subscription;
 use App\Models\Template;
 use App\Models\User;
+use App\Push\Payload;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Tests\TestCase;
@@ -208,5 +210,24 @@ class TemplateTest extends TestCase
             'template_name' => 'Broken', 'channel' => 'email', 'email_subject' => 'x', 'email_body' => '<p>x</p>', 'email_design' => '{nope',
         ])->assertSessionHasNoErrors();
         $this->assertNull($this->project->templates()->where('name', 'Broken')->first()->option('email_design'));
+    }
+
+    public function test_the_icon_of_the_notification(): void
+    {
+        $this->actingAs($this->owner);
+        $this->post(route('projects.messages.store', $this->project), [
+            'texts' => [['language' => 'en', 'body' => 'Hi']], 'audience' => 'segments', 'included_segments' => ['Subscribed Users'], 'schedule' => 'now',
+            'icon' => 'https://shop.test/logo.png',
+        ])->assertRedirect();
+        $message = $this->project->messages()->first();
+        $this->assertSame(['https://shop.test/logo.png', 'https://shop.test/logo.png'], [$message->option('large_icon'), $message->option('chrome_web_icon')]);
+        $this->assertSame('https://shop.test/logo.png', json_decode(Payload::fcm($message, 'en', 't')['message']['data']['carillon'], true)['li']);
+
+        // Without one, the icon of the project (when it has one).
+        $other = Message::make(['contents' => ['en' => 'x']])->setRelation('project', $this->project);
+        $this->assertNull(Payload::largeIcon($other));
+        $this->project->forceFill(['icon_path' => 'icons/shop.png'])->save();
+        $this->assertStringContainsString('/api/v1/sdk/apps/'.$this->project->app_id.'/icon', Payload::largeIcon($other));
+        $this->get(route('projects.messages.create', $this->project))->assertOk()->assertSee('name="icon"', false);
     }
 }

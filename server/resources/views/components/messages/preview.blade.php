@@ -51,10 +51,17 @@
                     <p class="truncate font-semibold text-zinc-900 dark:text-white" x-text="preview.title || @js($project->name)"></p>
                     <p class="line-clamp-3 text-zinc-600 dark:text-zinc-300" x-text="preview.body || @js(__('Your message'))"></p>
                 </div>
-                <template x-if="preview.image">
-                    <img :src="preview.image" alt="" class="size-10 shrink-0 rounded object-cover" x-on:error="$el.style.display = 'none'">
+                {{-- Large icon: the message's, else the project's. --}}
+                <template x-if="preview.icon">
+                    <img :src="preview.icon" alt="" class="size-10 shrink-0 rounded-full object-cover" x-on:error="$el.style.display = 'none'">
                 </template>
+                @if ($project->icon_path)
+                    <template x-if="!preview.icon"><x-ui.project-icon :project="$project" size="md" class="!rounded-full" /></template>
+                @endif
             </div>
+            <template x-if="preview.image">
+                <img :src="preview.image" alt="" class="mt-2.5 max-h-40 w-full rounded object-cover" x-on:error="$el.style.display = 'none'">
+            </template>
             <template x-if="preview.buttons.length">
                 <div class="mt-2.5 flex gap-4">
                     <template x-for="button in preview.buttons" :key="button">
@@ -69,7 +76,10 @@
     <div x-show="platform === 'web'" x-cloak class="rounded-lg bg-zinc-100 p-4 dark:bg-zinc-800/60">
         <div class="ml-auto max-w-xs rounded-lg border border-zinc-200 bg-white p-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
             <div class="flex gap-3">
-                <x-ui.project-icon :project="$project" size="md" class="!rounded-md" />
+                <template x-if="preview.icon">
+                    <img :src="preview.icon" alt="" class="size-10 shrink-0 rounded-md object-cover" x-on:error="$el.style.display = 'none'">
+                </template>
+                <template x-if="!preview.icon"><x-ui.project-icon :project="$project" size="md" class="!rounded-md" /></template>
                 <div class="min-w-0 flex-1 text-[13px] leading-snug">
                     <p class="truncate font-semibold text-zinc-900 dark:text-white" x-text="preview.title || @js($project->name)"></p>
                     <p class="line-clamp-3 text-zinc-600 dark:text-zinc-300" x-text="preview.body || @js(__('Your message'))"></p>

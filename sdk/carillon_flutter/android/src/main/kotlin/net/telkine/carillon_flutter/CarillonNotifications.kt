@@ -33,6 +33,11 @@ internal object CarillonNotifications {
         val title = payload.optString("title").ifEmpty { null }
         val body = payload.optString("body").ifEmpty { null }
         val picture = payload.optString("img").ifEmpty { null }?.let { download(it) }
+        // Logo next to the text: the message's, else the project's (sent by the server).
+        val largeIcon = payload.optString("li").ifEmpty { null }
+            ?.takeIf { it.startsWith("http") }
+            ?.let { download(it) }
+            ?.let { circle(it) }
 
         val builder = NotificationCompat.Builder(context, channel(context, payload.optString("ch").ifEmpty { null }))
             .setSmallIcon(smallIcon(context, payload.optString("si").ifEmpty { null }))
@@ -43,8 +48,11 @@ internal object CarillonNotifications {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(open(context, payload, id, null))
 
+        largeIcon?.let { builder.setLargeIcon(it) }
         if (picture != null) {
-            builder.setLargeIcon(picture).setStyle(
+            // Collapsed: the logo (or the picture); expanded: the picture alone.
+            if (largeIcon == null) builder.setLargeIcon(picture)
+            builder.setStyle(
                 NotificationCompat.BigPictureStyle().bigPicture(picture).bigLargeIcon(null as Bitmap?).setSummaryText(body),
             )
         } else if (body != null) {
@@ -112,6 +120,18 @@ internal object CarillonNotifications {
             if (id != 0) return id
         }
         return context.applicationInfo.icon
+    }
+
+    /** Round crop, like the avatars of messaging apps. */
+    private fun circle(source: Bitmap): Bitmap {
+        val size = minOf(source.width, source.height)
+        val output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(output)
+        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
+        paint.xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_IN)
+        canvas.drawBitmap(source, ((size - source.width) / 2).toFloat(), ((size - source.height) / 2).toFloat(), paint)
+        return output
     }
 
     private fun download(url: String): Bitmap? = try {

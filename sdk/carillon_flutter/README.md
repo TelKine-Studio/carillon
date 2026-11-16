@@ -143,3 +143,13 @@ them: keep Carillon for your notifications.
 cd example
 flutter run --dart-define=CARILLON_APP_ID=… --dart-define=CARILLON_SERVER=https://carillon.example.com
 ```
+
+## Notification icon (Android)
+
+- Small icon (status bar): add a white, transparent drawable named
+  `ic_stat_carillon` to the app (`android/app/src/main/res/drawable*`), or
+  name another one per message with `small_icon`; otherwise the app icon.
+- Large icon (logo next to the text): the "Icon" of the message, else the
+  icon of the project in Carillon; downloaded and shown round.
+- iOS always shows the icon of the app (Apple's rule).
+

@@ -50,6 +50,11 @@ final class ComposerInput
             $input['isAnyWeb'] = in_array('web', $platforms, true);
         }
 
+        // One icon for Android (large icon) and the web.
+        if (filled($request->input('icon'))) {
+            $input['large_icon'] = $input['chrome_web_icon'] = trim((string) $request->input('icon'));
+        }
+
         foreach (['url', 'big_picture', 'collapse_id', 'ios_sound', 'thread_id', 'android_channel_id'] as $field) {
             if (filled($request->input($field))) {
                 $input[$field] = trim((string) $request->input($field));

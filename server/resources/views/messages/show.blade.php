@@ -10,6 +10,7 @@
         'subtitle' => \App\Models\Message::localized($message->subtitle, $lang),
         'body' => \App\Models\Message::localized($message->contents, $lang),
         'image' => $message->option('big_picture'),
+        'icon' => $message->option('large_icon') ?? $message->option('chrome_web_icon'),
         'buttons' => collect($message->option('buttons', []))->pluck('text')->all(),
     ];
 @endphp

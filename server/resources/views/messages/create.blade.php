@@ -25,6 +25,7 @@
         'excluded' => old('excluded_segments', $targeting['excluded_segments'] ?? []),
         'platforms' => old('platforms', $targeting['platforms'] ?? ($ready ?: ['ios', 'android', 'web'])),
         'image' => old('big_picture', $source?->option('big_picture')),
+        'icon' => old('icon', $source?->option('large_icon') ?? $source?->option('chrome_web_icon')),
         'buttons' => old('buttons', collect($source?->option('buttons', []))->map(fn ($b) => ['id' => $b['id'] ?? '', 'text' => $b['text'] ?? ''])->all()),
         'data' => old('data', collect($source?->option('data', []))->map(fn ($v, $k) => ['key' => $k, 'value' => is_scalar($v) ? (string) $v : json_encode($v)])->values()->all()),
         'schedule' => old('schedule', 'now'),
@@ -389,6 +390,7 @@
             <x-ui.card :title="__('Image and actions')" icon="image" x-show="channel === 'push'">
                 <div class="space-y-5">
                     <x-ui.input name="big_picture" type="url" :label="__('Image')" placeholder="https://…/image.jpg" x-model="image" :hint="__('Large image of the notification (JPEG or PNG, ideally 2:1).')" optional />
+                    <x-ui.input name="icon" type="url" :label="__('Icon')" placeholder="https://…/logo.png" x-model="icon" :hint="$project->icon_path ? __('Logo next to the text on Android and the web (square PNG). By default, the icon of the project. iOS always shows the icon of the app.') : __('Logo next to the text on Android and the web (square PNG). iOS always shows the icon of the app; add an icon to the project to use it by default.')" optional />
                     <x-ui.input name="url" type="url" :label="__('Link')" :value="old('url', $source?->option('url'))" placeholder="https://… {{ __('or') }} myapp://…" :hint="__('Opened when the notification is tapped (web page or deep link of the app).')" optional />
 
                     <div>

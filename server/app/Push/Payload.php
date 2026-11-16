@@ -107,7 +107,7 @@ final class Payload
             'title' => $common['title'] ?? null,
             'custom' => $encode(self::oneSignalCustom($message, $common)),
             'bicon' => $common['img'] ?? null,
-            'licon' => $message->option('large_icon'),
+            'licon' => self::largeIcon($message),
             'sicon' => $message->option('small_icon'),
             'bgac' => $message->option('android_accent_color'),
             'grp' => $message->option('android_group'),
@@ -161,7 +161,7 @@ final class Payload
             'ch' => $message->option('android_channel_id'),
             'color' => $message->option('android_accent_color'),
             'si' => $message->option('small_icon'),
-            'li' => $message->option('large_icon'),
+            'li' => self::largeIcon($message),
             'g' => $message->option('android_group'),
             's' => $message->option('android_sound'),
             'v' => $message->option('android_visibility'),
@@ -179,6 +179,13 @@ final class Payload
                 'collapse_key' => $message->option('collapse_id'),
             ]),
         ])];
+    }
+
+    /** Logo next to the text on Android: the message's, else the project's. */
+    public static function largeIcon(Message $message): ?string
+    {
+        return $message->option('large_icon')
+            ?? ($message->project?->icon_path ? ConfigController::iconUrl($message->project) : null);
     }
 
     /** Web push payload read by the service worker. @return array<string, mixed> */
