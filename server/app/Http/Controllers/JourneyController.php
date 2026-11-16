@@ -182,13 +182,34 @@ class JourneyController extends Controller
             'steps.*.key' => ['nullable', 'string', 'max:128'],
             'steps.*.operator' => ['nullable', Rule::in(['is', 'is_not'])],
             'steps.*.value' => ['nullable', 'string', 'max:255'],
+            'steps.*.check' => ['nullable', Rule::in(['tag', 'clicked', 'event'])],
+            'steps.*.event' => ['nullable', 'string', 'max:128'],
+            'steps.*.hours' => ['nullable', 'integer', 'min:1', 'max:8760'],
+            'steps.*.otherwise' => ['nullable', Rule::in(['exit', 'goto'])],
+            'steps.*.goto' => ['nullable', 'integer', 'min:1', 'max:30'],
+            'steps.*.on_timeout' => ['nullable', Rule::in(['continue', 'exit'])],
+            'window_enabled' => ['boolean'],
+            'window_from' => ['nullable', 'integer', 'between:0,23'],
+            'window_to' => ['nullable', 'integer', 'between:0,23'],
         ]);
 
         $steps = [];
         foreach (array_values($data['steps']) as $index => $step) {
             $steps[] = match ($step['type']) {
                 'wait' => ['type' => 'wait', 'amount' => (int) ($step['amount'] ?? 1), 'unit' => $step['unit'] ?? 'hours', 'minutes' => (int) ($step['amount'] ?? 1) * self::UNITS[$step['unit'] ?? 'hours']],
-                'condition' => ['type' => 'condition', 'key' => (string) ($step['key'] ?? ''), 'operator' => $step['operator'] ?? 'is', 'value' => (string) ($step['value'] ?? '')],
+                'wait_event' => ['type' => 'wait_event', 'event' => (string) ($step['event'] ?? ''), 'amount' => (int) ($step['amount'] ?? 1), 'unit' => $step['unit'] ?? 'days', 'minutes' => (int) ($step['amount'] ?? 1) * self::UNITS[$step['unit'] ?? 'days'], 'on_timeout' => $step['on_timeout'] ?? 'exit'],
+                'condition' => array_filter([
+                    'type' => 'condition',
+                    'check' => $step['check'] ?? 'tag',
+                    'key' => (string) ($step['key'] ?? ''),
+                    'operator' => $step['operator'] ?? 'is',
+                    'value' => (string) ($step['value'] ?? ''),
+                    'event' => (string) ($step['event'] ?? ''),
+                    'hours' => filled($step['hours'] ?? null) ? (int) $step['hours'] : null,
+                    'otherwise' => $step['otherwise'] ?? 'exit',
+                    // Shown from 1, stored from 0.
+                    'else_step' => ($step['otherwise'] ?? 'exit') === 'goto' && filled($step['goto'] ?? null) ? (int) $step['goto'] - 1 : null,
+                ], fn ($value) => $value !== null),
                 default => array_filter([
                     'type' => $step['type'],
                     'template_id' => $step['template_id'] ?? null,
@@ -211,8 +232,14 @@ class JourneyController extends Controller
             if (in_array($sent['type'], ['push', 'email', 'sms'], true) && empty($sent['template_id']) && empty($sent['body'])) {
                 throw ValidationException::withMessages(["steps.{$index}.body" => __('Step :number: write the message or choose a template.', ['number' => $index + 1])]);
             }
-            if ($sent['type'] === 'condition' && $sent['key'] === '') {
+            if ($sent['type'] === 'condition' && ($sent['check'] ?? 'tag') === 'tag' && $sent['key'] === '') {
                 throw ValidationException::withMessages(["steps.{$index}.key" => __('Step :number: choose the tag to check.', ['number' => $index + 1])]);
+            }
+            if (($sent['type'] === 'wait_event' || ($sent['type'] === 'condition' && ($sent['check'] ?? 'tag') === 'event')) && ($sent['event'] ?? '') === '') {
+                throw ValidationException::withMessages(["steps.{$index}.event" => __('Step :number: name the event.', ['number' => $index + 1])]);
+            }
+            if ($sent['type'] === 'condition' && ($sent['otherwise'] ?? 'exit') === 'goto' && (! isset($sent['else_step']) || $sent['else_step'] >= count($data['steps']) || $sent['else_step'] === $index)) {
+                throw ValidationException::withMessages(["steps.{$index}.goto" => __('Step :number: choose another step of the journey to go to.', ['number' => $index + 1])]);
             }
         }
 
@@ -229,6 +256,9 @@ class JourneyController extends Controller
             'trigger' => $trigger,
             'segment' => $data['segment'] ?? null ?: null,
             'reentry' => $request->boolean('reentry'),
+            'send_window' => $request->boolean('window_enabled') && isset($data['window_from'], $data['window_to']) && (int) $data['window_from'] !== (int) $data['window_to']
+                ? ['from' => (int) $data['window_from'], 'to' => (int) $data['window_to']]
+                : null,
             'steps' => $steps,
         ];
     }

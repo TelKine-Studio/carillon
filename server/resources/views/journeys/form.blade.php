@@ -3,7 +3,7 @@
     $trigger = old('trigger', $journey->trigger ?? ['type' => 'new_device']);
     $steps = old('steps', $journey->steps ?? []);
     $config = [
-        'labels' => ['push' => __('Send a notification'), 'email' => __('Send an email'), 'sms' => __('Send an SMS'), 'wait' => __('Wait'), 'condition' => __('Tag condition')],
+        'labels' => ['push' => __('Send a notification'), 'email' => __('Send an email'), 'sms' => __('Send an SMS'), 'wait' => __('Wait'), 'wait_event' => __('Wait for an event'), 'condition' => __('Condition')],
         'trigger' => ['type' => $trigger['type'] ?? 'new_device', 'days' => $trigger['days'] ?? 7, 'key' => $trigger['key'] ?? '', 'value' => $trigger['value'] ?? '', 'event' => $trigger['event'] ?? ''],
         'steps' => collect($steps)->map(fn ($s, $i) => [
             'uid' => $i + 1,
@@ -18,6 +18,12 @@
             'key' => $s['key'] ?? '',
             'operator' => $s['operator'] ?? 'is',
             'value' => $s['value'] ?? '',
+            'check' => $s['check'] ?? 'tag',
+            'event' => $s['event'] ?? '',
+            'hours' => $s['hours'] ?? '',
+            'otherwise' => $s['otherwise'] ?? 'exit',
+            'goto' => isset($s['else_step']) ? $s['else_step'] + 1 : ($s['goto'] ?? ''),
+            'on_timeout' => $s['on_timeout'] ?? 'exit',
         ])->values()->all(),
     ];
     // Written in two parts: Blade would read the braces as an echo.
@@ -31,6 +37,7 @@
         'email' => ['mail', __('Email')],
         'sms' => ['message', 'SMS'],
         'wait' => ['clock', __('Wait')],
+        'wait_event' => ['activity', __('Wait for an event')],
         'condition' => ['sliders', __('Condition')],
     ];
 @endphp
@@ -117,6 +124,35 @@
                                     </div>
                                 </div>
 
+                                {{-- Wait for an event --}}
+                                <div x-show="step.type === 'wait_event'" class="space-y-3">
+                                    <div class="flex flex-wrap items-center gap-3">
+                                        <span class="text-sm text-zinc-600 dark:text-zinc-300">{{ __('Continue as soon as the person does') }}</span>
+                                        <input :name="`steps[${index}][event]`" x-model="step.event" class="form-control w-40 font-mono" placeholder="purchase" :disabled="step.type !== 'wait_event'" aria-label="{{ __('Event name') }}">
+                                    </div>
+                                    <div class="flex flex-wrap items-center gap-3">
+                                        <span class="text-sm text-zinc-600 dark:text-zinc-300">{{ __('Waiting at most') }}</span>
+                                        <input type="number" min="1" max="1000" :name="`steps[${index}][amount]`" x-model="step.amount" class="form-control w-24" :disabled="step.type !== 'wait_event'" aria-label="{{ __('Duration') }}">
+                                        <input type="hidden" :name="`steps[${index}][unit]`" :value="step.unit" :disabled="step.type !== 'wait_event'">
+                                        <div class="inline-flex gap-0.5 rounded-lg bg-zinc-200/60 p-1 dark:bg-white/[0.06]">
+                                            @foreach (['minutes' => __('minutes'), 'hours' => __('hours'), 'days' => __('days')] as $unit => $unitLabel)
+                                                <button type="button" x-on:click="step.unit = '{{ $unit }}'" class="rounded-md px-3 py-1.5 text-sm font-medium transition"
+                                                    :class="step.unit === '{{ $unit }}' ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'">{{ $unitLabel }}</button>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-wrap items-center gap-3">
+                                        <span class="text-sm text-zinc-600 dark:text-zinc-300">{{ __('Then, without the event:') }}</span>
+                                        <input type="hidden" :name="`steps[${index}][on_timeout]`" :value="step.on_timeout" :disabled="step.type !== 'wait_event'">
+                                        <div class="inline-flex gap-0.5 rounded-lg bg-zinc-200/60 p-1 dark:bg-white/[0.06]">
+                                            @foreach (['exit' => __('leave the journey'), 'continue' => __('continue anyway')] as $value => $valueLabel)
+                                                <button type="button" x-on:click="step.on_timeout = '{{ $value }}'" class="rounded-md px-3 py-1.5 text-sm font-medium transition"
+                                                    :class="step.on_timeout === '{{ $value }}' ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'">{{ $valueLabel }}</button>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+
                                 {{-- Notification / email --}}
                                 <div x-show="['push', 'email', 'sms'].includes(step.type)" class="space-y-4">
                                     @if ($pushTemplates->isNotEmpty())
@@ -143,18 +179,51 @@
 
                                 {{-- Condition --}}
                                 <div x-show="step.type === 'condition'" class="space-y-3">
-                                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('People who do not match leave the journey here.') }}</p>
+                                    <input type="hidden" :name="`steps[${index}][check]`" :value="step.check" :disabled="step.type !== 'condition'">
+                                    <input type="hidden" :name="`steps[${index}][operator]`" :value="step.operator" :disabled="step.type !== 'condition'">
+                                    <div class="inline-flex flex-wrap gap-0.5 rounded-lg bg-zinc-200/60 p-1 dark:bg-white/[0.06]">
+                                        @foreach (['tag' => __('A tag'), 'clicked' => __('A click'), 'event' => __('An event')] as $check => $checkLabel)
+                                            <button type="button" x-on:click="step.check = '{{ $check }}'" class="rounded-md px-3 py-1.5 text-sm font-medium transition"
+                                                :class="step.check === '{{ $check }}' ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'">{{ $checkLabel }}</button>
+                                        @endforeach
+                                    </div>
                                     <div class="flex flex-wrap items-center gap-3">
-                                        <span class="text-sm text-zinc-600 dark:text-zinc-300">{{ __('Continue if the tag') }}</span>
-                                        <input :name="`steps[${index}][key]`" x-model="step.key" class="form-control w-36 font-mono" placeholder="plan" :disabled="step.type !== 'condition'" aria-label="{{ __('Tag') }}">
-                                        <input type="hidden" :name="`steps[${index}][operator]`" :value="step.operator" :disabled="step.type !== 'condition'">
+                                        <span class="text-sm text-zinc-600 dark:text-zinc-300">{{ __('Continue if') }}</span>
+                                        <template x-if="step.check === 'tag'">
+                                            <span class="contents">
+                                                <span class="text-sm text-zinc-600 dark:text-zinc-300">{{ __('the tag') }}</span>
+                                                <input :name="`steps[${index}][key]`" x-model="step.key" class="form-control w-36 font-mono" placeholder="plan" aria-label="{{ __('Tag') }}">
+                                            </span>
+                                        </template>
+                                        <span class="text-sm text-zinc-600 dark:text-zinc-300" x-show="step.check !== 'tag'">{{ __('the person') }}</span>
                                         <div class="inline-flex gap-0.5 rounded-lg bg-zinc-200/60 p-1 dark:bg-white/[0.06]">
-                                            @foreach (['is' => __('is'), 'is_not' => __('is not')] as $operator => $operatorLabel)
-                                                <button type="button" x-on:click="step.operator = '{{ $operator }}'" class="rounded-md px-3 py-1.5 text-sm font-medium transition"
-                                                    :class="step.operator === '{{ $operator }}' ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'">{{ $operatorLabel }}</button>
+                                            <button type="button" x-on:click="step.operator = 'is'" class="rounded-md px-3 py-1.5 text-sm font-medium transition" :class="step.operator === 'is' ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'"
+                                                x-text="step.check === 'tag' ? @js(__('is')) : (step.check === 'clicked' ? @js(__('clicked a message of the journey')) : @js(__('did the event')))"></button>
+                                            <button type="button" x-on:click="step.operator = 'is_not'" class="rounded-md px-3 py-1.5 text-sm font-medium transition" :class="step.operator === 'is_not' ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'"
+                                                x-text="step.check === 'tag' ? @js(__('is not')) : (step.check === 'clicked' ? @js(__('did not click')) : @js(__('did not do the event')))"></button>
+                                        </div>
+                                        <template x-if="step.check === 'tag'">
+                                            <input :name="`steps[${index}][value]`" x-model="step.value" class="form-control w-36 font-mono" placeholder="{{ __('any value') }}" aria-label="{{ __('Value') }}">
+                                        </template>
+                                        <template x-if="step.check === 'event'">
+                                            <span class="contents">
+                                                <input :name="`steps[${index}][event]`" x-model="step.event" class="form-control w-36 font-mono" placeholder="purchase" aria-label="{{ __('Event name') }}">
+                                                <span class="text-sm text-zinc-600 dark:text-zinc-300">{{ __('in the last') }}</span>
+                                                <input type="number" min="1" max="8760" :name="`steps[${index}][hours]`" x-model="step.hours" class="form-control w-20" placeholder="—" aria-label="{{ __('Hours') }}">
+                                                <span class="text-sm text-zinc-600 dark:text-zinc-300">{{ __('hours (empty: since entering)') }}</span>
+                                            </span>
+                                        </template>
+                                    </div>
+                                    <div class="flex flex-wrap items-center gap-3 border-t border-dashed border-zinc-200 pt-3 dark:border-zinc-800">
+                                        <span class="text-sm text-zinc-600 dark:text-zinc-300">{{ __('Otherwise') }}</span>
+                                        <input type="hidden" :name="`steps[${index}][otherwise]`" :value="step.otherwise" :disabled="step.type !== 'condition'">
+                                        <div class="inline-flex gap-0.5 rounded-lg bg-zinc-200/60 p-1 dark:bg-white/[0.06]">
+                                            @foreach (['exit' => __('leave the journey'), 'goto' => __('go to step')] as $value => $valueLabel)
+                                                <button type="button" x-on:click="step.otherwise = '{{ $value }}'" class="rounded-md px-3 py-1.5 text-sm font-medium transition"
+                                                    :class="step.otherwise === '{{ $value }}' ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'">{{ $valueLabel }}</button>
                                             @endforeach
                                         </div>
-                                        <input :name="`steps[${index}][value]`" x-model="step.value" class="form-control w-36 font-mono" placeholder="{{ __('any value') }}" :disabled="step.type !== 'condition'" aria-label="{{ __('Value') }}">
+                                        <input type="number" min="1" :max="steps.length" x-show="step.otherwise === 'goto'" :name="`steps[${index}][goto]`" x-model="step.goto" class="form-control w-20" :disabled="step.type !== 'condition' || step.otherwise !== 'goto'" aria-label="{{ __('Step') }}">
                                     </div>
                                 </div>
                             </div>
@@ -180,6 +249,16 @@
                     <x-ui.select name="segment" :label="__('Only people of the segment')" :value="old('segment', $journey->segment)"
                         :options="['' => __('Everybody')] + collect(App\Models\Segment::BUILT_IN)->reject(fn ($s) => in_array($s, ['All', 'Subscribed Users'], true))->mapWithKeys(fn ($s) => [$s => __($s)])->all() + $segments->mapWithKeys(fn ($s) => [$s => $s])->all()" />
                     <x-ui.toggle name="reentry" :checked="(bool) old('reentry', $journey->reentry)" :label="__('Can enter again')" :description="__('Once out, a person can go through it again when the trigger happens again.')" />
+                </div>
+            </x-ui.card>
+            @php($window = $journey->send_window)
+            <x-ui.card :title="__('Sending hours')" icon="clock" x-data="{ window: {{ old('window_enabled', $window ? 1 : 0) ? 'true' : 'false' }} }">
+                <div class="space-y-4">
+                    <x-ui.toggle name="window_enabled" x-model="window" :checked="(bool) old('window_enabled', (bool) $window)" :label="__('Only at certain hours')" :description="__('Messages due outside these hours wait for the next opening, in the time zone of each person.')" />
+                    <div x-show="window" x-cloak class="grid grid-cols-2 gap-3">
+                        <x-ui.select name="window_from" size="sm" :label="__('From')" :value="old('window_from', $window['from'] ?? 9)" :options="collect(range(0, 23))->mapWithKeys(fn ($h) => [$h => sprintf('%02d:00', $h)])->all()" />
+                        <x-ui.select name="window_to" size="sm" :label="__('To')" :value="old('window_to', $window['to'] ?? 21)" :options="collect(range(0, 23))->mapWithKeys(fn ($h) => [$h => sprintf('%02d:00', $h)])->all()" />
+                    </div>
                 </div>
             </x-ui.card>
             <div class="card p-5">

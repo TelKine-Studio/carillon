@@ -7,7 +7,7 @@
         default => ['zinc', __('Draft')],
     };
     $units = ['minutes' => [':count minute|:count minutes'], 'hours' => [':count hour|:count hours'], 'days' => [':count day|:count days']];
-    $icons = ['push' => 'bell', 'email' => 'mail', 'sms' => 'message', 'wait' => 'clock', 'condition' => 'sliders'];
+    $icons = ['push' => 'bell', 'email' => 'mail', 'sms' => 'message', 'wait' => 'clock', 'wait_event' => 'activity', 'condition' => 'sliders'];
 @endphp
 <x-layouts.app :title="$journey->name.' · '.$project->name">
     <x-ui.page-header :title="$journey->name">
@@ -64,7 +64,16 @@
                                 <p class="text-sm font-semibold text-zinc-900 dark:text-white">
                                     @switch($step['type'])
                                         @case('wait') {{ __('Wait :duration', ['duration' => trans_choice($units[$step['unit'] ?? 'hours'][0], $step['amount'] ?? 1, ['count' => $step['amount'] ?? 1])]) }} @break
-                                        @case('condition') {{ __('Continue if :key :operator :value', ['key' => $step['key'], 'operator' => ($step['operator'] ?? 'is') === 'is' ? __('is') : __('is not'), 'value' => ($step['value'] ?? '') !== '' ? $step['value'] : __('set')]) }} @break
+                                        @case('condition')
+                                            @php($not = ($step['operator'] ?? 'is') === 'is_not')
+                                            @switch($step['check'] ?? 'tag')
+                                                @case('clicked') {{ $not ? __('Continue if the person did not click') : __('Continue if the person clicked a message of the journey') }} @break
+                                                @case('event') {{ __($not ? 'Continue if the person did not do :event' : 'Continue if the person did :event', ['event' => $step['event'] ?? '']) }} @break
+                                                @default {{ __('Continue if :key :operator :value', ['key' => $step['key'] ?? '', 'operator' => $not ? __('is not') : __('is'), 'value' => ($step['value'] ?? '') !== '' ? $step['value'] : __('set')]) }}
+                                            @endswitch
+                                            <span class="block text-xs font-normal text-zinc-500">{{ ($step['otherwise'] ?? 'exit') === 'goto' && isset($step['else_step']) ? __('Otherwise: go to step :number', ['number' => $step['else_step'] + 1]) : __('Otherwise: leave the journey') }}</span>
+                                            @break
+                                        @case('wait_event') {{ __('Wait for :event (at most :duration)', ['event' => $step['event'] ?? '', 'duration' => trans_choice($units[$step['unit'] ?? 'days'][0], $step['amount'] ?? 1, ['count' => $step['amount'] ?? 1])]) }} @break
                                         @case('email') {{ __('Email') }} · {{ $step['subject'] ?? '' }} @break
                                         @case('sms') SMS @break
                                         @default {{ __('Notification') }}@if (! empty($step['title'])) · {{ $step['title'] }}@endif

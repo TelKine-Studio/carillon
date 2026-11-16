@@ -14,6 +14,7 @@ use App\Models\PushCredential;
 use App\Models\Subscriber;
 use App\Models\Subscription;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -187,5 +188,60 @@ class JourneyTest extends TestCase
 
         $this->actingAs($this->owner)->get(route('projects.in-app.index', $this->project))->assertOk()->assertSee('Nouveau forfait');
         $this->actingAs($this->owner)->get(route('projects.in-app.edit', [$this->project, $message]))->assertOk()->assertSee('Découvrez');
+    }
+
+    public function test_branches_event_waits_and_sending_hours(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-11-20 10:00', 'UTC'));
+        $this->actingAs($this->owner)->post(route('projects.journeys.store', $this->project), [
+            'name' => 'Cart',
+            'trigger' => ['type' => 'event', 'event' => 'cart'],
+            'steps' => [
+                ['type' => 'wait_event', 'event' => 'purchase', 'amount' => 2, 'unit' => 'hours', 'on_timeout' => 'continue'],
+                ['type' => 'condition', 'check' => 'event', 'event' => 'purchase', 'operator' => 'is_not', 'otherwise' => 'goto', 'goto' => 4],
+                ['type' => 'push', 'body' => 'Votre panier vous attend'],
+                ['type' => 'push', 'body' => 'Merci pour votre achat'],
+            ],
+            'window_enabled' => 1, 'window_from' => 9, 'window_to' => 20,
+        ])->assertSessionHasNoErrors();
+        $journey = Journey::firstOrFail();
+        $this->assertSame(['from' => 9, 'to' => 20], $journey->send_window);
+        $this->assertSame(3, $journey->steps[1]['else_step']);
+        $journey->forceFill(['status' => 'active'])->save();
+        $this->actingAs($this->owner)->get(route('projects.journeys.show', [$this->project, $journey]))->assertOk()->assertSee('purchase');
+
+        $key = ApiKey::generate($this->project, 'test')[1];
+        $event = fn (string $externalId, string $name) => $this->postJson('/api/v1/apps/'.$this->project->app_id.'/custom_events', ['events' => [['name' => $name, 'external_id' => $externalId]]], ['Authorization' => 'Key '.$key])->assertSuccessful();
+        $ada = $this->device('ada', ['external_id' => 'ada']);
+        $bob = $this->device('bob', ['external_id' => 'bob']);
+        $event('ada', 'cart');
+        $event('bob', 'cart');
+        $runner = app(JourneyRunner::class);
+        $runner->run();
+        $this->assertSame(2, $journey->entries()->whereNotNull('waiting_since')->count());
+
+        // Ada buys: she moves on right away, to the "thank you" branch.
+        $this->travel(10)->minutes();
+        $event('ada', 'purchase');
+        $runner->run();
+        $this->assertSame(1, Message::where('journey_step', 3)->value('recipients'));
+        $this->assertSame('completed', $journey->entries()->where('subscriber_id', $ada->subscriber_id)->value('status'));
+        $this->assertNull(Message::where('journey_step', 2)->first());
+
+        // Bob does not: after two hours he gets the reminder, but only from 9:00.
+        $this->travelTo(CarbonImmutable::parse('2026-11-20 21:00', 'UTC'));
+        $runner->run();
+        $entry = $journey->entries()->where('subscriber_id', $bob->subscriber_id)->first();
+        $this->assertSame('2026-11-21 09:00', $entry->next_run_at->utc()->format('Y-m-d H:i'));
+        $this->assertNull(Message::where('journey_step', 2)->first());
+        $this->travelTo(CarbonImmutable::parse('2026-11-21 09:01', 'UTC'));
+        $runner->run();
+        $this->assertSame(1, Message::where('journey_step', 2)->value('recipients'));
+
+        // A jump must lead to another existing step.
+        $this->put(route('projects.journeys.update', [$this->project, $journey]), [
+            'name' => 'Cart', 'trigger' => ['type' => 'event', 'event' => 'cart'],
+            'steps' => [['type' => 'condition', 'check' => 'clicked', 'otherwise' => 'goto', 'goto' => 1]],
+        ])->assertSessionHasErrors('steps.0.goto');
     }
 }

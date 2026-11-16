@@ -8,18 +8,19 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** An automation: a trigger, then steps each person goes through (OneSignal "Journeys"). */
-#[Fillable(['project_id', 'created_by', 'name', 'status', 'trigger', 'segment', 'reentry', 'steps', 'activated_at'])]
+#[Fillable(['project_id', 'created_by', 'name', 'status', 'trigger', 'segment', 'reentry', 'send_window', 'steps', 'activated_at'])]
 class Journey extends Model
 {
     public const TRIGGERS = ['new_device', 'inactive', 'tag', 'event'];
 
-    public const STEPS = ['wait', 'push', 'email', 'sms', 'condition'];
+    public const STEPS = ['wait', 'wait_event', 'push', 'email', 'sms', 'condition'];
 
     protected function casts(): array
     {
         return [
             'trigger' => 'array',
             'steps' => 'array',
+            'send_window' => 'array',
             'reentry' => 'boolean',
             'activated_at' => 'datetime',
         ];

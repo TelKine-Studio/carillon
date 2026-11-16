@@ -140,7 +140,7 @@ Alpine.data('journeyEditor', (config) => ({
     uid: config.steps.length,
     labels: config.labels,
     add(type) {
-        this.steps.push({ uid: ++this.uid, type, amount: 1, unit: 'days', template_id: '', title: '', subject: '', body: '', url: '', key: '', operator: 'is', value: '' });
+        this.steps.push({ uid: ++this.uid, type, amount: 1, unit: 'days', template_id: '', title: '', subject: '', body: '', url: '', key: '', operator: 'is', value: '', check: 'tag', event: '', hours: '', otherwise: 'exit', goto: '', on_timeout: 'exit' });
     },
     move(index, offset) {
         const target = index + offset;
