@@ -82,7 +82,7 @@
                 </div>
                 <x-ui.textarea name="state" :label="__('Content state (JSON)')" rows="2" value="{}" class="font-mono text-xs" />
                 <x-ui.textarea name="attributes" :label="__('Attributes (JSON)')" rows="2" value="{}" class="font-mono text-xs" />
-                <x-ui.textarea name="android" :label="__('Android display (JSON)')" rows="2" :optional="true" placeholder='{"progress": 1, "progress_max": 3, "segments": 3}' class="font-mono text-xs" />
+                <x-ui.textarea name="android" :label="__('Android display (JSON)')" rows="2" :optional="true" :placeholder="json_encode(['progress' => 1, 'progress_max' => 3, 'segments' => 3])" class="font-mono text-xs" />
                 <div class="grid gap-4 sm:grid-cols-2">
                     <x-ui.input name="stale_minutes" type="number" min="1" max="480" :label="__('Stale after (minutes)')" :optional="true" />
                     <x-ui.input name="end_minutes" type="number" min="1" max="480" :label="__('Ended by Carillon after (minutes)')" :optional="true" />

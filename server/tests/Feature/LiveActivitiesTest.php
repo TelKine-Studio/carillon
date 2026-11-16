@@ -9,6 +9,7 @@ use App\Models\LiveActivity;
 use App\Models\LiveActivityStartToken;
 use App\Models\Project;
 use App\Models\PushCredential;
+use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
@@ -325,5 +326,30 @@ class LiveActivitiesTest extends TestCase
         $this->actingAs($owner)->post(route('projects.live-activities.notify', $this->project), [
             'activity_id' => 'T2', 'event' => 'end', 'update_state' => '{"step":"done"}',
         ])->assertRedirect()->assertSessionHas('status', '0 devices reached · 1 waiting for the token of the app.');
+    }
+
+    public function test_an_iphone_without_notification_permission_can_show_live_activities(): void
+    {
+        // No APNs token before the permission: registered all the same.
+        $phone = $this->postJson("/api/v1/sdk/apps/{$this->project->app_id}/subscriptions", ['type' => 'ios', 'enabled' => false, 'environment' => 'sandbox'])
+            ->assertCreated()->json('id');
+        $this->sdk($phone, 'start-token', ['activity_type' => 'DeliveryAttributes', 'token' => 'start-token-1'])->assertOk();
+
+        $this->start(['include_aliases' => null, 'include_subscription_ids' => [$phone]])->assertOk()->assertJson(['recipients' => 1]);
+
+        // Not part of the audience of notifications.
+        $this->api()->postJson('/api/v1/notifications', ['app_id' => $this->project->app_id, 'included_segments' => ['All'], 'contents' => ['en' => 'Hi']])
+            ->assertStatus(400)->assertJson(['errors' => ['All included players are not subscribed']]);
+
+        // The permission comes later: the token takes over its old record.
+        $old = $this->device('apns-token', 'user-9');
+        $this->patchJson("/api/v1/sdk/apps/{$this->project->app_id}/subscriptions/{$phone}", ['token' => 'apns-token', 'enabled' => true])->assertOk();
+        $this->assertNotNull(Subscription::find($old)->invalid_at);
+        $this->assertSame('apns-token', Subscription::find($phone)->token);
+    }
+
+    public function test_other_platforms_still_need_a_token(): void
+    {
+        $this->postJson("/api/v1/sdk/apps/{$this->project->app_id}/subscriptions", ['type' => 'android'])->assertStatus(400)->assertJson(['errors' => ['The token field is required.']]);
     }
 }

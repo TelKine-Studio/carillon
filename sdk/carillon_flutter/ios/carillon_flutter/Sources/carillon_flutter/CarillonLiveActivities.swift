@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 #if canImport(ActivityKit)
 import ActivityKit
 #endif
@@ -85,9 +86,51 @@ public enum CarillonLiveActivities {
     }
   }
 
+  /// Sent natively when the device is known (iOS may launch the app in the
+  /// background only for a few seconds to give a token, before Flutter is
+  /// ready); else through Dart, which waits for the registration.
   @MainActor
   private static func emit(_ method: String, _ arguments: [String: Any]) {
-    sink?(method, arguments)
+    if !send(method, arguments) {
+      sink?(method, arguments)
+    }
+  }
+
+  @MainActor
+  private static func send(_ method: String, _ arguments: [String: Any]) -> Bool {
+    let defaults = UserDefaults.standard
+    guard let server = defaults.string(forKey: "carillon.server"),
+          let app = defaults.string(forKey: "carillon.app"),
+          let subscription = defaults.string(forKey: "carillon.subscription") else { return false }
+
+    let (path, verb): (String, String) = switch method {
+    case "onLiveActivityStartToken": ("start-token", "PUT")
+    case "onLiveActivityToken": ("enter", "POST")
+    default: ("exit", "POST")
+    }
+    let base = server.hasSuffix("/") ? String(server.dropLast()) : server
+    guard let url = URL(string: "\(base)/api/v1/sdk/apps/\(app)/subscriptions/\(subscription)/live-activities/\(path)"),
+          let body = try? JSONSerialization.data(withJSONObject: arguments) else { return false }
+
+    var request = URLRequest(url: url, timeoutInterval: 20)
+    request.httpMethod = verb
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.setValue("application/json", forHTTPHeaderField: "Accept")
+    request.httpBody = body
+
+    // Finishes even if iOS suspends the app right after the token.
+    var task = UIBackgroundTaskIdentifier.invalid
+    task = UIApplication.shared.beginBackgroundTask(withName: "carillon.live-activity") {
+      UIApplication.shared.endBackgroundTask(task)
+    }
+    URLSession.shared.dataTask(with: request) { _, response, error in
+      let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+      if error != nil || status >= 400 {
+        NSLog("[carillon] Live Activity %@ not sent: %@", path, error?.localizedDescription ?? "HTTP \(status)")
+      }
+      DispatchQueue.main.async { UIApplication.shared.endBackgroundTask(task) }
+    }.resume()
+    return true
   }
 
   private static func hex(_ data: Data) -> String {

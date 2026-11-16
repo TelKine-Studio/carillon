@@ -48,7 +48,7 @@ class LiveActivities
     public function start(Project $project, string $type, array $data): array
     {
         [$apns, $fcm] = $this->credentials($project);
-        $devices = $this->audience->query($project, [...$this->targeting($data), 'platforms' => array_keys(array_filter(['ios' => $apns, 'android' => $fcm]))])
+        $devices = $this->audience->query($project, [...$this->targeting($data), 'platforms' => array_keys(array_filter(['ios' => $apns, 'android' => $fcm])), 'any_permission' => true])
             ->leftJoin('live_activity_start_tokens', function ($join) use ($type) {
                 $join->on('live_activity_start_tokens.subscription_id', '=', 'subscriptions.id')
                     ->where('live_activity_start_tokens.activity_type', '=', $type);
@@ -57,7 +57,8 @@ class LiveActivities
             ->addSelect('live_activity_start_tokens.token as start_token', 'live_activity_start_tokens.id as start_token_id', 'subscribers.language as person_language')
             ->limit(10000)
             ->get()
-            ->filter(fn (Subscription $device) => $device->type === 'ios' || $device->supportsLiveUpdates());
+            // Android shows a notification: it needs the permission and the token.
+            ->filter(fn (Subscription $device) => $device->type === 'ios' || ($device->supportsLiveUpdates() && $device->enabled && filled($device->token)));
 
         $activityId = (string) $data['activity_id'];
         $already = LiveActivity::query()->where('project_id', $project->id)->where('activity_id', $activityId)

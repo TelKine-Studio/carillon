@@ -38,9 +38,10 @@ class Audience
             ->select('subscriptions.*')
             ->join('subscribers', 'subscribers.id', '=', 'subscriptions.subscriber_id')
             ->where('subscriptions.project_id', $project->id)
-            ->where('subscriptions.enabled', true)
             ->whereNull('subscriptions.invalid_at')
-            ->whereNotNull('subscriptions.token');
+            // Live Activities: shown without the notification permission
+            // (and without APNs token) on iOS.
+            ->unless($targeting['any_permission'] ?? false, fn (Builder $q) => $q->where('subscriptions.enabled', true)->whereNotNull('subscriptions.token'));
 
         $channel = $targeting['channel'] ?? 'push';
         $email = $channel === 'email';

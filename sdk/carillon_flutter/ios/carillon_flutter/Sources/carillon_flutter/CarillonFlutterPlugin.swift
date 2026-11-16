@@ -83,12 +83,18 @@ public class CarillonFlutterPlugin: NSObject, FlutterPlugin {
       }
       result(nil)
     case "share":
-      // For the notification service extension (reception reports).
-      if let group = Bundle.main.object(forInfoDictionaryKey: "CarillonAppGroup") as? String,
-         let defaults = UserDefaults(suiteName: group),
-         let values = call.arguments as? [String: Any] {
-        for (key, value) in values {
-          defaults.set(value is NSNull ? nil : value, forKey: "carillon.\(key)")
+      // For the notification service extension (reception reports, App
+      // Group) and the Live Activity tokens sent natively (the app itself).
+      if let values = call.arguments as? [String: Any] {
+        var stores = [UserDefaults.standard]
+        if let group = Bundle.main.object(forInfoDictionaryKey: "CarillonAppGroup") as? String,
+           let defaults = UserDefaults(suiteName: group) {
+          stores.append(defaults)
+        }
+        for defaults in stores {
+          for (key, value) in values {
+            defaults.set(value is NSNull ? nil : value, forKey: "carillon.\(key)")
+          }
         }
       }
       result(nil)

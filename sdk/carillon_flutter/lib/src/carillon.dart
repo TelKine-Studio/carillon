@@ -554,10 +554,18 @@ class _Engine with WidgetsBindingObserver {
         (store.lastSession == null ||
             now.difference(store.lastSession!) > _sessionGap);
 
-    if (token == null) return;
+    // An iPhone without the notification permission has no APNs token: it
+    // is still registered when it has Live Activity tokens to keep (they
+    // need no permission).
+    final tokenless =
+        token == null &&
+        platform.type == 'ios' &&
+        store.subscriptionId == null &&
+        _liveActivityCalls.isNotEmpty;
+    if (token == null && !tokenless) return;
 
     final body = <String, dynamic>{
-      'token': token,
+      'token': ?token,
       if (externalType != null) 'type': externalType,
       'enabled': enabled,
       'environment': await platform.environment(),
@@ -865,10 +873,14 @@ class _Engine with WidgetsBindingObserver {
     String key,
     Future<Map<String, dynamic>> Function(String id) call,
   ) async {
-    await (_syncing ?? Future.value());
+    // Known device: sent at once (the app may be awake for a few seconds
+    // only); else after the registration in progress.
+    if (store.subscriptionId == null) await (_syncing ?? Future.value());
     final id = store.subscriptionId;
     if (id == null) {
       _liveActivityCalls[key] = call;
+      // Registers the device even without push token (see _sync).
+      if (platform.type == 'ios') unawaited(sync());
       return;
     }
     await _guard(() => call(id), operation: 'liveActivity');

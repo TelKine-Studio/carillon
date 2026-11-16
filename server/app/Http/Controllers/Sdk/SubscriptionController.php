@@ -34,18 +34,20 @@ class SubscriptionController extends Controller
         $project = $this->project($appId);
         $data = $request->validate([
             'type' => ['required', Rule::in(Subscription::TYPES)],
-            'token' => ['required', 'string', 'max:4000'],
+            // An iPhone without the notification permission has no APNs
+            // token, but can still show Live Activities.
+            'token' => [Rule::requiredIf($request->input('type') !== 'ios'), 'nullable', 'string', 'max:4000'],
             ...$this->deviceRules(),
             'external_id' => ['nullable', 'string', 'max:255'],
             'tags' => ['nullable', 'array', 'max:'.Subscriber::MAX_TAGS],
         ]);
 
-        $token = $this->normalizeToken($data['type'], $data['token']);
+        $token = filled($data['token'] ?? null) ? $this->normalizeToken($data['type'], $data['token']) : null;
 
         $created = false;
         $subscription = DB::transaction(function () use ($project, $data, $token, &$created) {
             // A phone number may be both an SMS and a WhatsApp subscription.
-            $subscription = Subscription::query()
+            $subscription = $token === null ? null : Subscription::query()
                 ->where('project_id', $project->id)
                 ->where('token_hash', hash('sha256', $token))
                 ->when(! in_array($data['type'], Subscription::PUSH_TYPES, true), fn ($q) => $q->where('type', $data['type']))
@@ -100,6 +102,13 @@ class SubscriptionController extends Controller
         if (filled($data['token'] ?? null)) {
             $subscription->token = $this->normalizeToken($subscription->type, $data['token']);
             $subscription->invalid_at = null;
+
+            // The token now belongs to this device (an iPhone registered
+            // without permission gets it later; a reinstalled app may get
+            // its old one back): the other record of it is dead.
+            Subscription::query()->where('project_id', $subscription->project_id)->where('type', $subscription->type)
+                ->where('token_hash', hash('sha256', $subscription->token))->whereKeyNot($subscription->id)
+                ->update(['token' => null, 'token_hash' => null, 'invalid_at' => now(), 'updated_at' => now()]);
         }
         $wasEnabled = $subscription->enabled;
         $this->applyDevice($subscription, $data);
