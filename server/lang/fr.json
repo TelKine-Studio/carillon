@@ -2148,5 +2148,7 @@
     ":count device reached|:count devices reached": ":count appareil atteint|:count appareils atteints",
     ":count already showing it": ":count l’affichaient déjà",
     ":count waiting for the token of the app": ":count en attente du jeton de l’app",
-    "refused: :errors": "refusé : :errors"
+    "refused: :errors": "refusé : :errors",
+    ":count without start token": ":count sans jeton de démarrage",
+    ":count unable to show it": ":count incapables de l’afficher"
 }

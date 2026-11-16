@@ -110,6 +110,12 @@ class LiveActivityController extends Controller
         if ($result['already'] ?? 0) {
             $parts[] = __(':count already showing it', ['count' => $result['already']]);
         }
+        if ($result['skipped']['no_start_token'] ?? 0) {
+            $parts[] = __(':count without start token', ['count' => $result['skipped']['no_start_token']]);
+        }
+        if ($result['skipped']['unsupported'] ?? 0) {
+            $parts[] = __(':count unable to show it', ['count' => $result['skipped']['unsupported']]);
+        }
         if ($result['pending'] ?? 0) {
             $parts[] = __(':count waiting for the token of the app', ['count' => $result['pending']]);
         }

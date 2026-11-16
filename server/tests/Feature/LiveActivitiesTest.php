@@ -117,7 +117,7 @@ class LiveActivitiesTest extends TestCase
     {
         $this->device('phone-token', 'user-1');
 
-        $this->start()->assertOk()->assertJson(['recipients' => 0]);
+        $this->start()->assertOk()->assertJson(['recipients' => 0, 'targeted' => 1, 'skipped' => ['no_start_token' => 1, 'unsupported' => 0]]);
         $this->assertSame(0, LiveActivity::count());
         Http::assertNothingSent();
     }
@@ -246,7 +246,7 @@ class LiveActivitiesTest extends TestCase
         $this->start([
             'android' => ['progress' => 1, 'progress_max' => 3, 'segments' => 3, 'color' => '#0F766E'],
             'data' => ['screen' => 'achats'],
-        ])->assertOk()->assertJson(['recipients' => 1]);
+        ])->assertOk()->assertJson(['recipients' => 1, 'targeted' => 3, 'skipped' => ['no_start_token' => 0, 'unsupported' => 2]]);
 
         $live = fn (HttpRequest $request) => json_decode($request['message']['data']['carillon_live'] ?? 'null', true);
         Http::assertSent(fn (HttpRequest $request) => str_contains($request->url(), 'fcm.googleapis.com')

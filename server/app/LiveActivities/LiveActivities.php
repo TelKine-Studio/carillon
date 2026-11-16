@@ -49,22 +49,33 @@ class LiveActivities
      * alone: calling start twice is harmless.
      *
      * @param  array<string, mixed>  $data
-     * @return array{recipients: int, already: int, errors: list<string>}
+     * @return array{recipients: int, already: int, targeted: int, skipped: array{no_start_token: int, unsupported: int}, errors: list<string>}
      */
     public function start(Project $project, string $type, array $data): array
     {
         [$apns, $fcm] = $this->credentials($project);
-        $devices = $this->audience->query($project, [...$this->targeting($data), 'platforms' => array_keys(array_filter(['ios' => $apns, 'android' => $fcm])), 'any_permission' => true])
+        $targeted = $this->audience->query($project, [...$this->targeting($data), 'platforms' => Subscription::PUSH_TYPES, 'any_permission' => true])
             ->leftJoin('live_activity_start_tokens', function ($join) use ($type) {
                 $join->on('live_activity_start_tokens.subscription_id', '=', 'subscriptions.id')
                     ->where('live_activity_start_tokens.activity_type', '=', $type);
             })
-            ->where(fn ($q) => $q->whereNotNull('live_activity_start_tokens.id')->orWhere('subscriptions.type', 'android'))
             ->addSelect('live_activity_start_tokens.token as start_token', 'live_activity_start_tokens.id as start_token_id', 'subscribers.language as person_language')
             ->limit(10000)
-            ->get()
-            // Android shows a notification: it needs the permission and the token.
-            ->filter(fn (Subscription $device) => $device->type === 'ios' || ($device->supportsLiveUpdates() && $device->enabled && filled($device->token)));
+            ->get();
+
+        // Why the others are left out, for the caller: an iPhone that has not
+        // sent the push-to-start token of this type (yet: iOS < 17.2, app
+        // not opened since the SDK 0.3, widget without this type), or a
+        // device that cannot show it (other platform, old SDK, Android
+        // without notification permission, provider not configured).
+        $devices = $targeted->filter(fn (Subscription $device) => $device->type === 'ios'
+            ? $apns && $device->start_token
+            : $fcm && $device->supportsLiveUpdates() && $device->enabled && filled($device->token));
+        $noStartToken = $targeted->filter(fn (Subscription $device) => $device->type === 'ios' && $apns && ! $device->start_token)->count();
+        $leftOut = [
+            'no_start_token' => $noStartToken,
+            'unsupported' => $targeted->count() - $devices->count() - $noStartToken,
+        ];
 
         $activityId = (string) $data['activity_id'];
         $already = LiveActivity::query()->where('project_id', $project->id)->where('activity_id', $activityId)
@@ -81,12 +92,12 @@ class LiveActivities
         }
         $requests = ['ios' => [], 'android' => []];
         $activities = [];
-        $skipped = 0;
+        $alreadyCount = 0;
 
         foreach ($devices as $device) {
             // Started before (still open, or ended: an activity_id is used once).
             if ($already->has($device->id)) {
-                $skipped++;
+                $alreadyCount++;
 
                 continue;
             }
@@ -142,7 +153,9 @@ class LiveActivities
 
         return [
             'recipients' => count($results) - count($errors),
-            'already' => $skipped,
+            'already' => $alreadyCount,
+            'targeted' => $targeted->count(),
+            'skipped' => $leftOut,
             'errors' => array_values(array_unique($errors)),
         ];
     }

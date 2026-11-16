@@ -288,15 +288,21 @@ POST /api/v1/apps/{app_id}/activities/activity/{activity_type}
   "android": {"progress": 1, "progress_max": 3, "segments": 3, "color": "#0F766E"},
   "data": {"screen": "purchases", "reference": "MRC-20261116-0428"}
 }
-→ {"id": "MRC-20261116-0428", "recipients": 1, "already": 0, "errors": []}
+→ {"id": "MRC-20261116-0428", "recipients": 1, "already": 0, "targeted": 2,
+   "skipped": {"no_start_token": 0, "unsupported": 1}, "errors": []}
 ```
 
 - `activity_type` is the name of the `ActivityAttributes` struct of the app;
   `event_attributes` its fields, `event_updates` its `ContentState`.
 - Audience: `include_aliases.external_id`, `include_subscription_ids`,
   `included_segments` / `excluded_segments`, `filters`. Devices that cannot
-  show it (old iOS, no start token yet, old SDK) are not counted: the call
-  succeeds with `recipients: 0`.
+  show it are not counted, and the call succeeds even with `recipients: 0`.
+  `targeted` is the devices matched, `skipped` says why the others were
+  left out: `no_start_token` (an iPhone without push-to-start token for
+  this type: iOS before 17.2, app not opened since the SDK 0.3, or a widget
+  without this type) and `unsupported` (another platform, an older SDK, an
+  Android without notification permission).
+- No declaration needed: the type is the name of the struct of the app.
 - `android`: what Android shows, since it has no widget. `title`, `body`
   (text or `{"fr": …}`; `headings` / `contents` by default), `short_text`
   (status bar chip), `progress`, `progress_max`, `segments` (steps of the bar),
