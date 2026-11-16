@@ -14,6 +14,7 @@ use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\EmailSettingsController;
 use App\Http\Controllers\EmailTrackingController;
+use App\Http\Controllers\InAppMessageController;
 use App\Http\Controllers\JourneyController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\OneSignalSyncController;
@@ -80,6 +81,13 @@ Route::middleware('auth')->group(function () {
         Route::delete('/', [ProjectController::class, 'destroy'])->name('destroy');
 
         Route::get('stats', StatsController::class)->name('stats');
+        Route::get('in-app', [InAppMessageController::class, 'index'])->name('in-app.index');
+        Route::get('in-app/create', [InAppMessageController::class, 'create'])->name('in-app.create');
+        Route::post('in-app', [InAppMessageController::class, 'store'])->name('in-app.store');
+        Route::get('in-app/{inApp}/edit', [InAppMessageController::class, 'edit'])->name('in-app.edit');
+        Route::put('in-app/{inApp}', [InAppMessageController::class, 'update'])->name('in-app.update');
+        Route::put('in-app/{inApp}/status', [InAppMessageController::class, 'status'])->name('in-app.status');
+        Route::delete('in-app/{inApp}', [InAppMessageController::class, 'destroy'])->name('in-app.destroy');
         Route::get('journeys', [JourneyController::class, 'index'])->name('journeys.index');
         Route::get('journeys/create', [JourneyController::class, 'create'])->name('journeys.create');
         Route::post('journeys', [JourneyController::class, 'store'])->name('journeys.store');

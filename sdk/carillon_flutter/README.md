@@ -65,6 +65,25 @@ The App ID is shown in *Project → Settings → General* of your Carillon
 instance. Tapping a notification with a launch URL opens it, unless you pass
 `openUrls: false` to `initialize`.
 
+## In-app messages
+
+Banners and pop-ups designed in Carillon (*In-app*) are shown inside the app
+when it opens, or after an event reported with `trackEvent`. Give the SDK the
+navigator of your app:
+
+```dart
+MaterialApp(
+  navigatorKey: Carillon.navigatorKey,
+  // …
+);
+
+// Optional: pause them (e.g. during a payment), or react to a button.
+Carillon.inAppMessages.paused = true;
+Carillon.inAppMessages.addClickListener((messageId, button) {
+  debugPrint('In-app ${button['id']} pressed');
+});
+```
+
 ## iOS setup
 
 1. In Xcode, *Runner → Signing & Capabilities*: add **Push Notifications**.

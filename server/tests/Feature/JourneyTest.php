@@ -6,6 +6,7 @@ use App\Enums\ProjectRole;
 use App\Journeys\JourneyRunner;
 use App\Models\ApiKey;
 use App\Models\CustomEvent;
+use App\Models\InAppMessage;
 use App\Models\Journey;
 use App\Models\Message;
 use App\Models\Project;
@@ -152,5 +153,39 @@ class JourneyTest extends TestCase
         $this->actingAs($this->owner)->get(route('projects.messages.show', [$this->project, $messageId]))->assertOk()->assertSee('Conversions')->assertSee('recharge');
         $this->actingAs($this->owner)->get(route('projects.stats', $this->project))->assertOk()->assertSee('purchase')->assertSee('2 500');
         $this->actingAs($this->owner)->get(route('projects.subscribers.show', [$this->project, $device->subscriber_id]))->assertOk()->assertSee('recharge');
+    }
+
+    public function test_in_app_messages_are_served_to_the_sdk_and_counted(): void
+    {
+        $device = $this->device('ada-phone');
+        $this->actingAs($this->owner)->post(route('projects.in-app.store', $this->project), [
+            'name' => 'Nouveau forfait', 'layout' => 'modal', 'title' => 'Nouveau !', 'body' => 'Découvrez le forfait illimité',
+            'buttons' => [['text' => 'Voir', 'action' => 'url', 'url' => 'marecharge://forfaits'], ['text' => '', 'action' => 'dismiss']],
+            'trigger_type' => 'app_open', 'segment' => '', 'frequency' => 'once',
+        ])->assertSessionHasNoErrors();
+        $message = InAppMessage::firstOrFail();
+        $sdk = "/api/v1/sdk/apps/{$this->project->app_id}";
+
+        // A draft is not served.
+        $this->getJson("{$sdk}/subscriptions/{$device->id}/in-app-messages")->assertOk()->assertJsonCount(0, 'in_app_messages');
+
+        $this->actingAs($this->owner)->put(route('projects.in-app.status', [$this->project, $message]), ['status' => 'active']);
+        $this->getJson("{$sdk}/subscriptions/{$device->id}/in-app-messages")
+            ->assertOk()
+            ->assertJsonPath('in_app_messages.0.title', 'Nouveau !')
+            ->assertJsonPath('in_app_messages.0.buttons.0.url', 'marecharge://forfaits')
+            ->assertJsonCount(1, 'in_app_messages.0.buttons');
+
+        // Limited to iOS users: this Android phone no longer gets it.
+        $message->update(['segment' => 'iOS Users']);
+        $this->getJson("{$sdk}/subscriptions/{$device->id}/in-app-messages")->assertJsonCount(0, 'in_app_messages');
+
+        $this->postJson("{$sdk}/in-app-messages/{$message->id}/events", ['subscription_id' => $device->id, 'event' => 'shown'])->assertOk();
+        $this->postJson("{$sdk}/in-app-messages/{$message->id}/events", ['subscription_id' => $device->id, 'event' => 'clicked', 'button_id' => 'button-1'])->assertOk();
+        $this->assertSame([1, 1], [$message->fresh()->shown, $message->fresh()->clicked]);
+        $this->getJson("{$sdk}/subscriptions/not-a-uuid/in-app-messages")->assertNotFound();
+
+        $this->actingAs($this->owner)->get(route('projects.in-app.index', $this->project))->assertOk()->assertSee('Nouveau forfait');
+        $this->actingAs($this->owner)->get(route('projects.in-app.edit', [$this->project, $message]))->assertOk()->assertSee('Découvrez');
     }
 }

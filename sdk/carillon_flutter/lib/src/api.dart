@@ -45,6 +45,20 @@ class CarillonApi {
     'properties': ?properties,
   });
 
+  Future<Map<String, dynamic>> inAppMessages(String id) =>
+      _send('GET', '/subscriptions/$id/in-app-messages', const {});
+
+  Future<Map<String, dynamic>> inAppEvent(
+    String messageId,
+    String subscriptionId,
+    String event, {
+    String? buttonId,
+  }) => _send('POST', '/in-app-messages/$messageId/events', {
+    'subscription_id': subscriptionId,
+    'event': event,
+    'button_id': ?buttonId,
+  });
+
   Future<void> event(
     String id,
     String messageId,

@@ -14,6 +14,7 @@ use App\Webhooks\Webhooks;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 /**
@@ -257,6 +258,8 @@ class SubscriptionController extends Controller
 
     protected function subscription(string $appId, string $id): Subscription
     {
+        // PostgreSQL refuses to compare a UUID column with any other text.
+        abort_unless(Str::isUuid($id), 404, 'Unknown subscription.');
         $subscription = Subscription::query()->with('subscriber')->whereKey($id)
             ->whereHas('project', fn ($q) => $q->where('app_id', $appId))->first();
         abort_unless($subscription, 404, 'Unknown subscription.');

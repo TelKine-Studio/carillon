@@ -48,6 +48,19 @@ class CarillonStore {
   set tags(Map<String, String> value) =>
       _prefs.setString('${_prefix}tags', jsonEncode(value));
 
+  /// When each in-app message was last shown (id => {at, session}).
+  Map<String, Map<String, int>> get inAppShown {
+    final raw = _prefs.getString('${_prefix}in_app');
+    if (raw == null) return {};
+    return (jsonDecode(raw) as Map).map(
+      (key, value) =>
+          MapEntry(key as String, Map<String, int>.from(value as Map)),
+    );
+  }
+
+  set inAppShown(Map<String, Map<String, int>> value) =>
+      _prefs.setString('${_prefix}in_app', jsonEncode(value));
+
   /// Clicks or receptions not reported yet (no network at the time).
   List<Map<String, dynamic>> get pendingEvents {
     final raw = _prefs.getString('${_prefix}events');

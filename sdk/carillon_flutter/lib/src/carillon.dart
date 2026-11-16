@@ -13,6 +13,7 @@ import 'api.dart';
 import 'models.dart';
 import 'native.dart';
 import 'platform.dart';
+import 'in_app_view.dart';
 import 'store.dart';
 
 /// Entry point of the SDK (same shape as OneSignal's).
@@ -61,6 +62,11 @@ class Carillon {
 
   static final notifications = CarillonNotifications._();
   static final user = CarillonUser._();
+  static final inAppMessages = CarillonInAppMessages._();
+
+  /// Give it to MaterialApp(navigatorKey: Carillon.navigatorKey): in-app
+  /// messages are shown above the current page.
+  static final navigatorKey = GlobalKey<NavigatorState>();
   static final session = CarillonSession._();
 }
 
@@ -127,6 +133,26 @@ class CarillonUser {
   final pushSubscription = CarillonPushSubscription._();
 }
 
+/// Banners and pop-ups designed in Carillon, shown inside the app.
+class CarillonInAppMessages {
+  CarillonInAppMessages._();
+
+  /// While paused, no in-app message is shown (e.g. during a checkout).
+  bool paused = false;
+
+  final _clickListeners =
+      <void Function(String messageId, Map<String, dynamic> button)>[];
+
+  /// Called when a button of an in-app message is pressed.
+  void addClickListener(
+    void Function(String messageId, Map<String, dynamic> button) listener,
+  ) => _clickListeners.add(listener);
+
+  void removeClickListener(
+    void Function(String messageId, Map<String, dynamic> button) listener,
+  ) => _clickListeners.remove(listener);
+}
+
 /// Outcomes, as OneSignal.Session: conversions attributed to notifications.
 class CarillonSession {
   CarillonSession._();
@@ -168,6 +194,9 @@ class _Engine with WidgetsBindingObserver {
   final CarillonStore store;
   final PushPlatform platform;
   final bool openUrls;
+
+  List<InAppMessage> _inApp = const [];
+  bool _showingInApp = false;
 
   final clickListeners = <void Function(CarillonClickEvent)>[];
   final foregroundListeners = <void Function(CarillonForegroundEvent)>[];
@@ -264,6 +293,7 @@ class _Engine with WidgetsBindingObserver {
     await _guard(
       () => api.customEvent(id, name, value: value, properties: properties),
     );
+    unawaited(_presentInApp('event', event: name));
   }
 
   Future<void> setTags(Map<String, String?> tags) async {
@@ -346,6 +376,100 @@ class _Engine with WidgetsBindingObserver {
     });
     _absorb(result);
     await _flushEvents();
+    if (newSession) await _refreshInApp(showOnOpen: true);
+  }
+
+  /// Fetches the in-app messages of this device, then shows the ones for
+  /// the opening of the app.
+  Future<void> _refreshInApp({bool showOnOpen = false}) async {
+    final id = store.subscriptionId;
+    if (id == null) return;
+    final result = await _guard(() => api.inAppMessages(id));
+    final list = result?['in_app_messages'];
+    if (list is! List) return;
+    _inApp = [
+      for (final item in list)
+        InAppMessage(Map<String, dynamic>.from(item as Map)),
+    ];
+    if (showOnOpen) unawaited(_presentInApp('app_open'));
+  }
+
+  /// Shows the first message due for this trigger (one at a time).
+  Future<void> _presentInApp(String trigger, {String? event}) async {
+    final navigator = Carillon.navigatorKey.currentState;
+    final id = store.subscriptionId;
+    if (navigator == null ||
+        id == null ||
+        _showingInApp ||
+        Carillon.inAppMessages.paused) {
+      return;
+    }
+
+    final shown = store.inAppShown;
+    final session = store.lastSession?.millisecondsSinceEpoch ?? 0;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    InAppMessage? message;
+    for (final candidate in _inApp) {
+      final type = candidate.trigger['type'];
+      if (type != trigger ||
+          (trigger == 'event' && candidate.trigger['event'] != event)) {
+        continue;
+      }
+      final last = shown[candidate.id];
+      final due = switch (candidate.frequency) {
+        'every_session' => last == null || last['session'] != session,
+        'every_days' =>
+          last == null ||
+              now - (last['at'] ?? 0) >= candidate.frequencyDays * 86400000,
+        _ => last == null,
+      };
+      if (due) {
+        message = candidate;
+        break;
+      }
+    }
+    if (message == null) return;
+
+    _showingInApp = true;
+    store.inAppShown = {
+      ...shown,
+      message.id: {'at': now, 'session': session},
+    };
+    unawaited(_guard(() => api.inAppEvent(message!.id, id, 'shown')));
+    try {
+      final (outcome, button) = await showInAppMessage(navigator, message);
+      unawaited(
+        _guard(
+          () => api.inAppEvent(
+            message!.id,
+            id,
+            outcome == InAppOutcome.clicked ? 'clicked' : 'dismissed',
+            buttonId: button?['id'] as String?,
+          ),
+        ),
+      );
+      if (outcome == InAppOutcome.clicked && button != null) {
+        for (final listener in List.of(
+          Carillon.inAppMessages._clickListeners,
+        )) {
+          listener(message.id, button);
+        }
+        final url = button['url'] as String?;
+        final uri = url == null ? null : Uri.tryParse(url);
+        if (button['action'] == 'url' && uri != null) {
+          unawaited(
+            launchUrl(
+              uri,
+              mode: uri.scheme.startsWith('http')
+                  ? LaunchMode.externalApplication
+                  : LaunchMode.platformDefault,
+            ),
+          );
+        }
+      }
+    } finally {
+      _showingInApp = false;
+    }
   }
 
   Future<Map<String, dynamic>> _device() async {

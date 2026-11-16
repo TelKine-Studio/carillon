@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 /// Run with your project's App ID and your Carillon server:
 ///   flutter run --dart-define=CARILLON_APP_ID=… --dart-define=CARILLON_SERVER=https://carillon.example.com
 const appId = String.fromEnvironment('CARILLON_APP_ID');
-const server = String.fromEnvironment('CARILLON_SERVER', defaultValue: 'http://localhost:8000');
+const server = String.fromEnvironment(
+  'CARILLON_SERVER',
+  defaultValue: 'http://localhost:8000',
+);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,9 +21,18 @@ class ExampleApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      // Lets Carillon show in-app messages above the pages.
+      navigatorKey: Carillon.navigatorKey,
       title: 'Carillon',
-      theme: ThemeData(colorSchemeSeed: const Color(0xFF4F46E5), useMaterial3: true),
-      darkTheme: ThemeData(colorSchemeSeed: const Color(0xFF4F46E5), brightness: Brightness.dark, useMaterial3: true),
+      theme: ThemeData(
+        colorSchemeSeed: const Color(0xFF4F46E5),
+        useMaterial3: true,
+      ),
+      darkTheme: ThemeData(
+        colorSchemeSeed: const Color(0xFF4F46E5),
+        brightness: Brightness.dark,
+        useMaterial3: true,
+      ),
       home: appId.isEmpty ? const _MissingConfig() : const HomePage(),
     );
   }
@@ -34,7 +46,10 @@ class _MissingConfig extends StatelessWidget {
     body: Center(
       child: Padding(
         padding: EdgeInsets.all(24),
-        child: Text('Pass --dart-define=CARILLON_APP_ID=… (and CARILLON_SERVER) to flutter run.', textAlign: TextAlign.center),
+        child: Text(
+          'Pass --dart-define=CARILLON_APP_ID=… (and CARILLON_SERVER) to flutter run.',
+          textAlign: TextAlign.center,
+        ),
       ),
     ),
   );
@@ -57,11 +72,15 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _externalId.text = Carillon.user.externalId ?? '';
     Carillon.notifications.addClickListener((event) {
-      _log('Clicked: ${event.notification.title ?? event.notification.body}'
-          '${event.actionId != null ? ' (button ${event.actionId})' : ''}');
+      _log(
+        'Clicked: ${event.notification.title ?? event.notification.body}'
+        '${event.actionId != null ? ' (button ${event.actionId})' : ''}',
+      );
     });
     Carillon.notifications.addForegroundWillDisplayListener((event) {
-      _log('Received in the foreground: ${event.notification.title ?? event.notification.body}');
+      _log(
+        'Received in the foreground: ${event.notification.title ?? event.notification.body}',
+      );
     });
     _refresh();
   }
@@ -73,7 +92,9 @@ class _HomePageState extends State<HomePage> {
 
   void _log(String event) {
     if (!mounted) return;
-    setState(() => _events.insert(0, '${TimeOfDay.now().format(context)}  $event'));
+    setState(
+      () => _events.insert(0, '${TimeOfDay.now().format(context)}  $event'),
+    );
   }
 
   @override
@@ -107,7 +128,9 @@ class _HomePageState extends State<HomePage> {
                     ),
                     OutlinedButton(
                       onPressed: () async {
-                        subscription.optedIn ? await subscription.optOut() : await subscription.optIn();
+                        subscription.optedIn
+                            ? await subscription.optOut()
+                            : await subscription.optIn();
                         setState(() {});
                       },
                       child: Text(subscription.optedIn ? 'Opt out' : 'Opt in'),
@@ -121,7 +144,10 @@ class _HomePageState extends State<HomePage> {
               children: [
                 TextField(
                   controller: _externalId,
-                  decoration: const InputDecoration(labelText: 'External id', border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                    labelText: 'External id',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -157,7 +183,10 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     OutlinedButton(
                       onPressed: () async {
-                        await Carillon.user.addTags({'plan': 'pro', 'example': true});
+                        await Carillon.user.addTags({
+                          'plan': 'pro',
+                          'example': true,
+                        });
                         setState(() {});
                       },
                       child: const Text('Add plan=pro'),
@@ -176,8 +205,13 @@ class _HomePageState extends State<HomePage> {
             _Section(
               title: 'Events',
               children: [
-                if (_events.isEmpty) const Text('Send a notification from the dashboard.'),
-                for (final event in _events) Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Text(event)),
+                if (_events.isEmpty)
+                  const Text('Send a notification from the dashboard.'),
+                for (final event in _events)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Text(event),
+                  ),
               ],
             ),
           ],
@@ -219,7 +253,13 @@ class _Row extends StatelessWidget {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(width: 110, child: Text(label, style: TextStyle(color: Theme.of(context).hintColor))),
+        SizedBox(
+          width: 110,
+          child: Text(
+            label,
+            style: TextStyle(color: Theme.of(context).hintColor),
+          ),
+        ),
         Expanded(child: SelectableText(value)),
       ],
     ),
