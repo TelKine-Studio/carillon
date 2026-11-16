@@ -369,6 +369,19 @@
                 <x-ui.button class="mt-5 w-full" size="lg" icon="send">
                     <span x-text="schedule !== 'now' ? @js(__('Schedule the message')) : (channel === 'email' ? @js(__('Send the email')) : @js(__('Send the message')))">{{ __('Send the message') }}</span>
                 </x-ui.button>
+                @php($testDevices = $project->subscriptions()->where('is_test', true)->where('enabled', true)->whereNull('invalid_at')->count())
+                <div class="mt-3 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+                    <x-ui.button type="button" variant="secondary" class="w-full" icon="smartphone" x-on:click="sendTest(@js(route('projects.messages.test', $project)))" ::disabled="test.sending">
+                        <span x-text="test.sending ? @js(__('Sending…')) : @js($testDevices ? trans_choice('Send a test to my device|Send a test to my :count devices', $testDevices, ['count' => $testDevices]) : __('Send a test'))">{{ __('Send a test') }}</span>
+                    </x-ui.button>
+                    <p class="mt-2 text-xs" x-show="test.result" x-cloak :class="test.ok ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'">
+                        <span x-text="test.result"></span>
+                        <a x-show="test.url" :href="test.url" class="ml-1 font-medium underline">{{ __('See the report') }}</a>
+                    </p>
+                    @unless ($testDevices)
+                        <p class="mt-2 text-xs text-zinc-500" x-show="! test.result">{{ __('Mark your own phone as a test device in Audience to try a message before sending it to everyone.') }}</p>
+                    @endunless
+                </div>
             </div>
             @endif
         </aside>

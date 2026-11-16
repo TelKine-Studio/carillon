@@ -121,6 +121,20 @@ class SubscriberController extends Controller
         return redirect()->route('projects.messages.show', [$project, $message])->with('status', __('Test notification sent.'));
     }
 
+    /** Marks a device as a test device (or not): it receives the tests of the composer. */
+    public function testDevice(Request $request, Project $project, Subscriber $subscriber, string $subscription): RedirectResponse
+    {
+        $this->authorize('send', $project);
+        abort_unless($subscriber->project_id === $project->id, 404);
+
+        $device = $subscriber->subscriptions()->findOrFail($subscription);
+        $device->forceFill(['is_test' => $request->boolean('is_test')])->save();
+
+        return back()->with('status', $device->is_test
+            ? __('Test device added: it receives the tests sent from the composer.')
+            : __('No longer a test device.'));
+    }
+
     public function destroy(Project $project, Subscriber $subscriber): RedirectResponse
     {
         $this->authorize('send', $project);

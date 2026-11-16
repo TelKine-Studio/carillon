@@ -92,6 +92,37 @@ class MessageController extends Controller
                 : __('Message on its way to :count devices.', ['count' => number_format($message->recipients, 0, ',', ' ')]));
     }
 
+    /** Sends the message being written to the test devices only. */
+    public function test(Request $request, Project $project, CreateMessage $create): JsonResponse
+    {
+        $this->authorize('send', $project);
+
+        $devices = $project->subscriptions()->where('is_test', true)->where('enabled', true)->whereNull('invalid_at')->pluck('id')->all();
+        if ($devices === []) {
+            return response()->json(['error' => __('No test device yet: open a person of your audience and mark their device as a test device.')], 422);
+        }
+
+        $input = ComposerInput::fromRequest($request);
+        foreach (['included_segments', 'excluded_segments', 'include_aliases', 'include_subscription_ids', 'isIos', 'isAndroid', 'isAnyWeb', 'send_after', 'delayed_option', 'delivery_time_of_day'] as $key) {
+            unset($input[$key]);
+        }
+        $input['include_subscription_ids'] = $devices;
+        $input['name'] = trim(__('Test').' · '.($input['name'] ?? ''), ' ·');
+
+        try {
+            $message = $create->handle($project, $input, $request->user());
+        } catch (ValidationException $e) {
+            return response()->json(['error' => $this->explain($e)], 422);
+        }
+        $message->forceFill(['is_test' => true])->save();
+
+        return response()->json([
+            'recipients' => $message->recipients,
+            'message' => trans_choice('Test sent to :count device.|Test sent to :count devices.', $message->recipients, ['count' => $message->recipients]),
+            'url' => route('projects.messages.show', [$project, $message]),
+        ]);
+    }
+
     /** Recipients the current composer settings would reach. */
     public function estimate(Request $request, Project $project, Audience $audience): JsonResponse
     {

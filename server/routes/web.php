@@ -81,6 +81,7 @@ Route::middleware('auth')->group(function () {
         Route::get('messages/create', [MessageController::class, 'create'])->name('messages.create');
         Route::post('messages', [MessageController::class, 'store'])->name('messages.store');
         Route::post('messages/estimate', [MessageController::class, 'estimate'])->name('messages.estimate');
+        Route::post('messages/test', [MessageController::class, 'test'])->name('messages.test');
         Route::get('messages/{message}', [MessageController::class, 'show'])->name('messages.show');
         Route::post('messages/{message}/cancel', [MessageController::class, 'cancel'])->name('messages.cancel');
 
@@ -94,6 +95,7 @@ Route::middleware('auth')->group(function () {
         Route::get('audience/{subscriber}', [SubscriberController::class, 'show'])->name('subscribers.show');
         Route::put('audience/{subscriber}/tags', [SubscriberController::class, 'updateTags'])->name('subscribers.tags');
         Route::post('audience/{subscriber}/test', [SubscriberController::class, 'test'])->name('subscribers.test');
+        Route::put('audience/{subscriber}/devices/{subscription}/test', [SubscriberController::class, 'testDevice'])->name('subscribers.test-device');
         Route::delete('audience/{subscriber}', [SubscriberController::class, 'destroy'])->name('subscribers.destroy');
 
         Route::get('segments', [SegmentController::class, 'index'])->name('segments.index');

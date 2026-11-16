@@ -46,6 +46,20 @@
                                 <p class="mt-1 font-mono text-[11px] text-zinc-400" x-data="copy(@js($subscription->id))"><button type="button" x-on:click="copy()" class="hover:text-zinc-700 dark:hover:text-zinc-200">{{ $subscription->id }}</button> <span x-show="copied" x-cloak class="text-emerald-600">✓</span></p>
                             </div>
                             <x-audience.state :subscription="$subscription" />
+                            @if ($subscription->type !== 'email')
+                                @can('send', $project)
+                                    <form method="POST" action="{{ route('projects.subscribers.test-device', [$project, $subscriber, $subscription->id]) }}" class="w-full sm:w-auto">
+                                        @csrf
+                                        @method('PUT')
+                                        <input type="hidden" name="is_test" value="{{ $subscription->is_test ? 0 : 1 }}">
+                                        @if ($subscription->is_test)
+                                            <x-ui.button variant="ghost" size="xs" icon="check" class="!text-violet-700 dark:!text-violet-300" title="{{ __('Stop using as a test device') }}">{{ __('Test device') }}</x-ui.button>
+                                        @else
+                                            <x-ui.button variant="ghost" size="xs" icon="plus">{{ __('Use for tests') }}</x-ui.button>
+                                        @endif
+                                    </form>
+                                @endcan
+                            @endif
                         </li>
                     @endforeach
                 </ul>

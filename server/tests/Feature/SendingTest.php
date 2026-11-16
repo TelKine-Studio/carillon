@@ -287,4 +287,34 @@ class SendingTest extends TestCase
         $id = $this->api()->postJson('/api/v1/notifications', ['contents' => ['en' => 'Hi'], 'included_segments' => ['All'], 'isAnyWeb' => true])->json('id');
         $this->assertSame(1, Message::find($id)->successful);
     }
+
+    public function test_the_composer_sends_tests_to_test_devices_only(): void
+    {
+        $owner = $this->project->members()->first();
+        $this->device('ios', 'my-phone');
+        $this->device('android', 'customer-phone');
+
+        // No test device yet.
+        $this->actingAs($owner)->postJson(route('projects.messages.test', $this->project), ['texts' => [['language' => 'en', 'body' => 'Hello']]])
+            ->assertStatus(422)->assertJsonStructure(['error']);
+
+        $phone = Subscription::where('token', 'my-phone')->first();
+        $this->actingAs($owner)->put(route('projects.subscribers.test-device', [$this->project, $phone->subscriber_id, $phone->id]), ['is_test' => 1])->assertRedirect();
+        $this->assertTrue($phone->fresh()->is_test);
+
+        // The segments of the form are ignored: only the test device receives it.
+        $this->actingAs($owner)->postJson(route('projects.messages.test', $this->project), [
+            'name' => 'Bonus', 'audience' => 'segments', 'included_segments' => ['Subscribed Users'],
+            'texts' => [['language' => 'en', 'title' => 'Bonus', 'body' => 'Top up today']],
+        ])->assertOk()->assertJsonPath('recipients', 1);
+
+        $message = Message::latest()->first();
+        $this->assertTrue($message->is_test);
+        $this->assertSame('Test · Bonus', $message->name);
+        Http::assertSent(fn (HttpRequest $request) => str_ends_with($request->url(), '/3/device/my-phone'));
+        Http::assertNotSent(fn (HttpRequest $request) => ($request['message']['token'] ?? null) === 'customer-phone');
+
+        // Test sends stay out of the statistics.
+        $this->actingAs($owner)->get(route('projects.stats', $this->project))->assertOk()->assertSee('Statistics');
+    }
 }

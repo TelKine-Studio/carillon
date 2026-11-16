@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** A notification sent (or to send) to part of a project's audience. */
-#[Fillable(['project_id', 'channel', 'created_by', 'api_key_id', 'template_id', 'name', 'idempotency_key', 'headings', 'subtitle', 'contents', 'options', 'targeting', 'status', 'send_after', 'recipients', 'successful', 'failed', 'errored', 'received', 'clicked', 'error', 'started_at', 'completed_at', 'canceled_at'])]
+#[Fillable(['project_id', 'channel', 'created_by', 'api_key_id', 'template_id', 'name', 'idempotency_key', 'headings', 'subtitle', 'contents', 'options', 'targeting', 'status', 'send_after', 'recipients', 'successful', 'failed', 'errored', 'received', 'clicked', 'error', 'started_at', 'completed_at', 'canceled_at', 'is_test'])]
 class Message extends Model
 {
     use HasUuids;
@@ -20,6 +20,7 @@ class Message extends Model
     protected function casts(): array
     {
         return [
+            'is_test' => 'boolean',
             'headings' => 'array',
             'subtitle' => 'array',
             'contents' => 'array',

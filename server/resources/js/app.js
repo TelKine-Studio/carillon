@@ -250,6 +250,24 @@ Alpine.data('selectBox', () => ({
 /* ---------------------------------------------------- Message composer */
 
 Alpine.data('messageComposer', (config) => ({
+    test: { sending: false, result: '', ok: false, url: null },
+    // Sends the message as written to the test devices only, without leaving the page.
+    async sendTest(url) {
+        this.test = { sending: true, result: '', ok: false, url: null };
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                body: new FormData(this.$root),
+            });
+            const body = await response.json().catch(() => ({}));
+            this.test = response.ok
+                ? { sending: false, result: body.message, ok: true, url: body.url }
+                : { sending: false, result: body.error || body.message || response.statusText, ok: false, url: null };
+        } catch (error) {
+            this.test = { sending: false, result: error.message, ok: false, url: null };
+        }
+    },
     texts: config.texts,
     active: 0,
     audience: config.audience,

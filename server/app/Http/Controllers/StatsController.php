@@ -25,7 +25,7 @@ class StatsController extends Controller
 
         // Messages: totals per day of sending (kept forever, unlike per-device details).
         $sentAt = DB::raw('date(coalesce(started_at, created_at))');
-        $messages = $project->messages()->where('status', '!=', 'canceled');
+        $messages = $project->messages()->where('status', '!=', 'canceled')->where('is_test', false);
         $perDay = (clone $messages)
             ->where('created_at', '>=', $start)
             ->select([DB::raw('date(coalesce(started_at, created_at)) as day'), DB::raw('count(*) as messages'), DB::raw('sum(successful) as delivered'), DB::raw('sum(clicked) as clicked')])

@@ -72,7 +72,7 @@ class ProjectController extends Controller
             ->selectRaw('date(created_at) as day, count(*) as total')
             ->groupBy('day')
             ->pluck('total', 'day');
-        $recent = $project->messages()->where('created_at', '>=', now()->subDays(30));
+        $recent = $project->messages()->where('is_test', false)->where('created_at', '>=', now()->subDays(30));
 
         return view('projects.show', [
             'project' => $project,

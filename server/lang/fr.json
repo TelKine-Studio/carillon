@@ -1619,5 +1619,15 @@
     ":count click|:count clicks": ":count clic|:count clics",
     "Web": "Web",
     "Unknown": "Inconnu",
-    "Other or unknown": "Autres ou inconnus"
+    "Other or unknown": "Autres ou inconnus",
+    "Stop using as a test device": "Ne plus utiliser pour les tests",
+    "Test device": "Appareil de test",
+    "Use for tests": "Utiliser pour les tests",
+    "Send a test to my device|Send a test to my :count devices": "Envoyer un test sur mon appareil|Envoyer un test sur mes :count appareils",
+    "See the report": "Voir le rapport",
+    "Mark your own phone as a test device in Audience to try a message before sending it to everyone.": "Marquez votre propre téléphone comme appareil de test dans Audience pour essayer un message avant de l’envoyer à tout le monde.",
+    "No test device yet: open a person of your audience and mark their device as a test device.": "Aucun appareil de test : ouvrez une personne de votre audience et marquez son appareil comme appareil de test.",
+    "Test sent to :count device.|Test sent to :count devices.": "Test envoyé à :count appareil.|Test envoyé à :count appareils.",
+    "Test device added: it receives the tests sent from the composer.": "Appareil de test ajouté : il reçoit les tests envoyés depuis l’éditeur.",
+    "No longer a test device.": "Ce n’est plus un appareil de test."
 }

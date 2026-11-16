@@ -40,7 +40,7 @@
             <a href="{{ route('projects.messages.show', [$project, $message]) }}" class="flex flex-col gap-3 border-t border-zinc-100 px-4 py-4 transition first:border-0 hover:bg-zinc-50/80 sm:px-5 lg:flex-row lg:items-center lg:gap-6 dark:border-zinc-800 dark:hover:bg-white/[.02]">
                 <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-2">
-                        <p class="truncate text-sm font-semibold text-zinc-900 dark:text-white">{{ $message->label() }}</p>
+                        <p class="flex min-w-0 items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-white"><span class="truncate">{{ $message->label() }}</span>@if ($message->is_test)<x-ui.badge color="violet" class="shrink-0">{{ __('Test') }}</x-ui.badge>@endif</p>
                         <x-messages.status :status="$message->status" class="shrink-0" />
                     </div>
                     @if ($message->name || \App\Models\Message::localized($message->headings, app()->getLocale()))
