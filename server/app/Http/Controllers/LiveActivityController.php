@@ -30,6 +30,9 @@ class LiveActivityController extends Controller
             'today' => $project->liveActivities()->where('created_at', '>=', now()->subDay())->count(),
             'types' => LiveActivityStartToken::query()->where('project_id', $project->id)
                 ->selectRaw('activity_type, count(*) as devices')->groupBy('activity_type')->orderBy('activity_type')->pluck('devices', 'activity_type'),
+            // Android apps on the Carillon SDK 0.3+ (Live Updates).
+            'android' => $project->subscriptions()->reachable()->where('type', 'android')->where('sdk', 'like', 'carillon-flutter/%')
+                ->where('sdk', 'not like', 'carillon-flutter/0.1.%')->where('sdk', 'not like', 'carillon-flutter/0.2.%')->count(),
             'colors' => ['starting' => 'zinc', 'started' => 'blue', 'active' => 'green', 'ended' => 'zinc', 'failed' => 'red'],
             'labels' => ['starting' => __('Starting'), 'started' => __('Started'), 'active' => __('On screen'), 'ended' => __('Ended'), 'failed' => __('Refused by Apple')],
         ]);

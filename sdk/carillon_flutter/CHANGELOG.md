@@ -1,6 +1,7 @@
 ## 0.3.0
 
 - Live Activities (iOS): `CarillonLiveActivities.observe(YourAttributes.self)` sends Carillon the push-to-start token of the type (iOS 17.2+), the update token of each activity and its end; `Carillon.liveActivities` has the OneSignal calls for activities managed by hand. Calls made before the device is registered are sent once it is.
+- Live Activities on Android: shown as Live Updates (ongoing notification with title, text and a segmented progress bar, promoted on Android 16 with a status bar chip), updated in order and closed or turned into a final notification at the end. Tapping gives the activity data to the click listener.
 
 ## 0.2.0
 

@@ -2123,5 +2123,7 @@
     "Start one from your server with POST /api/v1/apps/{app_id}/activities/activity/{type}: the guide is in the documentation (Channels → Live Activities).": "Démarrez-en une depuis votre serveur avec POST /api/v1/apps/{app_id}/activities/activity/{type} : le guide est dans la documentation (Canaux → Live Activities).",
     "Starting": "Au démarrage",
     "On screen": "À l’écran",
-    "Refused by Apple": "Refusée par Apple"
+    "Refused by Apple": "Refusée par Apple",
+    "Activities shown on the lock screen of iPhones and as Live Updates on Android, started and updated through the API.": "Les activités affichées sur l’écran verrouillé des iPhone et en Live Updates sur Android, démarrées et mises à jour par l’API.",
+    "iPhones on iOS 17.2+ whose app sent a push-to-start token; Android apps on the Carillon SDK 0.3+.": "Les iPhone sous iOS 17.2+ dont l’app a envoyé un jeton de démarrage, et les apps Android sur le SDK Carillon 0.3+."
 }

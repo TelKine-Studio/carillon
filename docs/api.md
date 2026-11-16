@@ -262,14 +262,16 @@ POST /api/v1/apps/{app_id}/custom_events
 From the apps: `Carillon.user.trackEvent(name, properties)` and
 `Carillon.session.addOutcome(name)` / `addOutcomeWithValue(name, value)`.
 
-## Live Activities (iOS)
+## Live Activities (iOS and Android)
 
 Activities shown on the lock screen and in the Dynamic Island, in the format
-of OneSignal. The app declares them (SwiftUI widget extension) and the SDK
-sends their tokens: see [Channels → Live Activities](channels.md#live-activities-ios).
+of OneSignal, and the same calls show them on Android as Live Updates. The
+app declares them on iOS (SwiftUI widget extension) and the SDK sends their
+tokens: see [Channels → Live Activities](channels.md#live-activities-ios-and-android).
 
-**Start** by push (iOS 17.2+), on the targeted devices that have a
-push-to-start token for this type:
+**Start** by push, on the targeted devices able to show it: iPhones with a
+push-to-start token for this type (iOS 17.2+), Android apps on the Carillon
+Flutter SDK 0.3+:
 
 ```
 POST /api/v1/apps/{app_id}/activities/activity/{activity_type}
@@ -282,7 +284,9 @@ POST /api/v1/apps/{app_id}/activities/activity/{activity_type}
   "contents": {"fr": "On s'en occupe."},
   "include_aliases": {"external_id": ["user-42"]},
   "stale_date": 1763310000,
-  "end_after": 1800
+  "end_after": 1800,
+  "android": {"progress": 1, "progress_max": 3, "segments": 3, "color": "#0F766E"},
+  "data": {"screen": "purchases", "reference": "MRC-20261116-0428"}
 }
 → {"id": "MRC-20261116-0428", "recipients": 1, "already": 0, "errors": []}
 ```
@@ -290,7 +294,15 @@ POST /api/v1/apps/{app_id}/activities/activity/{activity_type}
 - `activity_type` is the name of the `ActivityAttributes` struct of the app;
   `event_attributes` its fields, `event_updates` its `ContentState`.
 - Audience: `include_aliases.external_id`, `include_subscription_ids`,
-  `included_segments` / `excluded_segments`, `filters` (iOS devices only).
+  `included_segments` / `excluded_segments`, `filters`. Devices that cannot
+  show it (old iOS, no start token yet, old SDK) are not counted: the call
+  succeeds with `recipients: 0`.
+- `android`: what Android shows, since it has no widget. `title`, `body`
+  (text or `{"fr": …}`; `headings` / `contents` by default), `short_text`
+  (status bar chip), `progress`, `progress_max`, `segments` (steps of the bar),
+  `indeterminate`, `chronometer` (Unix seconds to count from or to),
+  `color`, `small_icon`. Updates only send what changes. `data` is given to
+  the click listener of the app when the notification is tapped.
 - `headings` / `contents` are the alert iOS shows at the start (required by
   Apple; the `name` is used without them).
 - An `activity_id` starts once per device: calling start again (a retry of
@@ -303,14 +315,16 @@ POST /api/v1/apps/{app_id}/activities/activity/{activity_type}
 
 ```
 POST /api/v1/apps/{app_id}/live_activities/{activity_id}/notifications
-{"event": "update", "event_updates": {"step": "sending"}, "priority": 5}
-{"event": "end", "event_updates": {"step": "delivered"}, "dismissal_date": 1763309000}
+{"event": "update", "event_updates": {"step": "sending"}, "android": {"progress": 2}, "priority": 5}
+{"event": "end", "event_updates": {"step": "delivered"}, "android": {"title": "Delivered", "progress": 3}, "dismissal_date": 1763309000}
 → {"id": "…", "recipients": 1, "pending": 0, "errors": []}
 ```
 
 - `priority` 10 (default) is delivered at once and counts against the budget
   Apple gives each device; 5 is delivered when convenient, without limit.
-  The end is always sent with 10.
+  The end is always sent with 10. On Android, 5 is a normal FCM priority.
+- At the end, Android keeps a regular notification with the `android` title
+  and text until `dismissal_date` (or removes it without a title).
 - `pending`: devices whose app has not sent the update token yet (just
   started by push). The update, or the end, is kept and sent as soon as the
   token arrives: an activity ended before is closed on the device then.

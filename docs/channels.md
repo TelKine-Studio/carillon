@@ -78,12 +78,12 @@ Banners, pop-ups and full screens shown inside the open app by the Carillon
 SDKs (Flutter, web): nothing to set up besides `navigatorKey:
 Carillon.navigatorKey` in the `MaterialApp` of a Flutter app.
 
-## Live Activities (iOS)
+## Live Activities (iOS and Android)
 
 A Live Activity shows something in progress on the lock screen and in the
 Dynamic Island (a delivery, a match, a ride), updated by your server without
 opening the app. Carillon starts them by push (iOS 17.2+), updates and ends
-them through the [API](api.md#live-activities-ios), with the same APNs key.
+them through the [API](api.md#live-activities-ios-and-android), with the same APNs key.
 
 In the app (the look of the activity belongs to it):
 
@@ -131,5 +131,10 @@ order takes longer than usual), update rarely, end at the outcome. Carillon
 ends by itself an activity left open past `end_after`, and the end sent
 before the app gave its token is delivered when it does.
 
-Android has no Live Activities: keep a regular notification for the outcome.
+On Android, the same calls show a **Live Update**: an ongoing notification
+with the title, the text and a progress bar of the `android` object of the
+requests, promoted on Android 16 (chip in the status bar, top of the
+notification shade and of the lock screen), a regular ongoing notification
+before. Nothing to write in the app: the Carillon Flutter SDK 0.3+ shows it,
+and tapping it gives `data` to the click listener. Older SDKs are left out.
 

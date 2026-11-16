@@ -17,6 +17,10 @@ class CarillonMessagingService : FirebaseMessagingService() {
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
+        message.data["carillon_live"]?.let {
+            CarillonLiveUpdates.handle(this, it)
+            return
+        }
         val raw = message.data["carillon"] ?: return
         val payload = try {
             JSONObject(raw)

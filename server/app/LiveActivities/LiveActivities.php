@@ -10,14 +10,17 @@ use App\Models\Project;
 use App\Models\PushCredential;
 use App\Models\Subscription;
 use App\Push\ApnsSender;
+use App\Push\FcmSender;
 use App\Push\Result;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Live Activities of iOS, OneSignal style:
- * - start: by push (push-to-start token of the device for the type, iOS
- *   17.2+), to the devices targeted;
+ * Live Activities, OneSignal style, on iOS and Android:
+ * - start: by push, to the devices targeted. iOS needs the push-to-start
+ *   token of the device for the type (iOS 17.2+); Android (Carillon SDK
+ *   0.3+) shows them as Live Updates: an ongoing notification with
+ *   progress, promoted on Android 16, refreshed by FCM data messages;
  * - update and end: to every device showing the activity, with its update
  *   token. The token only exists once the app received it from iOS and the
  *   SDK sent it: what comes before is kept and sent when it arrives;
@@ -31,35 +34,39 @@ class LiveActivities
     /** Updates sent per activity: past that, a loop in a backend is suspected. */
     public const MAX_UPDATES = 500;
 
-    public function __construct(protected ApnsSender $apns, protected Audience $audience) {}
+    public function __construct(protected ApnsSender $apns, protected FcmSender $fcm, protected Audience $audience) {}
 
     /**
-     * Starts the activity on the targeted devices that have a push-to-start
-     * token for this type. A device already showing this activity_id is
-     * left alone: calling start twice is harmless.
+     * Starts the activity on the targeted devices able to show it: iPhones
+     * with a push-to-start token for this type, Android apps on the
+     * Carillon SDK 0.3+. A device already showing this activity_id is left
+     * alone: calling start twice is harmless.
      *
      * @param  array<string, mixed>  $data
      * @return array{recipients: int, already: int, errors: list<string>}
      */
     public function start(Project $project, string $type, array $data): array
     {
-        $credential = $this->credential($project);
-        $devices = $this->audience->query($project, [...$this->targeting($data), 'platforms' => ['ios']])
-            ->join('live_activity_start_tokens', function ($join) use ($type) {
+        [$apns, $fcm] = $this->credentials($project);
+        $devices = $this->audience->query($project, [...$this->targeting($data), 'platforms' => array_keys(array_filter(['ios' => $apns, 'android' => $fcm]))])
+            ->leftJoin('live_activity_start_tokens', function ($join) use ($type) {
                 $join->on('live_activity_start_tokens.subscription_id', '=', 'subscriptions.id')
                     ->where('live_activity_start_tokens.activity_type', '=', $type);
             })
+            ->where(fn ($q) => $q->whereNotNull('live_activity_start_tokens.id')->orWhere('subscriptions.type', 'android'))
             ->addSelect('live_activity_start_tokens.token as start_token', 'live_activity_start_tokens.id as start_token_id', 'subscribers.language as person_language')
             ->limit(10000)
-            ->get();
+            ->get()
+            ->filter(fn (Subscription $device) => $device->type === 'ios' || $device->supportsLiveUpdates());
 
         $activityId = (string) $data['activity_id'];
         $already = LiveActivity::query()->where('project_id', $project->id)->where('activity_id', $activityId)
             ->whereIn('subscription_id', $devices->pluck('id'))->pluck('status', 'subscription_id');
 
         $state = $this->object($data['event_updates'] ?? []);
+        $display = $this->display([], $data, start: true);
         $endAt = now()->addSeconds(min(self::MAX_DURATION, max(60, (int) ($data['end_after'] ?? self::MAX_DURATION))));
-        $requests = [];
+        $requests = ['ios' => [], 'android' => []];
         $activities = [];
         $skipped = 0;
 
@@ -71,30 +78,42 @@ class LiveActivities
                 continue;
             }
 
+            $android = $device->type === 'android';
             $activity = LiveActivity::create([
                 'project_id' => $project->id,
                 'subscription_id' => $device->id,
                 'activity_type' => $type,
                 'activity_id' => $activityId,
                 'status' => 'starting',
-                'content_state' => $state,
+                'content_state' => $android ? $display : $state,
                 'started_at' => now(),
                 'end_at' => $endAt,
             ]);
             $activities[$activity->id] = [$activity, $device];
-            $requests[$activity->id] = [
-                'token' => $device->start_token,
-                'environment' => $device->environment,
-                ...Payload::start($credential, $type, $activityId, $data, $state, $device->person_language),
-            ];
+
+            if ($android) {
+                $requests['android'][$activity->id] = AndroidPayload::message((string) $device->token, 'start', $activity, $display, $device->person_language, $data);
+            } else {
+                $requests['ios'][$activity->id] = [
+                    'token' => $device->start_token,
+                    'environment' => $device->environment,
+                    ...Payload::start($apns, $type, $activityId, $data, $state, $device->person_language),
+                ];
+            }
         }
 
+        $results = [
+            ...($requests['ios'] ? $this->apns->push($apns, $requests['ios']) : []),
+            ...($requests['android'] ? $this->fcm->push($fcm, $requests['android']) : []),
+        ];
+
         $errors = [];
-        foreach ($requests ? $this->apns->push($credential, $requests) : [] as $id => $result) {
+        foreach ($results as $id => $result) {
             [$activity, $device] = $activities[$id];
 
             if ($result->status === 'sent') {
-                $activity->forceFill(['status' => 'started'])->save();
+                // Android has no token to wait for: on screen at once.
+                $activity->forceFill(['status' => $device->type === 'android' ? 'active' : 'started'])->save();
 
                 continue;
             }
@@ -103,13 +122,13 @@ class LiveActivities
             $errors[] = (string) $result->error;
 
             // A dead push-to-start token: the app sends a new one at its next launch.
-            if ($result->invalid) {
+            if ($result->invalid && $device->start_token_id) {
                 LiveActivityStartToken::query()->whereKey($device->start_token_id)->delete();
             }
         }
 
         return [
-            'recipients' => count($requests) - count($errors),
+            'recipients' => count($results) - count($errors),
             'already' => $skipped,
             'errors' => array_values(array_unique($errors)),
         ];
@@ -130,16 +149,19 @@ class LiveActivities
             return null;
         }
 
-        $credential = $this->credential($project);
         $pending = 0;
         $ready = new Collection;
+        $event = $event === 'end' ? 'end' : 'update';
 
         foreach ($activities as $activity) {
-            $event = $event === 'end' ? 'end' : 'update';
-            $state = array_key_exists('event_updates', $data) ? $this->object($data['event_updates']) : $activity->content_state;
-            $activity->content_state = $state ?? [];
+            if ($activity->subscription->type === 'android') {
+                $activity->content_state = $this->display($activity->content_state ?? [], $data);
+            } else {
+                $state = array_key_exists('event_updates', $data) ? $this->object($data['event_updates']) : $activity->content_state;
+                $activity->content_state = $state ?? [];
+            }
 
-            if (! $activity->update_token) {
+            if (! $this->reachable($activity)) {
                 // An end waiting for the token wins over any update after it.
                 if (($activity->pending['event'] ?? null) !== 'end') {
                     $activity->pending = ['event' => $event, ...array_intersect_key($data, array_flip(Payload::KEYS))];
@@ -158,7 +180,7 @@ class LiveActivities
             $ready->push($activity);
         }
 
-        $results = $this->send($credential, $ready, $event, $data);
+        $results = $this->send($project, $ready, $event, $data);
 
         return [
             'recipients' => count(array_filter($results, fn (Result $result) => $result->status === 'sent')),
@@ -240,18 +262,15 @@ class LiveActivities
             ->where('end_at', '<=', now())->orderBy('end_at')->limit(500)->get()
             ->groupBy('project_id')
             ->each(function (Collection $activities) use (&$count) {
-                $credential = $activities->first()->subscription->project->credential('apns');
-                [$withToken, $without] = $activities->partition(fn (LiveActivity $activity) => filled($activity->update_token));
+                [$reachable, $without] = $activities->partition(fn (LiveActivity $activity) => $this->reachable($activity));
 
                 foreach ($without as $activity) {
                     $activity->forceFill(['status' => 'ended', 'ended_at' => now(), 'error' => $activity->error ?? 'Expired', 'pending' => ['event' => 'end']])->save();
                     $count++;
                 }
 
-                if ($credential?->isUsable() && $withToken->isNotEmpty()) {
-                    $this->send($credential, $withToken, 'end', ['dismissal_date' => now()->getTimestamp()]);
-                    $count += $withToken->count();
-                }
+                $this->send($activities->first()->subscription->project, $reachable, 'end', ['dismissal_date' => now()->getTimestamp()]);
+                $count += $reachable->count();
             });
 
         return $count;
@@ -260,13 +279,17 @@ class LiveActivities
     /** Sends what waited for the update token. */
     protected function flush(LiveActivity $activity): void
     {
-        $credential = $activity->subscription->project->credential('apns');
         $pending = $activity->pending;
         $activity->forceFill(['pending' => null])->save();
+        $activity->load('subscription.subscriber', 'subscription.project.credentials');
 
-        if ($credential?->isUsable()) {
-            $this->send($credential, collect([$activity->load('subscription.subscriber')]), $pending['event'] ?? 'update', $pending);
-        }
+        $this->send($activity->subscription->project, collect([$activity]), $pending['event'] ?? 'update', $pending);
+    }
+
+    /** iPhones once the app gave the update token; Android at once (FCM token of the device). */
+    protected function reachable(LiveActivity $activity): bool
+    {
+        return $activity->subscription->type === 'android' || filled($activity->update_token);
     }
 
     /**
@@ -274,20 +297,26 @@ class LiveActivities
      * @param  array<string, mixed>  $data
      * @return array<string, Result>
      */
-    protected function send(PushCredential $credential, Collection $activities, string $event, array $data): array
+    protected function send(Project $project, Collection $activities, string $event, array $data): array
     {
         if ($activities->isEmpty()) {
             return [];
         }
 
+        [$apns, $fcm] = $this->credentials($project, required: false);
         $byId = $activities->keyBy('id');
-        $requests = $activities->mapWithKeys(fn (LiveActivity $activity) => [$activity->id => [
-            'token' => $activity->update_token,
-            'environment' => $activity->subscription->environment,
-            ...Payload::event($credential, $event, $data, $activity->content_state ?? [], $activity->subscription->subscriber?->language),
-        ]])->all();
+        [$android, $ios] = $activities->partition(fn (LiveActivity $activity) => $activity->subscription->type === 'android');
 
-        $results = $this->apns->push($credential, $requests);
+        $results = [
+            ...($apns && $ios->isNotEmpty() ? $this->apns->push($apns, $ios->mapWithKeys(fn (LiveActivity $activity) => [$activity->id => [
+                'token' => $activity->update_token,
+                'environment' => $activity->subscription->environment,
+                ...Payload::event($apns, $event, $data, $activity->content_state ?? [], $activity->subscription->subscriber?->language),
+            ]])->all()) : []),
+            ...($fcm && $android->isNotEmpty() ? $this->fcm->push($fcm, $android->mapWithKeys(fn (LiveActivity $activity) => [
+                $activity->id => AndroidPayload::message((string) $activity->subscription->token, $event, $activity, $activity->content_state ?? [], $activity->subscription->subscriber?->language, $data),
+            ])->all()) : []),
+        ];
 
         foreach ($results as $id => $result) {
             $activity = $byId[$id];
@@ -297,7 +326,7 @@ class LiveActivities
                     ? ['status' => 'ended', 'ended_at' => $activity->ended_at ?? now(), 'update_token' => null, 'pending' => null]
                     : ['updates' => $activity->updates + 1, 'updated_last_at' => now()])->save();
             } elseif ($result->invalid) {
-                // The activity is gone from the device.
+                // The activity (or the app) is gone from the device.
                 $activity->forceFill(['status' => 'ended', 'ended_at' => $activity->ended_at ?? now(), 'update_token' => null, 'pending' => null, 'error' => $result->error])->save();
             } else {
                 $activity->forceFill(['error' => $result->error])->save();
@@ -307,12 +336,44 @@ class LiveActivities
         return $results;
     }
 
-    protected function credential(Project $project): PushCredential
+    /**
+     * APNs and FCM credentials usable for Live Activities.
+     *
+     * @return array{0: ?PushCredential, 1: ?PushCredential}
+     */
+    protected function credentials(Project $project, bool $required = true): array
     {
-        $credential = $project->credential('apns');
-        abort_unless($credential?->isUsable(), 400, 'Apple Push (APNs) is not configured for this app.');
+        $apns = $project->credential('apns');
+        $fcm = $project->credential('fcm');
+        $apns = $apns?->isUsable() ? $apns : null;
+        $fcm = $fcm?->isUsable() ? $fcm : null;
+        abort_if($required && ! $apns && ! $fcm, 400, 'Neither Apple Push (APNs) nor Firebase (FCM) is configured for this app.');
 
-        return $credential;
+        return [$apns, $fcm];
+    }
+
+    /**
+     * What Android shows: the "android" object of the request on top of
+     * the previous display; at the start, headings / contents by default.
+     *
+     * @param  array<string, mixed>  $previous
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function display(array $previous, array $data, bool $start = false): array
+    {
+        $android = is_array($data['android'] ?? null) ? array_intersect_key($data['android'], array_flip(AndroidPayload::DISPLAY)) : [];
+        $display = [...$previous, ...$android];
+
+        if ($start) {
+            $display['title'] ??= $data['headings'] ?? $data['name'] ?? null;
+            $display['body'] ??= $data['contents'] ?? null;
+        }
+        if (array_key_exists('data', $data) && is_array($data['data'])) {
+            $display['data'] = $data['data'];
+        }
+
+        return array_filter($display, fn ($value) => $value !== null);
     }
 
     /**

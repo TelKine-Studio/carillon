@@ -174,8 +174,11 @@ if #available(iOS 16.1, *) {
 
 The tokens reach Carillon by themselves. For activities managed by hand,
 `Carillon.liveActivities` has the calls of OneSignal: `setPushToStartToken`,
-`removePushToStartToken`, `enterLiveActivity`, `exitLiveActivity`. Full
-guide: [docs/channels.md](../../docs/channels.md#live-activities-ios).
+`removePushToStartToken`, `enterLiveActivity`, `exitLiveActivity`.
+
+On Android the same activities appear as Live Updates (ongoing notification
+with progress, promoted on Android 16) without any code in the app. Full
+guide: [docs/channels.md](../../docs/channels.md#live-activities-ios-and-android).
 
 ## Android setup
 

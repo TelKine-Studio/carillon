@@ -44,6 +44,33 @@ class FcmSender implements Sender
         return $results;
     }
 
+    /**
+     * Sends prepared messages (Live Activities): each item is the body of
+     * messages:send.
+     *
+     * @param  array<string, array<string, mixed>>  $messages
+     * @return array<string, Result>
+     */
+    public function push(PushCredential $credential, array $messages): array
+    {
+        $account = json_decode((string) $credential->secret, true) ?: [];
+        $url = 'https://fcm.googleapis.com/v1/projects/'.$account['project_id'].'/messages:send';
+        $token = $this->accessToken($credential, $account);
+
+        $responses = Http::pool(function (Pool $pool) use ($messages, $url, $token) {
+            foreach ($messages as $id => $message) {
+                $pool->as((string) $id)->withOptions(['version' => 2.0])->withToken($token)->acceptJson()->timeout(15)->post($url, $message);
+            }
+        }, self::CONCURRENCY);
+
+        $results = [];
+        foreach ($responses as $id => $response) {
+            $results[$id] = $this->result($credential, $response);
+        }
+
+        return $results;
+    }
+
     protected function result(PushCredential $credential, mixed $response): Result
     {
         if (! $response instanceof Response) {

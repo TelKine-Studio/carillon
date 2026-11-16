@@ -788,7 +788,8 @@ class _Engine with WidgetsBindingObserver {
     String? actionId,
   }) async {
     final id = store.subscriptionId;
-    if (id == null) return;
+    // Live Updates (Android) are not messages: nothing to report.
+    if (id == null || messageId.startsWith('live:')) return;
     try {
       await api.event(id, messageId, event, actionId: actionId);
     } catch (_) {

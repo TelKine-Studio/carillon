@@ -1,5 +1,5 @@
 <x-layouts.app :title="__('Live Activities').' · '.$project->name">
-    <x-ui.page-header :title="__('Live Activities')" :description="__('Activities shown on the lock screen of iPhones, started and updated through the API.')">
+    <x-ui.page-header :title="__('Live Activities')" :description="__('Activities shown on the lock screen of iPhones and as Live Updates on Android, started and updated through the API.')">
         <x-ui.button variant="secondary" :href="route('projects.messages.index', $project)" icon="arrow-left">{{ __('Messages') }}</x-ui.button>
     </x-ui.page-header>
 
@@ -11,12 +11,11 @@
                 <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">{{ __('Devices able to start') }}</p>
                 <span class="inline-flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 dark:bg-white/5 dark:text-zinc-400"><x-ui.icon name="apple" class="size-4" /></span>
             </div>
-            @forelse ($types as $type => $devices)
-                <p class="mt-3 flex items-baseline justify-between gap-3 text-sm"><span class="truncate font-mono text-xs text-zinc-600 dark:text-zinc-300">{{ $type }}</span><span class="text-lg font-semibold tabular-nums text-zinc-900 dark:text-white">{{ number_format($devices, 0, ',', ' ') }}</span></p>
-            @empty
-                <p class="mt-3 text-3xl font-semibold tracking-tight text-zinc-900 dark:text-white">0</p>
-                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ __('iPhones on iOS 17.2 or later whose app sent a push-to-start token.') }}</p>
-            @endforelse
+            @foreach ($types as $type => $devices)
+                <p class="mt-3 flex items-baseline justify-between gap-3 text-sm"><span class="truncate font-mono text-xs text-zinc-600 dark:text-zinc-300">iOS · {{ $type }}</span><span class="text-lg font-semibold tabular-nums text-zinc-900 dark:text-white">{{ number_format($devices, 0, ',', ' ') }}</span></p>
+            @endforeach
+            <p class="mt-3 flex items-baseline justify-between gap-3 text-sm"><span class="truncate text-xs text-zinc-600 dark:text-zinc-300">Android</span><span class="text-lg font-semibold tabular-nums text-zinc-900 dark:text-white">{{ number_format($android, 0, ',', ' ') }}</span></p>
+            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ __('iPhones on iOS 17.2+ whose app sent a push-to-start token; Android apps on the Carillon SDK 0.3+.') }}</p>
         </div>
     </div>
 

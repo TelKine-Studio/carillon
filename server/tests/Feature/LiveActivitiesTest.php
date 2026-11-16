@@ -32,16 +32,24 @@ class LiveActivitiesTest extends TestCase
         openssl_pkey_export($ec, $p8);
         PushCredential::create(['project_id' => $this->project->id, 'provider' => 'apns', 'details' => ['key_id' => 'ABC123DEFG', 'team_id' => '4ZA5MXYWG7', 'bundle_id' => 'com.example.shop'], 'secret' => $p8]);
 
+        $rsa = openssl_pkey_new(['private_key_bits' => 2048]);
+        openssl_pkey_export($rsa, $pem);
+        PushCredential::create(['project_id' => $this->project->id, 'provider' => 'fcm', 'details' => ['project_id' => 'shop-123', 'client_email' => 'push@shop-123.iam.gserviceaccount.com'], 'secret' => json_encode([
+            'type' => 'service_account', 'project_id' => 'shop-123', 'client_email' => 'push@shop-123.iam.gserviceaccount.com', 'private_key' => $pem,
+        ])]);
+
         Http::fake([
+            'oauth2.googleapis.com/*' => Http::response(['access_token' => 'ya29.test', 'expires_in' => 3600]),
+            'fcm.googleapis.com/*' => Http::response(['name' => 'projects/shop-123/messages/1']),
             'api.sandbox.push.apple.com/3/device/dead-start' => Http::response(['reason' => 'BadDeviceToken'], 400),
             'api.sandbox.push.apple.com/*' => Http::response(null, 200),
             'api.push.apple.com/*' => Http::response(null, 200),
         ]);
     }
 
-    protected function device(string $token, ?string $externalId = null): string
+    protected function device(string $token, ?string $externalId = null, string $type = 'ios', ?string $sdk = null): string
     {
-        $id = $this->postJson("/api/v1/sdk/apps/{$this->project->app_id}/subscriptions", ['type' => 'ios', 'token' => $token, 'environment' => 'sandbox'])
+        $id = $this->postJson("/api/v1/sdk/apps/{$this->project->app_id}/subscriptions", array_filter(['type' => $type, 'token' => $token, 'environment' => $type === 'ios' ? 'sandbox' : null, 'sdk' => $sdk]))
             ->assertCreated()->json('id');
 
         if ($externalId) {
@@ -224,5 +232,59 @@ class LiveActivitiesTest extends TestCase
         $this->artisan('model:prune', ['--model' => [LiveActivity::class]])->assertSuccessful();
 
         $this->assertSame(['open'], LiveActivity::pluck('activity_id')->all());
+    }
+
+    public function test_android_shows_it_as_a_live_update(): void
+    {
+        $this->device('pixel-token', 'user-1', 'android', 'carillon-flutter/0.3.0');
+        $this->device('old-sdk-token', 'user-1', 'android', 'carillon-flutter/0.2.0');
+        $this->device('onesignal-token', 'user-1', 'android');
+
+        $this->start([
+            'android' => ['progress' => 1, 'progress_max' => 3, 'segments' => 3, 'color' => '#0F766E'],
+            'data' => ['screen' => 'achats'],
+        ])->assertOk()->assertJson(['recipients' => 1]);
+
+        $live = fn (HttpRequest $request) => json_decode($request['message']['data']['carillon_live'] ?? 'null', true);
+        Http::assertSent(fn (HttpRequest $request) => str_contains($request->url(), 'fcm.googleapis.com')
+            && $request['message']['token'] === 'pixel-token'
+            && $request['message']['android']['priority'] === 'HIGH'
+            && $live($request)['e'] === 'start'
+            && $live($request)['a'] === 'MRC-0428'
+            && $live($request)['title'] === 'Top-up in progress'
+            && $live($request)['body'] === 'We are on it'
+            && $live($request)['p'] === 1 && $live($request)['pm'] === 3 && $live($request)['seg'] === 3
+            && $live($request)['d'] === ['screen' => 'achats']);
+        $this->assertSame('active', LiveActivity::sole()->status);
+
+        // An update keeps what it does not change; no token to wait for.
+        $this->api()->postJson("/api/v1/apps/{$this->project->app_id}/live_activities/MRC-0428/notifications", [
+            'event' => 'update', 'android' => ['progress' => 2, 'body' => 'Sending'], 'priority' => 5,
+        ])->assertOk()->assertJson(['recipients' => 1, 'pending' => 0]);
+        Http::assertSent(fn (HttpRequest $request) => ($live($request)['e'] ?? null) === 'update'
+            && $live($request)['p'] === 2 && $live($request)['pm'] === 3
+            && $live($request)['title'] === 'Top-up in progress' && $live($request)['body'] === 'Sending'
+            && $request['message']['android']['priority'] === 'NORMAL');
+
+        $this->api()->postJson("/api/v1/apps/{$this->project->app_id}/live_activities/MRC-0428/notifications", [
+            'event' => 'end', 'android' => ['title' => 'Delivered', 'body' => '1 000 F', 'progress' => 3], 'dismissal_date' => 1900000000,
+        ])->assertOk()->assertJson(['recipients' => 1]);
+        Http::assertSent(fn (HttpRequest $request) => ($live($request)['e'] ?? null) === 'end'
+            && $live($request)['title'] === 'Delivered' && $live($request)['dis'] === 1900000000);
+        $this->assertSame('ended', LiveActivity::sole()->status);
+    }
+
+    public function test_one_call_reaches_iphone_and_android_of_a_person(): void
+    {
+        $phone = $this->device('phone-token', 'user-1');
+        $this->sdk($phone, 'start-token', ['activity_type' => 'DeliveryAttributes', 'token' => 'start-token-1']);
+        $this->device('pixel-token', 'user-1', 'android', 'carillon-flutter/0.3.1');
+
+        $this->start()->assertOk()->assertJson(['recipients' => 2]);
+        $this->assertEqualsCanonicalizing(['started', 'active'], LiveActivity::pluck('status')->all());
+
+        // The iPhone has no update token yet: pending; Android gets it now.
+        $this->api()->postJson("/api/v1/apps/{$this->project->app_id}/live_activities/MRC-0428/notifications", ['event' => 'update', 'event_updates' => ['step' => 'sending']])
+            ->assertOk()->assertJson(['recipients' => 1, 'pending' => 1]);
     }
 }

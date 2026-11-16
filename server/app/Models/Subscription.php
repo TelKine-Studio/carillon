@@ -90,6 +90,17 @@ class Subscription extends Model
         return $this->sdk === self::ONESIGNAL_SDK;
     }
 
+    /**
+     * The app shows Live Activities as Live Updates (Android, Carillon
+     * Flutter SDK 0.3.0 or later).
+     */
+    public function supportsLiveUpdates(): bool
+    {
+        return $this->type === 'android'
+            && preg_match('#^carillon-flutter/(\d+)\.(\d+)\.(\d+)#', (string) $this->sdk, $version) === 1
+            && version_compare("{$version[1]}.{$version[2]}.{$version[3]}", '0.3.0', '>=');
+    }
+
     public function provider(): string
     {
         return self::PROVIDERS[$this->type];

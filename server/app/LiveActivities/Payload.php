@@ -8,7 +8,7 @@ use App\Models\PushCredential;
 final class Payload
 {
     /** Fields of an update or end kept while the update token is awaited. */
-    public const KEYS = ['event_updates', 'contents', 'headings', 'priority', 'stale_date', 'dismissal_date', 'ios_sound', 'ios_relevance_score'];
+    public const KEYS = ['event_updates', 'contents', 'headings', 'priority', 'stale_date', 'dismissal_date', 'ios_sound', 'ios_relevance_score', 'android', 'data'];
 
     /**
      * Push-to-start: the attributes carry the activity_id under "carillon",

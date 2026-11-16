@@ -8,7 +8,7 @@ use App\Models\Project;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/** Live Activities API, OneSignal-compatible. */
+/** Live Activities API, OneSignal-compatible (iOS), also shown on Android as Live Updates. */
 class LiveActivityController extends Controller
 {
     public function __construct(protected LiveActivities $activities) {}
@@ -34,6 +34,8 @@ class LiveActivityController extends Controller
             'stale_date' => ['nullable', 'integer'],
             'dismissal_date' => ['nullable', 'integer'],
             'end_after' => ['nullable', 'integer', 'min:60'],
+            'android' => ['nullable', 'array'],
+            'data' => ['nullable', 'array'],
             'ios_sound' => ['nullable', 'string', 'max:255'],
             'ios_relevance_score' => ['nullable', 'numeric'],
         ]);
@@ -53,6 +55,8 @@ class LiveActivityController extends Controller
             'contents' => ['nullable'],
             'headings' => ['nullable'],
             'priority' => ['nullable', 'integer'],
+            'android' => ['nullable', 'array'],
+            'data' => ['nullable', 'array'],
             'stale_date' => ['nullable', 'integer'],
             'dismissal_date' => ['nullable', 'integer'],
             'ios_sound' => ['nullable', 'string', 'max:255'],

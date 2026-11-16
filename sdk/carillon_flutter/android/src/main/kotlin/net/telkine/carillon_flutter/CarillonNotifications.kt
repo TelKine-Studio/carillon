@@ -87,7 +87,7 @@ internal object CarillonNotifications {
     }
 
     /** Opens the app (its launcher activity) with the payload. */
-    private fun open(context: Context, payload: JSONObject, id: Int, action: String?): PendingIntent {
+    fun open(context: Context, payload: JSONObject, id: Int, action: String?): PendingIntent {
         val intent = (context.packageManager.getLaunchIntentForPackage(context.packageName) ?: Intent()).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra(EXTRA_PAYLOAD, payload.toString())
@@ -113,7 +113,7 @@ internal object CarillonNotifications {
      * Small icon: the drawable named in the message, else "ic_stat_carillon"
      * if the app has one, else the app icon.
      */
-    private fun smallIcon(context: Context, name: String?): Int {
+    fun smallIcon(context: Context, name: String?): Int {
         val resources = context.resources
         for (candidate in listOfNotNull(name, "ic_stat_carillon")) {
             val id = resources.getIdentifier(candidate, "drawable", context.packageName)
