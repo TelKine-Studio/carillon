@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Carillon — self-hosted push, email, SMS and WhatsApp for your apps</title>
+  <meta name="description" content="Open-source alternative to OneSignal: push notifications, emails, SMS, WhatsApp and in-app messages from your own server. OneSignal-compatible API.">
+  <meta property="og:title" content="Carillon — open-source alternative to OneSignal">
+  <meta property="og:description" content="Push, email, SMS, WhatsApp and in-app messages from your own server.">
+  <meta property="og:image" content="assets/social-preview.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="assets/carillon-mark.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --brand: #e4531e; --brand-dark: #c2410c; --brand-soft: #fdf0ea;
+      --bg: #fafafa; --surface: #ffffff; --ink: #18181b; --muted: #52525b; --faint: #a1a1aa;
+      --line: #e4e4e7; --code: #18181b; --code-ink: #f4f4f5;
+      --radius-sm: 8px; --radius: 14px; --radius-lg: 20px;
+      --shadow: 0 1px 2px rgb(0 0 0 / .04), 0 8px 24px -12px rgb(0 0 0 / .12);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #09090b; --surface: #131316; --ink: #fafafa; --muted: #a1a1aa; --faint: #71717a; --line: #27272a; --brand-soft: rgb(228 83 30 / .12); --code: #18181b; }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: inherit; }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+    header { position: sticky; top: 0; z-index: 10; backdrop-filter: saturate(1.5) blur(12px); background: color-mix(in oklab, var(--bg) 82%, transparent); border-bottom: 1px solid var(--line); }
+    nav { display: flex; align-items: center; gap: 20px; height: 64px; }
+    nav .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; text-decoration: none; }
+    nav .logo img { width: 28px; height: 28px; }
+    nav .links { margin-left: auto; display: flex; gap: 22px; font-size: 14px; color: var(--muted); }
+    nav .links a { text-decoration: none; } nav .links a:hover { color: var(--ink); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: var(--radius-sm); font-weight: 600; font-size: 15px; text-decoration: none; border: 1px solid transparent; transition: transform .15s, background .15s; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--brand); color: #fff; } .btn-primary:hover { background: var(--brand-dark); }
+    .btn-ghost { border-color: var(--line); background: var(--surface); }
+    .hero { padding: 88px 0 56px; text-align: center; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); font-size: 13px; font-weight: 600; }
+    h1 { font-size: clamp(36px, 6vw, 60px); line-height: 1.05; letter-spacing: -.03em; margin: 22px auto 18px; max-width: 820px; }
+    h1 em { font-style: normal; color: var(--brand); }
+    .lead { font-size: clamp(17px, 2.2vw, 20px); color: var(--muted); max-width: 680px; margin: 0 auto 30px; }
+    .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+    .install { margin: 34px auto 0; max-width: 720px; display: flex; align-items: center; gap: 10px; background: var(--code); color: var(--code-ink); border-radius: var(--radius); padding: 14px 14px 14px 18px; font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; text-align: left; box-shadow: var(--shadow); }
+    .install code { flex: 1; overflow-x: auto; white-space: nowrap; }
+    .install .prompt { color: var(--brand); user-select: none; }
+    .install button { flex-shrink: 0; background: rgb(255 255 255 / .1); color: inherit; border: 0; border-radius: var(--radius-sm); padding: 7px 12px; font: 600 13px system-ui; cursor: pointer; }
+    .install button:hover { background: rgb(255 255 255 / .18); }
+    .channels { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 28px; }
+    .chip { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); font-size: 13px; color: var(--muted); }
+    section { padding: 72px 0; }
+    section h2 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -.02em; line-height: 1.15; margin: 0 0 12px; }
+    section .sub { color: var(--muted); max-width: 640px; margin: 0 0 40px; font-size: 18px; }
+    .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow); }
+    .card h3 { margin: 12px 0 6px; font-size: 17px; }
+    .card p { margin: 0; color: var(--muted); font-size: 15px; }
+    .icon { width: 38px; height: 38px; border-radius: 10px; background: var(--brand-soft); color: var(--brand); display: grid; place-items: center; }
+    .icon svg { width: 20px; height: 20px; }
+    .split { display: grid; gap: 40px; align-items: center; grid-template-columns: 1fr 1fr; }
+    @media (max-width: 860px) { .split { grid-template-columns: 1fr; } nav .links { display: none; } nav > .btn { margin-left: auto; } }
+    pre { margin: 0; background: var(--code); color: var(--code-ink); border-radius: var(--radius); padding: 22px; overflow-x: auto; font: 13.5px/1.65 ui-monospace, SFMono-Regular, Menlo, monospace; box-shadow: var(--shadow); }
+    pre .k { color: #fdba74; } pre .s { color: #86efac; } pre .c { color: #71717a; }
+    ul.ticks { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+    ul.ticks li { display: flex; gap: 10px; color: var(--muted); }
+    ul.ticks li::before { content: ""; flex: 0 0 18px; height: 18px; margin-top: 4px; border-radius: 50%; background: var(--brand) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / 12px no-repeat; }
+    ul.ticks strong { color: var(--ink); }
+    table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); font-size: 15px; }
+    th, td { padding: 13px 16px; text-align: left; border-bottom: 1px solid var(--line); }
+    th { font-size: 13px; color: var(--faint); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+    td:not(:first-child), th:not(:first-child) { text-align: center; }
+    tr:last-child td { border-bottom: 0; }
+    .yes { color: #16a34a; font-weight: 700; } .no { color: var(--faint); }
+    .table-scroll { overflow-x: auto; }
+    .cta { text-align: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 56px 24px; box-shadow: var(--shadow); }
+    footer { border-top: 1px solid var(--line); padding: 32px 0; color: var(--faint); font-size: 14px; }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; }
+    footer a { text-decoration: none; } footer a:hover { color: var(--ink); }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <nav>
+        <a class="logo" href="#"><img src="assets/carillon-mark.svg" alt="">Carillon</a>
+        <div class="links">
+          <a href="#features">Features</a>
+          <a href="#onesignal">From OneSignal</a>
+          <a href="#compare">Compare</a>
+          <a href="https://github.com/TelKine-Studio/carillon/tree/main/docs">Docs</a>
+        </div>
+        <a class="btn btn-ghost" href="https://github.com/TelKine-Studio/carillon">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap hero">
+      <span class="eyebrow">Open source · MIT · self-hosted</span>
+      <h1>Reach your users <em>everywhere</em>, from your own server.</h1>
+      <p class="lead">Carillon sends push notifications, emails, SMS, WhatsApp and in-app messages to the users of all your apps. No subscriber limit, no bill per message — and it speaks the OneSignal API.</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="#install">Install in one command</a>
+        <a class="btn btn-ghost" href="https://github.com/TelKine-Studio/carillon/tree/main/docs">Read the docs</a>
+      </div>
+      <div class="install" id="install">
+        <span class="prompt">$</span>
+        <code id="cmd">curl -fsSL https://raw.githubusercontent.com/TelKine-Studio/carillon/main/install.sh | sh</code>
+        <button type="button" id="copy">Copy</button>
+      </div>
+      <div class="channels">
+        <span class="chip">iOS</span><span class="chip">Android</span><span class="chip">Huawei</span><span class="chip">Amazon Fire</span><span class="chip">Web push</span><span class="chip">Email</span><span class="chip">SMS</span><span class="chip">WhatsApp</span><span class="chip">In-app</span>
+      </div>
+    </div>
+
+    <section id="features">
+      <div class="wrap">
+        <h2>Everything a growth team needs</h2>
+        <p class="sub">The features you pay for elsewhere, on a server you control.</p>
+        <div class="grid">
+          <div class="card"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></div><h3>Every channel</h3><p>Push to iOS, Android, Huawei, Amazon and the web; emails with a visual editor; SMS with Twilio or Orange; WhatsApp templates.</p></div>
+          <div class="card"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><h3>Journeys</h3><p>Welcome series, win-back, abandoned cart: triggers, waits, conditions, branches and sending hours.</p></div>
+          <div class="card"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><h3>Smart send time</h3><p>Each person gets the message at the hour they usually open the app — or at the same local time for everyone.</p></div>
+          <div class="card"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg></div><h3>Segments</h3><p>Tags, sessions, countries, app versions, events, money spent, last click. Live counts while you build them.</p></div>
+          <div class="card"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg></div><h3>In-app messages</h3><p>Banners, pop-ups and full screens with recipes, delays, frequency rules and A/B tests.</p></div>
+          <div class="card"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div><h3>Insights</h3><p>From delivery to conversion, retention by cohort, who is online now, A/B results and a weekly email report.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="onesignal">
+      <div class="wrap split">
+        <div>
+          <h2>Leave OneSignal in an afternoon</h2>
+          <p class="sub">Same API, same SDK calls. Import your subscribers and keep reaching them while your apps update.</p>
+          <ul class="ticks">
+            <li><span><strong>Same REST API</strong> — <code>POST /api/v1/notifications</code>, segments, filters, external ids, templates.</span></li>
+            <li><span><strong>Nightly sync</strong> of your OneSignal app: devices of the old app version keep receiving.</span></li>
+            <li><span><strong>SDKs with the OneSignal API</strong> for Flutter and the web.</span></li>
+            <li><span><strong>Your keys</strong>: Apple, Firebase, Huawei, Amazon — no middleman.</span></li>
+          </ul>
+        </div>
+        <pre><span class="c"># Change the address, keep the code</span>
+curl -X POST https://push.example.com/api/v1/notifications \
+  -H <span class="s">"Authorization: Key $CARILLON_API_KEY"</span> \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{
+    "app_id": "…",
+    "included_segments": ["Active Users"],
+    "headings": {"en": "Flash sale", "fr": "Vente flash"},
+    "contents": {"en": "-20% today only"},
+    "delayed_option": "last-active"
+  }'</span></pre>
+      </div>
+    </section>
+
+    <section id="compare">
+      <div class="wrap">
+        <h2>Carillon or a hosted service?</h2>
+        <p class="sub">Hosted services charge per subscriber or per message as you grow. Carillon costs the server it runs on.</p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th></th><th>Carillon</th><th>Hosted services</th></tr></thead>
+            <tbody>
+              <tr><td>Subscribers and messages</td><td class="yes">Unlimited</td><td class="no">Plans by volume</td></tr>
+              <tr><td>Your data on your server</td><td class="yes">✓</td><td class="no">—</td></tr>
+              <tr><td>Push, email, SMS, WhatsApp, in-app</td><td class="yes">✓</td><td>✓ (paid add-ons)</td></tr>
+              <tr><td>Journeys, A/B tests, smart send time</td><td class="yes">✓</td><td>Higher plans</td></tr>
+              <tr><td>Bring your own SMS provider (Twilio, Orange)</td><td class="yes">✓</td><td class="no">—</td></tr>
+              <tr><td>Source code</td><td class="yes">MIT</td><td class="no">Closed</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap split">
+        <pre><span class="c">// Flutter</span>
+<span class="k">await</span> Carillon.initialize(<span class="s">'APP-ID'</span>, serverUrl: <span class="s">'https://push.example.com'</span>);
+<span class="k">await</span> Carillon.notifications.requestPermission();
+<span class="k">await</span> Carillon.login(<span class="s">'user-42'</span>);
+<span class="k">await</span> Carillon.user.addTags({<span class="s">'plan'</span>: <span class="s">'gold'</span>});
+<span class="k">await</span> Carillon.user.trackEvent(<span class="s">'purchase'</span>, {<span class="s">'value'</span>: 5000});</pre>
+        <div>
+          <h2>Built to be run by you</h2>
+          <ul class="ticks">
+            <li><span><strong>One Docker image</strong>, SQLite or PostgreSQL, ready for Coolify.</span></li>
+            <li><span><strong>Configured from the browser</strong>: keys, mail, security. Secrets encrypted.</span></li>
+            <li><span><strong>Private by design</strong>: invitations only, 2FA, single sign-on, audit log.</span></li>
+            <li><span><strong>Health page</strong> for the queue, the scheduler and the disk.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="cta">
+          <h2>Your own messaging platform, today</h2>
+          <p class="sub" style="margin: 0 auto 26px">Install it on a small server and send your first notification in minutes.</p>
+          <div class="actions">
+            <a class="btn btn-primary" href="https://github.com/TelKine-Studio/carillon/blob/main/docs/installation.md">Install Carillon</a>
+            <a class="btn btn-ghost" href="https://github.com/TelKine-Studio/carillon">Star on GitHub</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>Carillon — MIT license — a project by <a href="https://github.com/TelKine-Studio">Telkine</a></span>
+      <span><a href="https://github.com/TelKine-Studio/carillon/tree/main/docs">Documentation</a> · <a href="https://github.com/TelKine-Studio/carillon/blob/main/docs/api.md">API</a> · <a href="https://github.com/TelKine-Studio/carillon">GitHub</a></span>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('copy').addEventListener('click', async (event) => {
+      try {
+        await navigator.clipboard.writeText(document.getElementById('cmd').textContent);
+        event.target.textContent = 'Copied';
+        setTimeout(() => (event.target.textContent = 'Copy'), 1500);
+      } catch {}
+    });
+  </script>
+</body>
+</html>
