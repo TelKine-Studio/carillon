@@ -287,4 +287,21 @@ class LiveActivitiesTest extends TestCase
         $this->api()->postJson("/api/v1/apps/{$this->project->app_id}/live_activities/MRC-0428/notifications", ['event' => 'update', 'event_updates' => ['step' => 'sending']])
             ->assertOk()->assertJson(['recipients' => 1, 'pending' => 1]);
     }
+
+    public function test_the_command_drives_an_activity(): void
+    {
+        $phone = $this->device('phone-token', 'user-1');
+        $this->sdk($phone, 'start-token', ['activity_type' => 'DeliveryAttributes', 'token' => 'start-token-1']);
+
+        $this->artisan('carillon:live-activity', [
+            'event' => 'start', 'app_id' => $this->project->app_id, 'activity_id' => 'T1',
+            '--type' => 'DeliveryAttributes', '--subscription' => [$phone], '--title' => 'Test',
+            '--state' => '{"step":"waiting"}', '--attributes' => '{"reference":"T1"}', '--end-after' => 1800,
+        ])->assertSuccessful();
+        $this->assertSame('started', LiveActivity::sole()->status);
+
+        $this->artisan('carillon:live-activity', ['event' => 'end', 'app_id' => $this->project->app_id, 'activity_id' => 'T1', '--state' => '{"step":"done"}'])
+            ->assertSuccessful();
+        $this->assertSame(['event' => 'end', 'event_updates' => ['step' => 'done'], 'priority' => 10], LiveActivity::sole()->pending);
+    }
 }
