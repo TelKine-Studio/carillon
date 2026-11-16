@@ -12,10 +12,12 @@
         <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
             @forelse ($templates as $template)
                 @php
-                    $title = \App\Models\Message::localized($template->headings, $locale);
-                    $body = \App\Models\Message::localized($template->contents, $locale);
+                    $email = $template->option('target_channel') === 'email';
+                    $title = $email ? $template->option('email_subject') : \App\Models\Message::localized($template->headings, $locale);
+                    $body = $email ? ($template->option('email_preheader') ?: __('Email')) : \App\Models\Message::localized($template->contents, $locale);
                 @endphp
                 <li class="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-4 sm:px-6">
+                    <span class="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600 dark:bg-white/5 dark:text-zinc-300" title="{{ $email ? __('Email') : __('Push notification') }}"><x-ui.icon :name="$email ? 'mail' : 'smartphone'" class="size-5" /></span>
                     <div class="min-w-0 flex-1 basis-64">
                         <p class="truncate text-sm font-semibold text-zinc-900 dark:text-white">{{ $template->name }}</p>
                         <p class="mt-0.5 truncate text-sm text-zinc-500 dark:text-zinc-400">
@@ -29,8 +31,10 @@
                                 </button>
                             </span>
                             <span>·</span>
-                            <span>{{ trans_choice(':count language|:count languages', count($template->contents ?? [])) }}</span>
-                            <span>·</span>
+                            @unless ($email)
+                                <span>{{ trans_choice(':count language|:count languages', count($template->contents ?? [])) }}</span>
+                                <span>·</span>
+                            @endunless
                             <span>{{ trans_choice('Used :count time|Used :count times', $template->messages_count) }}</span>
                             <span>·</span>
                             <span>{{ __('Updated :date', ['date' => $template->updated_at->diffForHumans()]) }}</span>

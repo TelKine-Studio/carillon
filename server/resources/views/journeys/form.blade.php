@@ -22,7 +22,9 @@
     ];
     // Written in two parts: Blade would read the braces as an echo.
     $tagExample = '{'.'{ tags.first_name | default: "…" }'.'}';
-    $templateOptions = ['' => __('Write the message here')] + $templates->mapWithKeys(fn ($t) => [$t->id => $t->name])->all();
+    [$emailTemplates, $pushTemplates] = $templates->partition(fn ($t) => $t->option('target_channel') === 'email');
+    $templateOptions = ['' => __('Write the message here')] + $pushTemplates->mapWithKeys(fn ($t) => [$t->id => $t->name])->all();
+    $emailTemplateOptions = ['' => __('Write the email here')] + $emailTemplates->mapWithKeys(fn ($t) => [$t->id => $t->name])->all();
     $kinds = [
         'push' => ['bell', __('Notification')],
         'email' => ['mail', __('Email')],
@@ -115,12 +117,17 @@
 
                                 {{-- Notification / email --}}
                                 <div x-show="step.type === 'push' || step.type === 'email'" class="space-y-4">
-                                    @if ($templates->isNotEmpty())
+                                    @if ($pushTemplates->isNotEmpty())
                                         <div x-show="step.type === 'push'">
                                             <x-ui.select name="template-choice" :options="$templateOptions" x-bind:name="`steps[${index}][template_id]`" x-model="step.template_id" x-bind:disabled="step.type !== 'push'" :label="__('Content')" />
                                         </div>
                                     @endif
-                                    <div x-show="! step.template_id || step.type === 'email'" class="space-y-4">
+                                    @if ($emailTemplates->isNotEmpty())
+                                        <div x-show="step.type === 'email'">
+                                            <x-ui.select name="email-template-choice" :options="$emailTemplateOptions" x-bind:name="`steps[${index}][template_id]`" x-model="step.template_id" x-bind:disabled="step.type !== 'email'" :label="__('Content')" />
+                                        </div>
+                                    @endif
+                                    <div x-show="! step.template_id" class="space-y-4">
                                         <div x-show="step.type === 'push'"><label class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Title') }} <span class="font-normal text-zinc-400">{{ __('Optional') }}</span></label><input :name="`steps[${index}][title]`" x-model="step.title" maxlength="200" class="form-control mt-1.5" :disabled="step.type !== 'push'"></div>
                                         <div x-show="step.type === 'email'"><label class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Subject') }}</label><input :name="`steps[${index}][subject]`" x-model="step.subject" maxlength="200" class="form-control mt-1.5" :disabled="step.type !== 'email'"></div>
                                         <div>

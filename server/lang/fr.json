@@ -1872,5 +1872,12 @@
     "When and to whom": "Quand et à qui",
     "When the app opens": "À l’ouverture de l’app",
     "Your text": "Votre texte",
-    "e.g. Discover": "ex. Découvrir"
+    "e.g. Discover": "ex. Découvrir",
+    "Write the email here": "Écrire l’e-mail ici",
+    "Labels": "Étiquettes",
+    "e.g. promo, newsletter": "ex. promo, newsletter",
+    "To sort and filter the messages. Separated by commas.": "Pour trier et filtrer les messages. Séparées par des virgules.",
+    "Labels saved.": "Étiquettes enregistrées.",
+    "Edit labels": "Modifier les étiquettes",
+    "Add labels": "Ajouter des étiquettes"
 }

@@ -142,4 +142,47 @@ class TemplateTest extends TestCase
         $this->assertDatabaseCount('templates', 0);
         $this->assertNull($this->project->messages()->first()->template_id);
     }
+
+    public function test_email_templates_and_message_labels(): void
+    {
+        $this->actingAs($this->owner);
+
+        $this->post(route('projects.templates.store', $this->project), [
+            'template_name' => 'Newsletter',
+            'channel' => 'email',
+            'email_subject' => 'News of the week',
+            'email_body' => '<p>Hello {{ tags.first_name }}</p>',
+        ])->assertRedirect(route('projects.templates.index', $this->project))->assertSessionHasNoErrors();
+
+        $template = $this->project->templates()->first();
+        $this->assertSame('email', $template->option('target_channel'));
+        $this->assertSame('News of the week', $template->option('email_subject'));
+        $this->assertSame([], $template->contents);
+
+        $this->get(route('projects.templates.index', $this->project))->assertOk()->assertSee('News of the week');
+        $this->get(route('projects.templates.edit', [$this->project, $template]))->assertOk()->assertSee('News of the week');
+        $this->get(route('projects.messages.create', [$this->project, 'template' => $template->id]))->assertOk()->assertSee('channel\u0022:\u0022email', false);
+
+        // An email template needs a subject.
+        $this->post(route('projects.templates.store', $this->project), ['template_name' => 'Empty', 'channel' => 'email', 'email_body' => '<p>x</p>'])
+            ->assertSessionHasErrors('email_subject');
+
+        // Labels: typed in the composer, shown and filtered in the list, edited on the report.
+        $this->post(route('projects.messages.store', $this->project), [
+            'texts' => [['language' => 'en', 'body' => 'Sale today']],
+            'audience' => 'segments',
+            'included_segments' => ['Subscribed Users'],
+            'schedule' => 'now',
+            'labels' => 'Promo, black friday, promo',
+        ])->assertRedirect();
+        $message = $this->project->messages()->latest()->first();
+        $this->assertSame(['Promo', 'black friday'], $message->labels);
+
+        $this->get(route('projects.messages.index', [$this->project, 'label' => 'Promo']))->assertOk()->assertSee('Sale today');
+        $this->get(route('projects.messages.index', [$this->project, 'label' => 'other']))->assertOk()->assertDontSee('Sale today');
+
+        $this->put(route('projects.messages.labels', [$this->project, $message]), ['labels' => 'vip'])->assertRedirect();
+        $this->assertSame(['vip'], $message->fresh()->labels);
+        $this->get(route('projects.messages.show', [$this->project, $message]))->assertOk()->assertSee('vip');
+    }
 }

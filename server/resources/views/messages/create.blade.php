@@ -29,7 +29,7 @@
         'data' => old('data', collect($source?->option('data', []))->map(fn ($v, $k) => ['key' => $k, 'value' => is_scalar($v) ? (string) $v : json_encode($v)])->values()->all()),
         'schedule' => old('schedule', 'now'),
         'ab' => (bool) old('ab_enabled'),
-        'channel' => $templateMode ? 'push' : old('channel', $source instanceof \App\Models\Message ? $source->channel : 'push'),
+        'channel' => old('channel', $source instanceof \App\Models\Message ? $source->channel : ($source?->option('target_channel') === 'email' ? 'email' : 'push')),
         'emailSubject' => old('email_subject', is_string($source?->option('email_subject')) ? $source->option('email_subject') : ''),
         'emailPreheader' => old('email_preheader', is_string($source?->option('email_preheader')) ? $source->option('email_preheader') : ''),
         'starterEmail' => view('email.starter')->render(),
@@ -99,7 +99,9 @@
             @endif
 
             {{-- Channel --}}
-            @unless ($templateMode)
+            @if ($template)
+                <input type="hidden" name="channel" :value="channel">
+            @else
                 <input type="hidden" name="channel" :value="channel">
                 <div class="grid grid-cols-2 gap-1 rounded-lg border border-zinc-200 bg-white p-1 text-sm shadow-(--shadow-soft) dark:border-zinc-800 dark:bg-zinc-900">
                     @foreach (['push' => [__('Push notification'), 'smartphone'], 'email' => [__('Email'), 'mail']] as $key => [$label, $icon])
@@ -115,7 +117,7 @@
                         <span>{!! __('Emails are not set up for this project yet: choose how they are sent in :settings.', ['settings' => '<a class="font-medium underline" href="'.route('projects.settings', [$project, 'platforms']).'">'.e(__('Platforms')).'</a>']) !!}</span>
                     </div>
                 @endunless
-            @endunless
+            @endif
 
             {{-- Audience --}}
             @unless ($templateMode)
@@ -190,7 +192,6 @@
             @endunless
 
             {{-- Email --}}
-            @unless ($templateMode)
             <x-ui.card :title="__('Email')" icon="mail" x-show="channel === 'email'" x-cloak>
                 <div class="space-y-5">
                     <x-ui.input name="email_subject" :label="__('Subject')" x-model="emailSubject" maxlength="255" :placeholder="__('e.g. Our new collection is here')" />
@@ -206,7 +207,6 @@
                     </div>
                 </div>
             </x-ui.card>
-            @endunless
 
             {{-- Message --}}
             <x-ui.card :title="__('Message')" icon="message" x-show="channel === 'push'">
@@ -344,6 +344,7 @@
                         </div>
                         @unless ($templateMode)
                             <x-ui.input name="name" :label="__('Internal name')" :value="old('name', $source instanceof \App\Models\Message ? $source->name : null)" :hint="__('Only shown in the dashboard.')" optional />
+                            <x-ui.input name="labels" :label="__('Labels')" :value="old('labels', $source instanceof \App\Models\Message ? implode(', ', $source->labels ?? []) : null)" :placeholder="__('e.g. promo, newsletter')" :hint="__('To sort and filter the messages. Separated by commas.')" optional />
                         @endunless
                     </div>
                 </div>
@@ -355,7 +356,6 @@
             <x-ui.card :title="__('Preview')" icon="smartphone" x-show="channel === 'push'">
                 <x-messages.preview :project="$project" />
             </x-ui.card>
-            @unless ($templateMode)
                 <x-ui.card :title="__('Preview')" icon="mail" x-show="channel === 'email'" x-cloak :padding="false">
                     <div class="border-y border-zinc-100 px-5 py-3 text-sm dark:border-zinc-800">
                         <p class="truncate font-semibold text-zinc-900 dark:text-white" x-text="emailSubject || @js(__('Subject'))"></p>
@@ -363,7 +363,6 @@
                     </div>
                     <iframe title="{{ __('Preview') }}" class="block h-96 w-full rounded-b-2xl bg-white" sandbox="" :srcdoc="emailPreview"></iframe>
                 </x-ui.card>
-            @endunless
 
             @if ($templateMode)
                 <x-ui.button class="w-full" size="lg" icon="check">{{ $template ? __('Save the template') : __('Create the template') }}</x-ui.button>

@@ -35,6 +35,7 @@ class MessageController extends Controller
 
         $status = $request->query('status');
         $search = trim((string) $request->query('q'));
+        $label = trim((string) $request->query('label'));
 
         // Messages of journeys are reported on their journey, not here.
         $messages = $project->messages()
@@ -42,7 +43,9 @@ class MessageController extends Controller
             ->with('author')
             ->when(in_array($status, Message::STATUSES, true), fn ($q) => $q->where('status', $status))
             ->when($search !== '', fn ($q) => $q->where(fn ($q) => $q
-                ->whereContains(['name', 'contents', 'headings'], $search)))
+                ->whereContains(['name', 'contents', 'headings', 'labels'], $search)))
+            // Stored as JSON: the quotes make it an exact match.
+            ->when($label !== '', fn ($q) => $q->whereContains('labels', json_encode($label)))
             ->latest()
             ->paginate(20)
             ->withQueryString();
@@ -52,6 +55,8 @@ class MessageController extends Controller
             'messages' => $messages,
             'status' => $status,
             'search' => $search,
+            'label' => $label,
+            'labels' => $this->labels($project),
             'counts' => $project->messages()->whereNull('journey_id')->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),
         ]);
     }
@@ -107,6 +112,9 @@ class MessageController extends Controller
         try {
             $message = $create->handle($project, ComposerInput::fromRequest($request), $request->user(), draft: $draft);
             $previous?->delete();
+            if ($labels = Message::cleanLabels($request->input('labels'))) {
+                $message->forceFill(['labels' => $labels])->save();
+            }
 
             // Sent from a template: kept for its statistics (the content is the form's).
             if ($template = Str::isUuid((string) $request->input('template_id')) ? $project->templates()->find($request->input('template_id')) : null) {
@@ -125,6 +133,34 @@ class MessageController extends Controller
             ->with('status', $message->status === 'scheduled'
                 ? __('Message scheduled for :date.', ['date' => $message->send_after->setTimezone($request->input('timezone') ?: config('app.timezone'))->isoFormat('LLL')])
                 : __('Message on its way to :count devices.', ['count' => number_format($message->recipients, 0, ',', ' ')]));
+    }
+
+    /** Labels of the message, edited from its report. */
+    public function labelsUpdate(Request $request, Project $project, Message $message): RedirectResponse
+    {
+        $this->authorize('send', $project);
+        abort_unless($message->project_id === $project->id, 404);
+
+        $request->validate(['labels' => ['nullable', 'string', 'max:300']]);
+        $message->forceFill(['labels' => Message::cleanLabels($request->input('labels'))])->save();
+
+        return back()->with('status', __('Labels saved.'));
+    }
+
+    /**
+     * Labels used by the recent messages, the most used first.
+     *
+     * @return list<string>
+     */
+    protected function labels(Project $project): array
+    {
+        return $project->messages()->whereNull('journey_id')->whereNotNull('labels')->latest()->limit(500)->pluck('labels')
+            ->flatten()
+            ->countBy()
+            ->sortDesc()
+            ->keys()
+            ->take(12)
+            ->all();
     }
 
     /** Sends the message being written to the test devices only. */

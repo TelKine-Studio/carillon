@@ -8,7 +8,7 @@
         @endcan
     </x-ui.page-header>
 
-    <div x-data="liveList('message-results')" data-live-also="message-tabs message-status">
+    <div x-data="liveList('message-results')" data-live-also="message-tabs message-status message-labels">
     <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div class="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
             <nav id="message-tabs" class="inline-flex gap-0.5 rounded-lg bg-zinc-200/60 p-1 dark:bg-white/[0.06]">
@@ -17,7 +17,7 @@
                         $count = $key === '' ? $counts->sum() : ($counts[$key] ?? 0);
                         $current = (string) $status === $key;
                     @endphp
-                    <a data-live-link href="{{ route('projects.messages.index', [$project, 'status' => $key ?: null, 'q' => $search ?: null]) }}" @if ($current) aria-current="page" @endif
+                    <a data-live-link href="{{ route('projects.messages.index', [$project, 'status' => $key ?: null, 'q' => $search ?: null, 'label' => $label ?: null]) }}" @if ($current) aria-current="page" @endif
                         @class(['inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium whitespace-nowrap transition',
                             'bg-white text-zinc-900 shadow-sm shadow-zinc-950/10 dark:bg-zinc-800 dark:text-white dark:shadow-black/40' => $current,
                             'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white' => ! $current])>
@@ -30,19 +30,32 @@
             </nav>
         </div>
         <form method="GET" data-live class="relative sm:w-72">
-            <span id="message-status">@if ($status)<input type="hidden" name="status" value="{{ $status }}">@endif</span>
+            <span id="message-status">@if ($status)<input type="hidden" name="status" value="{{ $status }}">@endif @if ($label)<input type="hidden" name="label" value="{{ $label }}">@endif</span>
             <x-ui.icon name="search" class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-zinc-400" />
             <x-ui.icon name="refresh" class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-zinc-400" x-show="loading" x-cloak />
             <input type="search" name="q" autocomplete="off" value="{{ $search }}" placeholder="{{ __('Search messages…') }}" class="form-control pl-9">
         </form>
     </div>
 
+    <div id="message-labels" class="mb-4 flex flex-wrap items-center gap-1.5 empty:hidden">@if ($labels)
+        <x-ui.icon name="tag" class="mr-1 size-4 text-zinc-400" />
+        @foreach ($labels as $item)
+            @php($on = mb_strtolower($item) === mb_strtolower($label))
+            <a data-live-link href="{{ route('projects.messages.index', [$project, 'status' => $status ?: null, 'q' => $search ?: null, 'label' => $on ? null : $item]) }}"
+                @class(['inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition',
+                    'border-brand-500 bg-brand-50 text-brand-800 dark:border-brand-500/60 dark:bg-brand-500/10 dark:text-brand-200' => $on,
+                    'border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-400 dark:hover:text-white' => ! $on])>
+                {{ $item }}@if ($on)<x-ui.icon name="x" class="size-3" />@endif
+            </a>
+        @endforeach
+    @endif</div>
+
     <div id="message-results" class="card overflow-hidden transition-opacity" :class="loading && 'is-loading'">
         @forelse ($messages as $message)
             <a href="{{ $message->status === 'draft' && auth()->user()->can('send', $project) ? route('projects.messages.create', [$project, 'from' => $message->id]) : route('projects.messages.show', [$project, $message]) }}" class="flex flex-col gap-3 border-t border-zinc-100 px-4 py-4 transition first:border-0 hover:bg-zinc-50/80 sm:px-5 lg:flex-row lg:items-center lg:gap-6 dark:border-zinc-800 dark:hover:bg-white/[.02]">
                 <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-2">
-                        <p class="flex min-w-0 items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-white"><span class="truncate">{{ $message->label() }}</span>@if ($message->is_test)<x-ui.badge color="violet" class="shrink-0">{{ __('Test') }}</x-ui.badge>@endif @if ($message->ab_variant)<x-ui.badge color="blue" class="shrink-0">{{ $message->ab_variant === 'W' ? __('A/B winner') : 'A/B · '.$message->ab_variant }}</x-ui.badge>@endif</p>
+                        <p class="flex min-w-0 items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-white"><span class="truncate">{{ $message->label() }}</span>@if ($message->is_test)<x-ui.badge color="violet" class="shrink-0">{{ __('Test') }}</x-ui.badge>@endif @if ($message->ab_variant)<x-ui.badge color="blue" class="shrink-0">{{ $message->ab_variant === 'W' ? __('A/B winner') : 'A/B · '.$message->ab_variant }}</x-ui.badge>@endif @foreach ($message->labels ?? [] as $item)<x-ui.badge class="hidden shrink-0 sm:inline-flex">{{ $item }}</x-ui.badge>@endforeach</p>
                         <x-messages.status :status="$message->status" class="shrink-0" />
                     </div>
                     @if ($message->name || \App\Models\Message::localized($message->headings, app()->getLocale()))
@@ -72,9 +85,9 @@
                 </dl>
             </a>
         @empty
-            <x-ui.empty icon="send" :title="$search || $status ? __('No message matches') : __('No message yet')"
-                :description="$search || $status ? __('Try another search or status.') : __('Write your first notification, or send one with the API.')">
-                @if (! $search && ! $status)
+            <x-ui.empty icon="send" :title="$search || $status || $label ? __('No message matches') : __('No message yet')"
+                :description="$search || $status || $label ? __('Try another search or status.') : __('Write your first notification, or send one with the API.')">
+                @if (! $search && ! $status && ! $label)
                     @can('send', $project)
                         <x-ui.button :href="route('projects.messages.create', $project)" icon="send">{{ __('New message') }}</x-ui.button>
                     @endcan

@@ -52,6 +52,30 @@
         @endif
     </x-ui.page-header>
 
+    @if ($message->labels || auth()->user()->can('send', $project))
+        <div class="-mt-2 mb-4 flex flex-wrap items-center gap-1.5">
+            @foreach ($message->labels ?? [] as $item)
+                <a href="{{ route('projects.messages.index', [$project, 'label' => $item]) }}"><x-ui.badge>{{ $item }}</x-ui.badge></a>
+            @endforeach
+            @can('send', $project)
+                <button type="button" x-data x-on:click="$dispatch('open-modal', 'labels')" class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-white/5 dark:hover:text-white">
+                    <x-ui.icon name="tag" class="size-3.5" />{{ $message->labels ? __('Edit labels') : __('Add labels') }}
+                </button>
+                <x-ui.modal name="labels" :title="__('Labels')" :description="__('To sort and filter the messages. Separated by commas.')">
+                    <form method="POST" action="{{ route('projects.messages.labels', [$project, $message]) }}" class="space-y-5">
+                        @csrf
+                        @method('PUT')
+                        <x-ui.input name="labels" :label="__('Labels')" :value="implode(', ', $message->labels ?? [])" :placeholder="__('e.g. promo, newsletter')" maxlength="300" />
+                        <div class="flex justify-end gap-2">
+                            <x-ui.button type="button" variant="secondary" x-on:click="$dispatch('close-modal', 'labels')">{{ __('Cancel') }}</x-ui.button>
+                            <x-ui.button icon="check">{{ __('Save') }}</x-ui.button>
+                        </div>
+                    </form>
+                </x-ui.modal>
+            @endcan
+        </div>
+    @endif
+
     <div class="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-zinc-500 dark:text-zinc-400">
         <x-messages.status :status="$message->status" />
         <span>{{ $message->audienceLabel() }}</span>
