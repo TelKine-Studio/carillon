@@ -2,7 +2,7 @@
 <div {{ $attributes->merge(['class' => 'flex flex-col items-center justify-center px-6 py-14 text-center']) }}>
     <div class="relative mb-5">
         <span class="absolute inset-0 -m-3 rounded-full bg-brand-500/10 blur-xl"></span>
-        <span class="relative inline-flex size-14 items-center justify-center rounded-2xl border border-zinc-200 bg-white text-brand-600 shadow-(--shadow-soft) dark:border-zinc-800 dark:bg-zinc-900 dark:text-brand-400">
+        <span class="float-soft relative inline-flex size-14 items-center justify-center rounded-2xl border border-zinc-200 bg-white text-brand-600 shadow-(--shadow-soft) dark:border-zinc-800 dark:bg-zinc-900 dark:text-brand-400">
             <x-ui.icon :name="$icon" class="size-6" />
         </span>
     </div>

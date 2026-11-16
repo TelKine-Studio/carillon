@@ -37,7 +37,7 @@
         </form>
     </div>
 
-    <div id="message-results" class="card overflow-hidden transition-opacity" :class="loading && 'opacity-60'">
+    <div id="message-results" class="card overflow-hidden transition-opacity" :class="loading && 'is-loading'">
         @forelse ($messages as $message)
             <a href="{{ $message->status === 'draft' && auth()->user()->can('send', $project) ? route('projects.messages.create', [$project, 'from' => $message->id]) : route('projects.messages.show', [$project, $message]) }}" class="flex flex-col gap-3 border-t border-zinc-100 px-4 py-4 transition first:border-0 hover:bg-zinc-50/80 sm:px-5 lg:flex-row lg:items-center lg:gap-6 dark:border-zinc-800 dark:hover:bg-white/[.02]">
                 <div class="min-w-0 flex-1">

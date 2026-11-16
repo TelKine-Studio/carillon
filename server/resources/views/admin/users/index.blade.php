@@ -44,7 +44,7 @@
             </span>
         </form>
 
-        <div id="user-results" class="transition-opacity" :class="loading && 'opacity-60'">
+        <div id="user-results" class="transition-opacity" :class="loading && 'is-loading'">
 
         <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
             {{-- Pending activations --}}

@@ -18,12 +18,12 @@
     {{ $slot }}
 
     {{-- Toasts --}}
-    <div x-data x-init="@if (session('status')) $store.toasts.push(@js(session('status'))) @endif @if ($errors->has('alert')) $store.toasts.push(@js($errors->first('alert')), 'error') @endif"
+    <div x-data x-init="@if (session('celebrate')) $nextTick(() => window.celebrate?.()); @endif @if (session('status')) $store.toasts.push(@js(session('status'))) @endif @if ($errors->has('alert')) $store.toasts.push(@js($errors->first('alert')), 'error') @endif"
         class="pointer-events-none fixed inset-x-0 top-0 z-[60] flex flex-col items-center gap-2 p-4 sm:items-end sm:p-6" aria-live="polite">
         <template x-for="toast in $store.toasts.items" :key="toast.id">
             <div x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 -translate-y-2 sm:translate-y-0 sm:translate-x-4" x-transition:enter-end="opacity-100 translate-x-0"
                 class="pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl border border-zinc-200 bg-white/95 p-4 shadow-(--shadow-lift) backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/95">
-                <span class="mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full"
+                <span class="toast-icon mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full"
                     :class="toast.type === 'error' ? 'bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400'">
                     <x-ui.icon name="check" class="size-3.5" x-show="toast.type !== 'error'" />
                     <x-ui.icon name="alert" class="size-3.5" x-show="toast.type === 'error'" />

@@ -38,6 +38,7 @@ class AbTestController extends Controller
         }
 
         return redirect()->route('projects.messages.show', [$project, $message])
+            ->with('celebrate', true)
             ->with('status', __('Version :letter is on its way to :count devices.', ['letter' => $winner->ab_variant, 'count' => number_format($message->recipients, 0, ',', ' ')]));
     }
 }

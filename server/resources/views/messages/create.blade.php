@@ -74,7 +74,7 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ $template ? route('projects.templates.update', [$project, $template]) : ($templateMode ? route('projects.templates.store', $project) : route('projects.messages.store', $project)) }}" x-data="messageComposer(@js($config))" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+    <form method="POST" action="{{ $template ? route('projects.templates.update', [$project, $template]) : ($templateMode ? route('projects.templates.store', $project) : route('projects.messages.store', $project)) }}" x-data="messageComposer(@js($config))" x-on:submit="$event.submitter?.classList.contains('send-plane') && $event.submitter.classList.add('is-sending')" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
         @csrf
         @if ($template)
             @method('PUT')
@@ -386,7 +386,7 @@
                 <p class="mt-3 text-xs text-amber-700 dark:text-amber-400" x-show="estimate.error" x-text="estimate.error" x-cloak></p>
                 <p class="mt-3 text-xs text-amber-700 dark:text-amber-400" x-show="estimate.total === 0 && !estimate.error" x-cloak x-text="channel === 'email' ? @js(__('No subscribed address matches this audience yet.')) : @js(__('No subscribed device matches this audience yet.'))">{{ __('No subscribed device matches this audience yet.') }}</p>
 
-                <x-ui.button class="mt-5 w-full" size="lg" icon="send">
+                <x-ui.button class="send-plane mt-5 w-full" size="lg" icon="send">
                     <span x-text="ab && channel === 'push' ? @js(__('Start the A/B test')) : (schedule !== 'now' ? @js(__('Schedule the message')) : (channel === 'email' ? @js(__('Send the email')) : @js(__('Send the message'))))">{{ __('Send the message') }}</span>
                 </x-ui.button>
                 @isset($draft)

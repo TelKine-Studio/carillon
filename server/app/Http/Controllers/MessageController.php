@@ -92,7 +92,7 @@ class MessageController extends Controller
                 throw ValidationException::withMessages(['alert' => $this->explain($e)]);
             }
 
-            return redirect()->route('projects.ab-tests.show', [$project, $test])->with('status', __('A/B test started: versions A and B are on their way.'));
+            return redirect()->route('projects.ab-tests.show', [$project, $test])->with('status', __('A/B test started: versions A and B are on their way.'))->with('celebrate', true);
         }
 
         $draft = $request->boolean('save_draft');
@@ -118,6 +118,7 @@ class MessageController extends Controller
         }
 
         return redirect()->route('projects.messages.show', [$project, $message])
+            ->with('celebrate', $message->status !== 'scheduled')
             ->with('status', $message->status === 'scheduled'
                 ? __('Message scheduled for :date.', ['date' => $message->send_after->setTimezone($request->input('timezone') ?: config('app.timezone'))->isoFormat('LLL')])
                 : __('Message on its way to :count devices.', ['count' => number_format($message->recipients, 0, ',', ' ')]));

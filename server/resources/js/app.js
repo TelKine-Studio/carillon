@@ -130,6 +130,109 @@ Alpine.data('datePicker', (withTime = false, min = null) => ({
 // Drives components/ui/select.blade.php: a styled listbox in front of a
 // hidden native <select> (which still holds the value for forms, x-model
 // and onchange handlers).
+/* ---------------------------------------------------- Delight */
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Figures of the stat tiles count up the first time they come into view
+// ("1 040", "14,5 %", "—" is left alone). The text ends exactly as written.
+const formatFigure = (value, decimals) =>
+    value.toFixed(decimals).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+
+function countUp(element) {
+    const original = element.textContent.trim();
+    const match = original.match(/^(\D*?)(\d[\d\s  ]*?(?:,\d+)?)(\s*\D*)$/);
+    if (!match) return;
+    const [, prefix, figure, suffix] = match;
+    const decimals = (figure.split(',')[1] || '').length;
+    const target = parseFloat(figure.replace(/[\s  ]/g, '').replace(',', '.'));
+    if (!Number.isFinite(target) || target === 0) return;
+
+    const duration = Math.min(1200, 500 + Math.log10(target + 1) * 180);
+    const start = performance.now();
+    const step = (now) => {
+        const progress = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        element.textContent = progress < 1 ? prefix + formatFigure(target * eased, decimals) + suffix : original;
+        if (progress < 1) requestAnimationFrame(step);
+        else element.classList.add('count-done');
+    };
+    requestAnimationFrame(step);
+}
+
+function watchFigures(root = document) {
+    if (reduceMotion || !('IntersectionObserver' in window)) return;
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            observer.unobserve(entry.target);
+            countUp(entry.target);
+        });
+    });
+    root.querySelectorAll('[data-count]').forEach((element) => observer.observe(element));
+}
+document.addEventListener('DOMContentLoaded', () => watchFigures());
+
+// A burst of confetti in the colors of Carillon (a message went out).
+window.celebrate = () => {
+    if (reduceMotion) return;
+    const canvas = document.createElement('canvas');
+    Object.assign(canvas.style, { position: 'fixed', inset: '0', width: '100%', height: '100%', pointerEvents: 'none', zIndex: '70' });
+    document.body.appendChild(canvas);
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = innerWidth * ratio;
+    canvas.height = innerHeight * ratio;
+    const context = canvas.getContext('2d');
+    context.scale(ratio, ratio);
+
+    const colors = ['#E4531E', '#F97316', '#FBBF24', '#10B981', '#3B82F6', '#A855F7'];
+    const pieces = Array.from({ length: 140 }, (_, index) => {
+        const fromLeft = index % 2 === 0;
+        const angle = (fromLeft ? -55 : -125) * (Math.PI / 180) + (Math.random() - 0.5) * 0.9;
+        const speed = 9 + Math.random() * 9;
+        return {
+            x: fromLeft ? -10 : innerWidth + 10,
+            y: innerHeight * (0.55 + Math.random() * 0.25),
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: 5 + Math.random() * 6,
+            spin: (Math.random() - 0.5) * 0.4,
+            rotation: Math.random() * Math.PI,
+            color: colors[index % colors.length],
+            round: Math.random() < 0.3,
+        };
+    });
+
+    const start = performance.now();
+    const frame = (now) => {
+        const elapsed = now - start;
+        context.clearRect(0, 0, innerWidth, innerHeight);
+        context.globalAlpha = Math.max(0, 1 - Math.max(0, elapsed - 1600) / 600);
+        for (const piece of pieces) {
+            piece.vy += 0.32;
+            piece.vx *= 0.985;
+            piece.x += piece.vx;
+            piece.y += piece.vy;
+            piece.rotation += piece.spin;
+            context.save();
+            context.translate(piece.x, piece.y);
+            context.rotate(piece.rotation);
+            context.fillStyle = piece.color;
+            if (piece.round) {
+                context.beginPath();
+                context.arc(0, 0, piece.size / 2, 0, Math.PI * 2);
+                context.fill();
+            } else {
+                context.fillRect(-piece.size / 2, -piece.size / 4, piece.size, piece.size / 2);
+            }
+            context.restore();
+        }
+        if (elapsed < 2200) requestAnimationFrame(frame);
+        else canvas.remove();
+    };
+    requestAnimationFrame(frame);
+};
+
 /* ---------------------------------------------------- Dropdown menus */
 
 // Menu of a ⋮ button: positioned against the viewport (fixed), below the

@@ -31,9 +31,9 @@
             <div @class(['relative flex items-end', $height, 'gap-[2px]' => $count <= 45, 'gap-px' => $count > 45])>
                 @foreach ($points as $i => $point)
                     <div class="group flex h-full min-w-0 flex-1 items-end" x-on:mouseenter="active = {{ $i }}">
-                        <div class="w-full rounded-t-[4px] bg-brand-500/85 transition-colors dark:bg-brand-400/85"
+                        <div class="grow-up w-full rounded-t-[4px] bg-brand-500/85 transition-colors dark:bg-brand-400/85"
                             :class="active === {{ $i }} ? '!bg-brand-600 dark:!bg-brand-300' : ''"
-                            style="height: {{ $point['value'] > 0 ? max(2, $point['value'] / $scale * 100) : 0 }}%"></div>
+                            style="height: {{ $point['value'] > 0 ? max(2, $point['value'] / $scale * 100) : 0 }}%; animation-delay: {{ min(400, $i * 12) }}ms"></div>
                     </div>
                 @endforeach
             </div>

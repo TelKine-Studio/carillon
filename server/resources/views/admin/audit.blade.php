@@ -16,7 +16,7 @@
             </span>
         </form>
 
-        <div id="audit-results" class="transition-opacity" :class="loading && 'opacity-60'">
+        <div id="audit-results" class="transition-opacity" :class="loading && 'is-loading'">
 
         @forelse ($days as $day => $entries)
             @php($date = \Illuminate\Support\Carbon::parse($day))

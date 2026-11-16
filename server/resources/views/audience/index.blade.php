@@ -54,7 +54,7 @@
         </form>
     </div>
 
-    <div id="audience-results" class="card transition-opacity" :class="loading && 'opacity-60'">
+    <div id="audience-results" class="card transition-opacity" :class="loading && 'is-loading'">
     @if ($view === 'people')
         <div class="hidden gap-4 border-b border-zinc-100 px-5 py-2.5 text-xs font-medium text-zinc-500 lg:grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_130px_110px_130px_36px] xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.1fr)_130px_110px_130px_minmax(0,1fr)_36px] dark:border-zinc-800">
             <span>{{ __('Person') }}</span><span>{{ __('External id') }}</span><span>{!! $sortLink('last_active', __('Last active')) !!}</span><span>{{ __('Channels') }}</span><span>{!! $sortLink('first_active', __('First seen')) !!}</span><span class="hidden xl:block">{{ __('Location') }}</span><span></span>
