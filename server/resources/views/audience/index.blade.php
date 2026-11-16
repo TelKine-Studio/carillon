@@ -17,18 +17,20 @@
         <x-ui.stat :label="__('Active this week')" :value="$n($totals['active'])" icon="clock" />
     </div>
 
-    <form method="GET" class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center" x-data>
+    <div x-data="liveList('audience-results')">
+    <form method="GET" data-live class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
         <div class="relative flex-1">
             <x-ui.icon name="search" class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-zinc-400" />
-            <input type="search" name="q" value="{{ $search }}" placeholder="{{ __('External id, tag value, device id…') }}" class="form-control pl-9">
+            <x-ui.icon name="refresh" class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-zinc-400" x-show="loading" x-cloak />
+            <input type="search" name="q" value="{{ $search }}" autocomplete="off" placeholder="{{ __('External id, tag value, device id…') }}" class="form-control pl-9">
         </div>
         <div class="grid grid-cols-2 gap-3 sm:flex">
-            <x-ui.select name="platform" size="sm" class="sm:w-40" :value="$platform" :options="['' => __('All platforms'), 'ios' => 'iOS', 'android' => 'Android', 'web' => 'Web', 'email' => __('Email')]" onchange="this.form.submit()" />
-            <x-ui.select name="state" size="sm" class="sm:w-44" :value="$state" :options="['' => __('All states'), 'subscribed' => __('Subscribed'), 'unsubscribed' => __('Unsubscribed'), 'invalid' => __('Unreachable')]" onchange="this.form.submit()" />
+            <x-ui.select name="platform" size="sm" class="sm:w-40" :value="$platform" :options="['' => __('All platforms'), 'ios' => 'iOS', 'android' => 'Android', 'web' => 'Web', 'email' => __('Email')]" />
+            <x-ui.select name="state" size="sm" class="sm:w-44" :value="$state" :options="['' => __('All states'), 'subscribed' => __('Subscribed'), 'unsubscribed' => __('Unsubscribed'), 'invalid' => __('Unreachable')]" />
         </div>
     </form>
 
-    <div class="card overflow-hidden">
+    <div id="audience-results" class="card overflow-hidden transition-opacity" :class="loading && 'opacity-60'">
         <div class="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_120px_110px] gap-4 border-b border-zinc-100 px-5 py-2.5 text-xs font-medium text-zinc-500 lg:grid dark:border-zinc-800">
             <span>{{ __('Device') }}</span><span>{{ __('Person') }}</span><span>{{ __('Tags') }}</span><span>{{ __('Last seen') }}</span><span>{{ __('State') }}</span>
         </div>
@@ -64,7 +66,8 @@
                 :description="$search || $platform || $state ? __('Try another search or filter.') : __('Devices appear here once your app uses the Carillon SDK with this project’s App ID.')" />
         @endforelse
         @if ($subscriptions->hasPages())
-            <div class="border-t border-zinc-100 px-4 py-3 sm:px-5 dark:border-zinc-800">{{ $subscriptions->links() }}</div>
+            <div data-live-pages class="border-t border-zinc-100 px-4 py-3 sm:px-5 dark:border-zinc-800">{{ $subscriptions->links() }}</div>
         @endif
+    </div>
     </div>
 </x-layouts.app>

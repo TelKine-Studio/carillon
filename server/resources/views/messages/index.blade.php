@@ -8,15 +8,16 @@
         @endcan
     </x-ui.page-header>
 
+    <div x-data="liveList('message-results')" data-live-also="message-tabs message-status">
     <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div class="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
-            <nav class="inline-flex gap-0.5 rounded-lg bg-zinc-200/60 p-1 dark:bg-white/[0.06]">
+            <nav id="message-tabs" class="inline-flex gap-0.5 rounded-lg bg-zinc-200/60 p-1 dark:bg-white/[0.06]">
                 @foreach ($tabs as $key => $label)
                     @php
                         $count = $key === '' ? $counts->sum() : ($counts[$key] ?? 0);
                         $current = (string) $status === $key;
                     @endphp
-                    <a href="{{ route('projects.messages.index', [$project, 'status' => $key ?: null, 'q' => $search ?: null]) }}" @if ($current) aria-current="page" @endif
+                    <a data-live-link href="{{ route('projects.messages.index', [$project, 'status' => $key ?: null, 'q' => $search ?: null]) }}" @if ($current) aria-current="page" @endif
                         @class(['inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium whitespace-nowrap transition',
                             'bg-white text-zinc-900 shadow-sm shadow-zinc-950/10 dark:bg-zinc-800 dark:text-white dark:shadow-black/40' => $current,
                             'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white' => ! $current])>
@@ -28,14 +29,15 @@
                 @endforeach
             </nav>
         </div>
-        <form method="GET" class="relative sm:w-72">
-            @if ($status)<input type="hidden" name="status" value="{{ $status }}">@endif
+        <form method="GET" data-live class="relative sm:w-72">
+            <span id="message-status">@if ($status)<input type="hidden" name="status" value="{{ $status }}">@endif</span>
             <x-ui.icon name="search" class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-zinc-400" />
-            <input type="search" name="q" value="{{ $search }}" placeholder="{{ __('Search messages…') }}" class="form-control pl-9">
+            <x-ui.icon name="refresh" class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-zinc-400" x-show="loading" x-cloak />
+            <input type="search" name="q" autocomplete="off" value="{{ $search }}" placeholder="{{ __('Search messages…') }}" class="form-control pl-9">
         </form>
     </div>
 
-    <div class="card overflow-hidden">
+    <div id="message-results" class="card overflow-hidden transition-opacity" :class="loading && 'opacity-60'">
         @forelse ($messages as $message)
             <a href="{{ $message->status === 'draft' && auth()->user()->can('send', $project) ? route('projects.messages.create', [$project, 'from' => $message->id]) : route('projects.messages.show', [$project, $message]) }}" class="flex flex-col gap-3 border-t border-zinc-100 px-4 py-4 transition first:border-0 hover:bg-zinc-50/80 sm:px-5 lg:flex-row lg:items-center lg:gap-6 dark:border-zinc-800 dark:hover:bg-white/[.02]">
                 <div class="min-w-0 flex-1">
@@ -81,7 +83,8 @@
         @endforelse
 
         @if ($messages->hasPages())
-            <div class="border-t border-zinc-100 px-4 py-3 sm:px-5 dark:border-zinc-800">{{ $messages->links() }}</div>
+            <div data-live-pages class="border-t border-zinc-100 px-4 py-3 sm:px-5 dark:border-zinc-800">{{ $messages->links() }}</div>
         @endif
+    </div>
     </div>
 </x-layouts.app>
