@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\ProjectRole;
+use App\Models\AbTest;
 use App\Models\ApiKey;
 use App\Models\Delivery;
 use App\Models\Message;
@@ -375,5 +376,40 @@ class SendingTest extends TestCase
         $this->assertSame(1, $message->capped);
         $this->assertSame(1, $message->recipients);
         $this->assertSame(1, $message->successful);
+    }
+
+    public function test_an_ab_test_sends_two_versions_to_a_sample_then_the_winner_to_the_rest(): void
+    {
+        $owner = $this->project->members()->first();
+        foreach (range(1, 40) as $i) {
+            $this->device('android', 'phone-'.$i);
+        }
+
+        $this->actingAs($owner)->post(route('projects.messages.store', $this->project), [
+            'name' => 'Bonus', 'audience' => 'segments', 'included_segments' => ['Subscribed Users'],
+            'texts' => [['language' => 'fr', 'title' => 'Bonus', 'body' => 'Version A']],
+            'ab_enabled' => 1, 'ab_title' => 'Offre', 'ab_body' => 'Version B', 'ab_sample' => 50,
+        ])->assertRedirect();
+
+        $test = AbTest::firstOrFail();
+        [$a, $b] = [$test->variant('A'), $test->variant('B')];
+        $this->assertSame([10, 10], [$a->recipients, $b->recipients]);
+        $this->assertCount(20, $test->remaining);
+        $this->assertSame(['fr' => 'Version B'], $b->contents);
+        $this->assertSame('Bonus · A', $a->name);
+        // Nobody is in both samples.
+        $this->assertSame(0, Delivery::where('message_id', $a->id)->whereIn('subscription_id', Delivery::where('message_id', $b->id)->pluck('subscription_id'))->count());
+
+        $b->forceFill(['clicked' => 4])->save();
+        $this->actingAs($owner)->get(route('projects.ab-tests.show', [$this->project, $test]))->assertOk()->assertSee('Version B')->assertSee('40,0 %');
+
+        $this->actingAs($owner)->post(route('projects.ab-tests.winner', [$this->project, $test]), ['variant' => 'B'])->assertRedirect();
+        $winner = Message::where('ab_variant', 'W')->firstOrFail();
+        $this->assertSame(20, $winner->recipients);
+        $this->assertSame(['fr' => 'Version B'], $winner->contents);
+        $this->assertSame($b->id, $test->fresh()->winner_id);
+
+        // Only once.
+        $this->actingAs($owner)->post(route('projects.ab-tests.winner', [$this->project, $test]), ['variant' => 'A'])->assertSessionHasErrors('alert');
     }
 }

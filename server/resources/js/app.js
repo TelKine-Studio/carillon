@@ -250,6 +250,7 @@ Alpine.data('selectBox', () => ({
 /* ---------------------------------------------------- Message composer */
 
 Alpine.data('messageComposer', (config) => ({
+    ab: config.ab ?? false,
     test: { sending: false, result: '', ok: false, url: null },
     // Sends the message as written to the test devices only, without leaving the page.
     async sendTest(url) {

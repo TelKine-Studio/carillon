@@ -44,6 +44,9 @@
                 <x-ui.button variant="secondary" :href="route('projects.messages.create', [$project, 'from' => $message->id])" icon="copy">{{ __('Duplicate') }}</x-ui.button>
             @endif
         @endcan
+        @if ($message->ab_test_id)
+            <x-ui.button variant="secondary" :href="route('projects.ab-tests.show', [$project, $message->ab_test_id])" icon="activity">{{ __('A/B test') }}</x-ui.button>
+        @endif
         @if ($message->recipients > 0 && $message->status !== 'draft')
             <x-ui.button variant="secondary" :href="route('projects.messages.export', [$project, $message])" icon="file" title="{{ __('Every device: delivered, received, clicked (CSV).') }}">{{ __('Export') }}</x-ui.button>
         @endif

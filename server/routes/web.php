@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AbTestController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\InvitationController;
 use App\Http\Controllers\Admin\SettingsController;
@@ -86,6 +87,8 @@ Route::middleware('auth')->group(function () {
         Route::post('messages/{message}/cancel', [MessageController::class, 'cancel'])->name('messages.cancel');
         Route::delete('messages/{message}/draft', [MessageController::class, 'destroyDraft'])->name('messages.destroy-draft');
         Route::get('messages/{message}/export', [MessageController::class, 'export'])->name('messages.export');
+        Route::get('ab-tests/{abTest}', [AbTestController::class, 'show'])->name('ab-tests.show');
+        Route::post('ab-tests/{abTest}/winner', [AbTestController::class, 'winner'])->name('ab-tests.winner');
 
         Route::get('audience', [SubscriberController::class, 'index'])->name('subscribers.index');
         Route::get('audience/import', [AudienceImportController::class, 'create'])->name('imports.create');

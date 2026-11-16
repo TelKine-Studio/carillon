@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\CreateMessage;
+use App\Actions\RunAbTest;
 use App\Audience\Audience;
 use App\Http\ComposerInput;
 use App\Models\Message;
@@ -77,6 +78,23 @@ class MessageController extends Controller
     public function store(Request $request, Project $project, CreateMessage $create): RedirectResponse
     {
         $this->authorize('send', $project);
+
+        // A/B test: two versions to a sample, the winner to the rest later.
+        if ($request->boolean('ab_enabled') && ! $request->boolean('save_draft')) {
+            try {
+                $test = app(RunAbTest::class)->start(
+                    $project,
+                    ComposerInput::fromRequest($request),
+                    $this->variantB($request),
+                    (int) $request->input('ab_sample'),
+                    $request->user(),
+                );
+            } catch (ValidationException $e) {
+                throw ValidationException::withMessages(['alert' => $this->explain($e)]);
+            }
+
+            return redirect()->route('projects.ab-tests.show', [$project, $test])->with('status', __('A/B test started: versions A and B are on their way.'));
+        }
 
         $draft = $request->boolean('save_draft');
         // The draft being edited is replaced by what is sent or saved now.
@@ -258,6 +276,19 @@ class MessageController extends Controller
     }
 
     /** Readable message for the API errors shown in the composer. */
+    /** Texts of version B, in the language of the first text of the composer. */
+    protected function variantB(Request $request): array
+    {
+        $language = strtolower((string) ($request->input('texts.0.language') ?: 'en'));
+        $title = trim((string) $request->input('ab_title'));
+        $body = trim((string) $request->input('ab_body'));
+        if ($body === '') {
+            throw ValidationException::withMessages(['ab_body' => __('Write the text of version B.')]);
+        }
+
+        return ['headings' => $title !== '' ? [$language => $title] : null, 'contents' => [$language => $body]];
+    }
+
     protected function explain(ValidationException $e): string
     {
         $message = collect($e->errors())->flatten()->first() ?? __('Invalid message.');

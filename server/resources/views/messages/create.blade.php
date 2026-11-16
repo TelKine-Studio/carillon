@@ -28,6 +28,7 @@
         'buttons' => old('buttons', collect($source?->option('buttons', []))->map(fn ($b) => ['id' => $b['id'] ?? '', 'text' => $b['text'] ?? ''])->all()),
         'data' => old('data', collect($source?->option('data', []))->map(fn ($v, $k) => ['key' => $k, 'value' => is_scalar($v) ? (string) $v : json_encode($v)])->values()->all()),
         'schedule' => old('schedule', 'now'),
+        'ab' => (bool) old('ab_enabled'),
         'channel' => $templateMode ? 'push' : old('channel', $source instanceof \App\Models\Message ? $source->channel : 'push'),
         'emailSubject' => old('email_subject', is_string($source?->option('email_subject')) ? $source->option('email_subject') : ''),
         'emailPreheader' => old('email_preheader', is_string($source?->option('email_preheader')) ? $source->option('email_preheader') : ''),
@@ -289,6 +290,25 @@
                 </div>
             </x-ui.card>
 
+            {{-- A/B test --}}
+            @unless ($templateMode)
+                <div x-show="channel === 'push'">
+                    <x-ui.card :title="__('A/B test')" :description="__('Try two versions on a sample of the audience, then send the best one to the rest.')" icon="activity">
+                        <x-slot:actions>
+                            <x-ui.toggle name="ab_enabled" x-model="ab" :checked="(bool) old('ab_enabled')" :label="__('Enable')" />
+                        </x-slot:actions>
+                        <div x-show="ab" x-collapse x-cloak class="space-y-5">
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Version A is the message above. Version B changes its title and text; everything else is shared.') }}</p>
+                            <x-ui.input name="ab_title" :label="__('Title of version B')" :value="old('ab_title')" maxlength="200" optional />
+                            <x-ui.textarea name="ab_body" :label="__('Text of version B')" rows="3" maxlength="1000" :value="old('ab_body')" />
+                            <x-ui.select name="ab_sample" :label="__('Sample')" :value="old('ab_sample', 20)"
+                                :options="collect(App\Actions\RunAbTest::SAMPLES)->mapWithKeys(fn ($p) => [$p => __(':percent % of the audience (:half % for each version)', ['percent' => $p, 'half' => $p / 2])])->all()"
+                                :hint="__('Sent right away. The rest of the audience waits for your choice of the winner.')" />
+                        </div>
+                    </x-ui.card>
+                </div>
+            @endunless
+
             {{-- Delivery --}}
             <x-ui.card :title="$templateMode ? __('Options') : __('Delivery')" icon="clock">
                 @unless ($templateMode)
@@ -367,7 +387,7 @@
                 <p class="mt-3 text-xs text-amber-700 dark:text-amber-400" x-show="estimate.total === 0 && !estimate.error" x-cloak x-text="channel === 'email' ? @js(__('No subscribed address matches this audience yet.')) : @js(__('No subscribed device matches this audience yet.'))">{{ __('No subscribed device matches this audience yet.') }}</p>
 
                 <x-ui.button class="mt-5 w-full" size="lg" icon="send">
-                    <span x-text="schedule !== 'now' ? @js(__('Schedule the message')) : (channel === 'email' ? @js(__('Send the email')) : @js(__('Send the message')))">{{ __('Send the message') }}</span>
+                    <span x-text="ab && channel === 'push' ? @js(__('Start the A/B test')) : (schedule !== 'now' ? @js(__('Schedule the message')) : (channel === 'email' ? @js(__('Send the email')) : @js(__('Send the message'))))">{{ __('Send the message') }}</span>
                 </x-ui.button>
                 @isset($draft)
                     @if ($draft)<input type="hidden" name="draft_id" value="{{ $draft->id }}">@endif
