@@ -1,5 +1,10 @@
 <x-projects.settings :project="$project" :section="$section">
     <x-ui.card :title="__('API keys')" :description="__('Your server sends notifications and manages subscribers with these keys. Keep them secret: never put them in an app.')" icon="key" :padding="false">
+        @if ($canConfigure)
+            <x-slot:actions>
+                <x-ui.button type="button" size="sm" icon="plus" x-data x-on:click="$dispatch('open-modal', 'create-key')">{{ __('Create key') }}</x-ui.button>
+            </x-slot:actions>
+        @endif
         @if (session('plain_api_key'))
             <div class="border-b border-amber-200 bg-amber-50 p-5 sm:px-6 dark:border-amber-500/20 dark:bg-amber-500/10">
                 <p class="mb-3 flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-200"><x-ui.icon name="alert" class="size-4" />{{ __('Copy this key now: it will not be shown again.') }}</p>
@@ -34,16 +39,20 @@
             @endforelse
         </ul>
 
-        @if ($canConfigure)
-            <x-slot:footer>
-                <form method="POST" action="{{ route('projects.api-keys.store', $project) }}" class="flex w-full flex-wrap items-end gap-3">
-                    @csrf
-                    <x-ui.input name="name" :label="__('New key')" :placeholder="__('e.g. Production backend')" required maxlength="80" class="min-w-60 flex-1" />
-                    <x-ui.button icon="plus">{{ __('Create key') }}</x-ui.button>
-                </form>
-            </x-slot:footer>
-        @endif
     </x-ui.card>
+
+    @if ($canConfigure)
+        <x-ui.modal name="create-key" :title="__('New API key')" :description="__('Create one per server or service, so you can revoke them separately.')" :open="$errors->has('name')">
+            <form method="POST" action="{{ route('projects.api-keys.store', $project) }}">
+                @csrf
+                <x-ui.input name="name" :label="__('Name')" :placeholder="__('e.g. Production backend')" required maxlength="80" autofocus />
+                <div class="mt-6 flex justify-end gap-3">
+                    <x-ui.button type="button" variant="ghost" x-on:click="open = false">{{ __('Cancel') }}</x-ui.button>
+                    <x-ui.button icon="plus">{{ __('Create key') }}</x-ui.button>
+                </div>
+            </form>
+        </x-ui.modal>
+    @endif
 
     <x-ui.card :title="__('Using a key')" icon="code">
         <p class="mb-4 text-sm text-zinc-600 dark:text-zinc-400">{{ __('Send it in the Authorization header, like OneSignal:') }}</p>

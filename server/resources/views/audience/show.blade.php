@@ -79,10 +79,29 @@
         </div>
 
         <aside class="space-y-6">
-            <form method="POST" action="{{ route('projects.subscribers.tags', [$project, $subscriber]) }}" x-data="{ tags: @js($tags) }">
+            <form method="POST" action="{{ route('projects.subscribers.tags', [$project, $subscriber]) }}" x-data="{ tags: @js($tags), editing: false, reset() { this.tags = @js($tags); this.editing = false } }">
                 @csrf
                 @method('PUT')
                 <x-ui.card :title="__('Tags')" :description="__('Set by your app or the API; used to target messages.')" icon="file">
+                    @can('send', $project)
+                        <x-slot:actions>
+                            <x-ui.button type="button" variant="secondary" size="sm" icon="pencil" x-show="! editing" x-on:click="editing = true">{{ __('Edit') }}</x-ui.button>
+                        </x-slot:actions>
+                    @endcan
+                    <div x-show="! editing">
+                        @if ($tags)
+                            <div class="flex flex-wrap gap-1.5">
+                                @foreach ($tags as $tag)
+                                    <span class="inline-flex max-w-full items-center gap-1 rounded-md bg-zinc-100 px-2 py-1 font-mono text-xs dark:bg-white/5">
+                                        <span class="text-zinc-500">{{ $tag['key'] }}</span><span class="truncate text-zinc-900 dark:text-zinc-100">{{ $tag['value'] }}</span>
+                                    </span>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-sm text-zinc-500">{{ __('No tag.') }}</p>
+                        @endif
+                    </div>
+                    <div x-show="editing" x-cloak>
                     <template x-for="(tag, index) in tags" :key="index">
                         <div class="mb-2 flex gap-2">
                             <input :name="`tags[${index}][key]`" x-model="tag.key" class="form-control w-32 font-mono text-sm" placeholder="{{ __('key') }}" @cannot('send', $project) disabled @endcannot>
@@ -94,11 +113,13 @@
                     </template>
                     <p class="text-sm text-zinc-500" x-show="!tags.length">{{ __('No tag.') }}</p>
                     @can('send', $project)
-                        <x-slot:footer>
+                        <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-4 dark:border-zinc-800">
                             <button type="button" class="mr-auto text-sm font-medium text-brand-700 hover:underline dark:text-brand-300" x-on:click="tags.push({ key: '', value: '' })">+ {{ __('Add a tag') }}</button>
+                            <x-ui.button type="button" variant="ghost" size="sm" x-on:click="reset()">{{ __('Cancel') }}</x-ui.button>
                             <x-ui.button size="sm">{{ __('Save') }}</x-ui.button>
-                        </x-slot:footer>
+                        </div>
                     @endcan
+                    </div>
                 </x-ui.card>
             </form>
 

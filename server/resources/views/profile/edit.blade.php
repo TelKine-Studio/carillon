@@ -20,27 +20,36 @@
             <form method="POST" action="{{ route('profile.update') }}" id="account" class="scroll-mt-24">
                 @csrf
                 @method('PUT')
-                <x-ui.card :title="__('Account')" :description="__('Your name, email address and language.')" icon="user">
+                <x-settings.section :title="__('Account')" :description="__('Your name, email address and language.')" icon="user" :fields="['name', 'email', 'locale']">
+                    <x-slot:summary>
+                        <x-settings.summary>
+                            <x-settings.value :label="__('Full name')" :value="$user->name" />
+                            <x-settings.value :label="__('Email')" :value="$user->email" />
+                            <x-settings.value :label="__('Language')" :value="$user->locale ? ($locales[$user->locale] ?? $user->locale) : __('Instance default')" />
+                        </x-settings.summary>
+                    </x-slot:summary>
                     <div class="grid gap-5 sm:grid-cols-2">
                         <x-ui.input name="name" :label="__('Full name')" :value="$user->name" required />
                         <x-ui.input name="email" type="email" :label="__('Email')" :value="$user->email" required />
                         <x-ui.select name="locale" :label="__('Language')" :value="$user->locale" :options="['' => __('Instance default')] + $locales" />
                     </div>
-                    <x-slot:footer><x-ui.button>{{ __('Save') }}</x-ui.button></x-slot:footer>
-                </x-ui.card>
+                </x-settings.section>
             </form>
 
             <form method="POST" action="{{ route('profile.password') }}" id="security" class="scroll-mt-24">
                 @csrf
                 @method('PUT')
-                <x-ui.card :title="__('Password')" :description="__('Use a long password that you do not use elsewhere.')" icon="lock">
+                <x-settings.section :title="__('Password')" :description="__('Use a long password that you do not use elsewhere.')" icon="lock"
+                    :fields="['current_password', 'password', 'password_confirmation']" :edit-label="__('Change')" :save-label="__('Update password')">
+                    <x-slot:summary>
+                        <p class="font-mono text-sm tracking-widest text-zinc-500">••••••••••</p>
+                    </x-slot:summary>
                     <div class="grid gap-5 sm:grid-cols-2">
                         <x-ui.input name="current_password" type="password" :label="__('Current password')" required autocomplete="current-password" class="sm:col-span-2" />
                         <x-ui.input name="password" type="password" :label="__('New password')" required autocomplete="new-password" />
                         <x-ui.input name="password_confirmation" type="password" :label="__('Confirm password')" required autocomplete="new-password" />
                     </div>
-                    <x-slot:footer><x-ui.button>{{ __('Update password') }}</x-ui.button></x-slot:footer>
-                </x-ui.card>
+                </x-settings.section>
             </form>
 
             <x-ui.card :title="__('Two-factor authentication')" :description="__('Ask for a code from an authenticator app (Google Authenticator, 1Password, Bitwarden…) at each login.')" icon="shield">

@@ -15,7 +15,15 @@
         <form method="POST" action="{{ route('admin.users.update', $user) }}">
             @csrf
             @method('PUT')
-            <x-ui.card :title="__('Account')" icon="user">
+            <x-settings.section :title="__('Account')" icon="user" :fields="['name', 'email', 'role', 'is_active']" :save-label="__('Save changes')">
+                <x-slot:summary>
+                    <x-settings.summary>
+                        <x-settings.value :label="__('Full name')" :value="$user->name" />
+                        <x-settings.value :label="__('Email')" :value="$user->email" />
+                        <x-settings.value :label="__('Role')" :value="$user->role->label()" />
+                        <x-settings.value :label="__('Status')" :on="$user->is_active" :value="__('Active')" :empty="__('Suspended')" />
+                    </x-settings.summary>
+                </x-slot:summary>
                 <div class="space-y-6">
                     <div class="grid gap-5 sm:grid-cols-2">
                         <x-ui.input name="name" :label="__('Full name')" :value="$user->name" required />
@@ -43,11 +51,7 @@
                         <x-ui.toggle name="is_active" :checked="$user->is_active" :label="__('Active account')" :description="__('Disabled users cannot log in and lose access to their projects.')" />
                     </div>
                 </div>
-                <x-slot:footer>
-                    <x-ui.button variant="ghost" :href="route('admin.users.index')">{{ __('Cancel') }}</x-ui.button>
-                    <x-ui.button>{{ __('Save changes') }}</x-ui.button>
-                </x-slot:footer>
-            </x-ui.card>
+            </x-settings.section>
         </form>
 
         @unless ($user->is(auth()->user()))

@@ -35,23 +35,41 @@
 
                     <div x-show="open" x-collapse x-cloak class="space-y-6 border-t border-zinc-100 bg-zinc-50/60 px-5 py-5 sm:px-6 dark:border-zinc-800 dark:bg-white/[0.02]">
                         @if ($canConfigure)
-                            <form method="POST" action="{{ route('projects.webhooks.update', [$project, $webhook]) }}" class="space-y-4">
-                                @csrf
-                                @method('PUT')
-                                <x-ui.input name="url" type="url" :id="'url-'.$webhook->id" :label="__('Endpoint URL')" :value="$webhook->url" required />
-                                <fieldset>
-                                    <legend class="mb-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Events') }}</legend>
-                                    <div class="grid gap-2 sm:grid-cols-2">
-                                        @foreach ($labels as $event => [$label, $text])
-                                            <label class="flex cursor-pointer items-start gap-2.5 rounded-lg border border-zinc-200 bg-white p-3 transition has-checked:border-brand-500 dark:border-zinc-800 dark:bg-zinc-900">
-                                                <input type="checkbox" name="events[]" value="{{ $event }}" @checked($webhook->listensTo($event)) class="mt-0.5">
-                                                <span class="min-w-0"><span class="block text-sm font-medium text-zinc-900 dark:text-white">{{ $label }}</span><span class="block font-mono text-[11px] text-zinc-500">{{ $event }}</span></span>
-                                            </label>
-                                        @endforeach
+                            <div x-data="{ editing: @js($open === $webhook->id && $errors->hasAny(['url', 'events'])) }">
+                                <div x-show="! editing" class="flex flex-wrap items-start justify-between gap-4">
+                                    <x-settings.summary class="min-w-0 flex-1" :columns="1">
+                                        <x-settings.value :label="__('Endpoint URL')" :value="$webhook->url" mono />
+                                        <x-settings.value :label="__('Events')">
+                                            <span class="flex flex-wrap gap-1.5">
+                                                @foreach ($labels as $event => [$label])
+                                                    @if ($webhook->listensTo($event))<x-ui.badge>{{ $label }}</x-ui.badge>@endif
+                                                @endforeach
+                                            </span>
+                                        </x-settings.value>
+                                    </x-settings.summary>
+                                    <x-ui.button type="button" variant="secondary" size="sm" icon="pencil" x-on:click="editing = true">{{ __('Edit') }}</x-ui.button>
+                                </div>
+                                <form method="POST" action="{{ route('projects.webhooks.update', [$project, $webhook]) }}" class="space-y-4" x-show="editing" x-cloak>
+                                    @csrf
+                                    @method('PUT')
+                                    <x-ui.input name="url" type="url" :id="'url-'.$webhook->id" :label="__('Endpoint URL')" :value="$webhook->url" required />
+                                    <fieldset>
+                                        <legend class="mb-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Events') }}</legend>
+                                        <div class="grid gap-2 sm:grid-cols-2">
+                                            @foreach ($labels as $event => [$label, $text])
+                                                <label class="flex cursor-pointer items-start gap-2.5 rounded-lg border border-zinc-200 bg-white p-3 transition has-checked:border-brand-500 dark:border-zinc-800 dark:bg-zinc-900">
+                                                    <input type="checkbox" name="events[]" value="{{ $event }}" @checked($webhook->listensTo($event)) class="mt-0.5">
+                                                    <span class="min-w-0"><span class="block text-sm font-medium text-zinc-900 dark:text-white">{{ $label }}</span><span class="block font-mono text-[11px] text-zinc-500">{{ $event }}</span></span>
+                                                </label>
+                                            @endforeach
+                                        </div>
+                                    </fieldset>
+                                    <div class="flex gap-2">
+                                        <x-ui.button size="sm" icon="check">{{ __('Save') }}</x-ui.button>
+                                        <x-ui.button type="button" size="sm" variant="ghost" x-on:click="editing = false">{{ __('Cancel') }}</x-ui.button>
                                     </div>
-                                </fieldset>
-                                <x-ui.button size="sm" icon="check">{{ __('Save') }}</x-ui.button>
-                            </form>
+                                </form>
+                            </div>
 
                             <div>
                                 <p class="mb-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Signing secret') }}</p>
