@@ -126,7 +126,7 @@ In the app (the look of the activity belongs to it):
    update token of each activity on screen and its end. A device must be
    registered (notifications allowed) for its tokens to be kept.
 
-Good to know, measured on iOS 26:
+Good to know, measured on iOS 27:
 
 - The first activity started by push shows **"Allow Live Activities from
   <app>?"** on the lock screen. Until the person taps *Allow*, iOS gives no
