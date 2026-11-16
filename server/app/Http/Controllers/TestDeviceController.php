@@ -22,7 +22,7 @@ class TestDeviceController extends Controller
         ]);
     }
 
-    /** Adds the device(s) of a device id, a person id or an external id. */
+    /** Adds the device(s) of a device id, a person id, an external id or a OneSignal id. */
     public function store(Request $request, Project $project): RedirectResponse
     {
         $this->authorize('send', $project);
@@ -36,6 +36,7 @@ class TestDeviceController extends Controller
             ->whereIn('type', Subscription::PUSH_TYPES)
             ->where(fn ($query) => $query
                 ->when(Str::isUuid($identifier), fn ($q) => $q->whereKey($identifier)->orWhere('subscriber_id', $identifier))
+                ->orWhere('onesignal_id', $identifier)
                 ->orWhereHas('subscriber', fn ($q) => $q->where('external_id', $identifier)))
             ->get();
 

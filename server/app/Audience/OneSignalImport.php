@@ -175,6 +175,7 @@ class OneSignalImport
             'enabled' => $enabled,
             'environment' => $type === 'ios' ? ($value('test_type') === '1' ? 'sandbox' : 'production') : null,
             'external_id' => $value('external_id', 'external_user_id'),
+            'onesignal_id' => mb_substr((string) $value('id', 'player_id', 'subscription_id'), 0, 64) ?: null,
             'tags' => array_slice(array_map(fn ($v) => is_scalar($v) ? (string) $v : json_encode($v), $tags), 0, Subscriber::MAX_TAGS, true),
             'language' => ($language = $value('language')) ? strtolower(substr($language, 0, 2)) : null,
             'country' => strlen($country) === 2 ? $country : null,
@@ -223,6 +224,7 @@ class OneSignalImport
             'device_model' => $device['device_model'] ?? $subscription->device_model,
             'device_os' => $device['device_os'] ?? $subscription->device_os,
             'sdk' => $subscription->sdk ?? Subscription::ONESIGNAL_SDK,
+            'onesignal_id' => $device['onesignal_id'] ?? $subscription->onesignal_id,
             'sessions' => max((int) $subscription->sessions, $device['sessions']),
             'last_active_at' => $device['last_active_at'] ?? $subscription->last_active_at,
         ])->save();

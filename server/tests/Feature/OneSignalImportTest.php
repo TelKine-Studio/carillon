@@ -63,6 +63,11 @@ class OneSignalImportTest extends TestCase
             ->assertRedirect(route('projects.imports.create', $this->project));
 
         $import = AudienceImport::query()->first();
+        $this->assertSame('p1', Subscription::where('token', str_repeat('ab', 32))->value('onesignal_id'));
+        // The id shown by OneSignal finds the device, to make it a test device.
+        $this->actingAs($this->owner)->post(route('projects.test-devices.store', $this->project), ['identifier' => 'p1'])->assertSessionHasNoErrors();
+        $this->assertTrue(Subscription::where('onesignal_id', 'p1')->value('is_test'));
+        $this->actingAs($this->owner)->get(route('projects.subscribers.index', [$this->project, 'q' => 'p1']))->assertOk()->assertSee('user-1');
         $this->assertSame('done', $import->status, (string) $import->error);
         $this->assertSame(['rows' => 6, 'created' => 3, 'updated' => 0, 'skipped' => 3], $import->only(['rows', 'created', 'updated', 'skipped']));
         $this->assertSame(['web' => 1, 'invalid_token' => 2], $import->notes);

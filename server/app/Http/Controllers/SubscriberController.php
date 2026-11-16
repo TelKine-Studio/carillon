@@ -45,7 +45,7 @@ class SubscriberController extends Controller
                     // An id is a UUID: PostgreSQL refuses to compare it to any other text.
                     ->when(Str::isUuid($search), fn (Builder $q) => $q->orWhere('subscribers.id', $search)->orWhereHas('subscriptions', fn (Builder $s) => $s->whereKey($search)))
                     ->orWhereContains(['external_id', 'tags'], $search)
-                    ->orWhereHas('subscriptions', fn (Builder $s) => $s->whereContains(['device_model', 'test_name'], $search))))
+                    ->orWhereHas('subscriptions', fn (Builder $s) => $s->where('onesignal_id', $search)->orWhereContains(['device_model', 'test_name'], $search))))
                 ->orderByRaw("{$column} is null")
                 ->orderBy($column, $direction)
                 ->paginate(25)
@@ -58,6 +58,7 @@ class SubscriberController extends Controller
                 ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $q) => $q
                     ->when(Str::isUuid($search), fn (Builder $q) => $q->orWhere('subscriptions.id', $search)->orWhere('subscriptions.subscriber_id', $search))
                     ->orWhereHas('subscriber', fn (Builder $s) => $s->whereContains(['external_id', 'tags'], $search))
+                    ->orWhere('subscriptions.onesignal_id', $search)
                     ->orWhereContains(['device_model', 'test_name'], $search)))
                 ->orderByRaw("subscriptions.{$column} is null")
                 ->orderBy("subscriptions.{$column}", $direction)

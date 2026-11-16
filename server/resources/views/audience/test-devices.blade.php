@@ -55,7 +55,7 @@
         <x-ui.modal name="add-test-device" :title="__('Add a test device')" :description="__('Every device of an external id is added at once.')" :open="$errors->has('identifier')">
             <form method="POST" action="{{ route('projects.test-devices.store', $project) }}" class="space-y-4">
                 @csrf
-                <x-ui.input name="identifier" :label="__('Device id or external id')" required autofocus autocomplete="off" :placeholder="__('e.g. user-42')" />
+                <x-ui.input name="identifier" :label="__('Device id, external id or OneSignal id')" :hint="__('In OneSignal, the Subscription ID of the device (Audience → Test subscriptions).')" required autofocus autocomplete="off" :placeholder="__('e.g. user-42')" />
                 <x-ui.input name="test_name" :label="__('Name')" :placeholder="__('e.g. My iPhone')" maxlength="64" optional />
                 <div class="flex justify-end gap-3 pt-2">
                     <x-ui.button type="button" variant="ghost" x-on:click="open = false">{{ __('Cancel') }}</x-ui.button>

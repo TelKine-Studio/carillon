@@ -168,6 +168,7 @@
                             [__('Last active'), $device->last_active_at?->isoFormat('DD/MM/YY HH:mm'), false],
                             [__('SDK'), $device->usesOneSignalSdk() ? __('OneSignal SDK (app not updated yet)') : $device->sdk, false],
                             [__('Push token'), $device->type === 'email' ? null : $device->token, true],
+                            [__('OneSignal id'), $device->onesignal_id, true],
                         ] as [$label, $value, $mono])
                             <div class="flex min-w-0 items-center gap-4 border-t border-zinc-100 py-2.5 dark:border-zinc-800">
                                 <dt class="w-32 shrink-0 text-zinc-500">{{ $label }}</dt>
