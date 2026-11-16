@@ -136,6 +136,11 @@ Good to know, measured on iOS 27:
   which `end_after` sets by default). Once allowed, iOS hands the token to
   the app in the background and the SDK sends it at once: a waiting end
   reaches the screen within a second.
+- Stale means nothing on screen unless the widget reads `context.isStale`
+  (show "being updated…" or the like): do it, it is what the person sees of
+  an activity Carillon could not reach.
+- Once "Always allow" is given, the update token reaches Carillon about 10
+  seconds after the start.
 - Live Activities need no notification permission: an iPhone that refused
   notifications is registered anyway (without APNs token) to keep its
   Live Activity tokens, and stays out of the audience of notifications.
