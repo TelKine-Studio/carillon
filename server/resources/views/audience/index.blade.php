@@ -4,6 +4,7 @@
         @can('configure', $project)
             <x-ui.button variant="secondary" :href="route('projects.imports.create', $project)" icon="upload">{{ __('Import from OneSignal') }}</x-ui.button>
         @endcan
+        <x-ui.button variant="secondary" :href="route('projects.test-devices.index', $project)" icon="smartphone">{{ __('Test devices') }}</x-ui.button>
         @can('send', $project)
             <x-ui.button variant="secondary" :href="route('projects.segments.index', $project)" icon="layers">{{ __('Segments') }}</x-ui.button>
         @endcan

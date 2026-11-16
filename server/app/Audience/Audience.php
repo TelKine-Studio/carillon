@@ -98,10 +98,22 @@ class Audience
     /** @param Builder<Subscription> $query */
     protected function applySegment(Builder $query, Project $project, string $name): void
     {
-        match ($name) {
-            'All', 'Subscribed Users', 'Total Subscriptions' => $query->whereRaw('1 = 1'),
+        // A segment created in the project wins over a built-in name.
+        if (! in_array($name, Segment::BUILT_IN, true) && Segment::query()->where('project_id', $project->id)->where('name', $name)->exists()) {
+            $this->applyCustomSegment($query, $project, $name);
+
+            return;
+        }
+
+        match (Segment::ALIASES[$name] ?? $name) {
+            'All', 'Subscribed Users' => $query->whereRaw('1 = 1'),
             'Active Users' => $query->where('subscriptions.last_active_at', '>=', now()->subDays(7)),
-            'Engaged Users' => $query->where('subscriptions.sessions', '>=', 5)->where('subscriptions.last_active_at', '>=', now()->subDays(30)),
+            // Same definition as OneSignal: active in the last 7 days, more than 4 sessions.
+            'Engaged Users' => $query->where('subscriptions.sessions', '>', 4)->where('subscriptions.last_active_at', '>=', now()->subDays(7)),
+            'iOS Users' => $query->where('subscriptions.type', 'ios'),
+            'Android Users' => $query->where('subscriptions.type', 'android'),
+            'Web Users' => $query->where('subscriptions.type', 'web'),
+            'Test Devices' => $query->where('subscriptions.is_test', true),
             'Inactive Users' => $query->where(fn (Builder $q) => $q->whereNull('subscriptions.last_active_at')->orWhere('subscriptions.last_active_at', '<', now()->subDays(7))),
             default => $this->applyCustomSegment($query, $project, $name),
         };

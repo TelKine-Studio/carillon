@@ -412,4 +412,23 @@ class SendingTest extends TestCase
         // Only once.
         $this->actingAs($owner)->post(route('projects.ab-tests.winner', [$this->project, $test]), ['variant' => 'A'])->assertSessionHasErrors('alert');
     }
+
+    public function test_test_devices_have_a_list_names_and_a_segment(): void
+    {
+        $owner = $this->project->members()->first();
+        $phone = $this->device('ios', 'my-phone', ['external_id' => 'admin-1']);
+        $this->device('android', 'other-phone');
+
+        $this->actingAs($owner)->post(route('projects.test-devices.store', $this->project), ['identifier' => 'admin-1', 'test_name' => 'iPhone LKAO'])->assertSessionHasNoErrors();
+        $this->actingAs($owner)->post(route('projects.test-devices.store', $this->project), ['identifier' => 'nobody'])->assertSessionHasErrors('identifier');
+        $this->actingAs($owner)->get(route('projects.test-devices.index', $this->project))->assertOk()->assertSee('iPhone LKAO');
+
+        // Built-in segments, with the names of OneSignal too.
+        foreach (['Test Devices' => 1, 'iOS Users' => 1, 'Android audience' => 1, 'Total Subscriptions' => 2] as $segment => $count) {
+            $this->api()->postJson('/api/v1/notifications', ['included_segments' => [$segment], 'contents' => ['en' => 'Hi']])->assertJsonPath('recipients', $count);
+        }
+
+        $this->actingAs($owner)->delete(route('projects.test-devices.destroy', [$this->project, $phone]))->assertRedirect();
+        $this->assertFalse(Subscription::find($phone)->is_test);
+    }
 }

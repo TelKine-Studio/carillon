@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** A device or browser able to receive notifications (OneSignal "subscription"). */
-#[Fillable(['project_id', 'subscriber_id', 'type', 'token', 'environment', 'enabled', 'invalid_at', 'app_version', 'device_model', 'device_os', 'sdk', 'sessions', 'last_active_at', 'is_test'])]
+#[Fillable(['project_id', 'subscriber_id', 'type', 'token', 'environment', 'enabled', 'invalid_at', 'app_version', 'device_model', 'device_os', 'sdk', 'sessions', 'last_active_at', 'is_test', 'test_name'])]
 #[Hidden(['token', 'token_hash'])]
 class Subscription extends Model
 {

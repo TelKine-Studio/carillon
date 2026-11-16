@@ -37,7 +37,7 @@
     ];
     $externalIds = old('external_ids', implode(PHP_EOL, $targeting['external_ids'] ?? []));
     $deviceIds = old('subscription_ids', implode(PHP_EOL, $targeting['subscription_ids'] ?? []));
-    $builtIn = ['Subscribed Users' => __('Subscribed Users'), 'Active Users' => __('Active Users'), 'Engaged Users' => __('Engaged Users'), 'Inactive Users' => __('Inactive Users')];
+    $builtIn = ['Subscribed Users' => __('Subscribed Users'), 'Active Users' => __('Active Users'), 'Engaged Users' => __('Engaged Users'), 'Inactive Users' => __('Inactive Users'), 'iOS Users' => __('iOS Users'), 'Android Users' => __('Android Users'), 'Web Users' => __('Web Users'), 'Test Devices' => __('Test Devices')];
 @endphp
 @php
     $heading = $templateMode ? ($template ? __('Edit the template') : __('New template')) : __('New message');

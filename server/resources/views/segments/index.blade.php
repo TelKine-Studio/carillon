@@ -3,8 +3,12 @@
     $builtIn = [
         'Subscribed Users' => __('Every device that accepts notifications.'),
         'Active Users' => __('Opened the app in the last 7 days.'),
-        'Engaged Users' => __('5 sessions or more, active in the last 30 days.'),
+        'Engaged Users' => __('5 sessions or more, active in the last 7 days.'),
         'Inactive Users' => __('Not seen for more than 7 days.'),
+        'iOS Users' => __('iPhone and iPad.'),
+        'Android Users' => __('Android phones and tablets.'),
+        'Web Users' => __('Browsers subscribed to web push.'),
+        'Test Devices' => __('Your test devices, to try a message.'),
     ];
 @endphp
 <x-layouts.app :title="__('Segments').' · '.$project->name">

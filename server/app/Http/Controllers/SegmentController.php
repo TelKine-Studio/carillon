@@ -105,7 +105,7 @@ class SegmentController extends Controller
     protected function validated(Request $request, Project $project, ?Segment $segment = null): array
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:100', Rule::notIn(Segment::BUILT_IN),
+            'name' => ['required', 'string', 'max:100', Rule::notIn([...Segment::BUILT_IN, ...array_keys(Segment::ALIASES)]),
                 Rule::unique('segments')->where('project_id', $project->id)->ignore($segment?->id)],
         ], ['name.not_in' => __('This name is reserved by a built-in segment.')]);
 

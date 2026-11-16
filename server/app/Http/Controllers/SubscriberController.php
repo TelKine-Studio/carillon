@@ -128,7 +128,10 @@ class SubscriberController extends Controller
         abort_unless($subscriber->project_id === $project->id, 404);
 
         $device = $subscriber->subscriptions()->findOrFail($subscription);
-        $device->forceFill(['is_test' => $request->boolean('is_test')])->save();
+        $device->forceFill([
+            'is_test' => $request->boolean('is_test'),
+            'test_name' => $request->boolean('is_test') ? ($device->test_name ?? $device->device_model) : null,
+        ])->save();
 
         return back()->with('status', $device->is_test
             ? __('Test device added: it receives the tests sent from the composer.')

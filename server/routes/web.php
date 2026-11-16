@@ -25,6 +25,7 @@ use App\Http\Controllers\SetupController;
 use App\Http\Controllers\StatsController;
 use App\Http\Controllers\SubscriberController;
 use App\Http\Controllers\TemplateController;
+use App\Http\Controllers\TestDeviceController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Middleware\RequireTwoFactor;
 use Illuminate\Support\Facades\Route;
@@ -97,6 +98,10 @@ Route::middleware('auth')->group(function () {
         Route::put('audience/sync', [OneSignalSyncController::class, 'update'])->name('onesignal-sync.update');
         Route::post('audience/sync', [OneSignalSyncController::class, 'run'])->name('onesignal-sync.run');
         Route::delete('audience/sync', [OneSignalSyncController::class, 'destroy'])->name('onesignal-sync.destroy');
+        Route::get('audience/test-devices', [TestDeviceController::class, 'index'])->name('test-devices.index');
+        Route::post('audience/test-devices', [TestDeviceController::class, 'store'])->name('test-devices.store');
+        Route::put('audience/test-devices/{subscription}', [TestDeviceController::class, 'update'])->name('test-devices.update');
+        Route::delete('audience/test-devices/{subscription}', [TestDeviceController::class, 'destroy'])->name('test-devices.destroy');
         Route::get('audience/{subscriber}', [SubscriberController::class, 'show'])->name('subscribers.show');
         Route::put('audience/{subscriber}/tags', [SubscriberController::class, 'updateTags'])->name('subscribers.tags');
         Route::post('audience/{subscriber}/test', [SubscriberController::class, 'test'])->name('subscribers.test');
