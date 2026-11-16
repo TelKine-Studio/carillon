@@ -3,9 +3,9 @@ name: SDKs
 on:
   push:
     branches: [main]
-    paths: ['sdk/**', 'server/public/sdk/**', '.github/workflows/sdk.yml']
+    paths: ['sdk/**', 'server/public/sdk/**', 'Package.swift', '.github/workflows/sdk.yml']
   pull_request:
-    paths: ['sdk/**', 'server/public/sdk/**', '.github/workflows/sdk.yml']
+    paths: ['sdk/**', 'server/public/sdk/**', 'Package.swift', '.github/workflows/sdk.yml']
 
 jobs:
   flutter:
@@ -40,3 +40,17 @@ jobs:
         run: |
           node --check server/public/sdk/carillon.js
           node --check server/public/sdk/carillon-sw.js
+
+  ios-extension:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: The extension package builds and can be subclassed
+        run: |
+          SDK=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          mkdir -p build && cd build
+          xcrun swiftc -sdk "$SDK" -target arm64-apple-ios15.0-simulator -parse-as-library -emit-module -module-name CarillonExtension \
+            -emit-module-path CarillonExtension.swiftmodule ../sdk/carillon_flutter/ios/CarillonExtension/Sources/CarillonExtension/CarillonNotificationService.swift
+          printf 'import CarillonExtension\nclass NotificationService: CarillonNotificationService {}\n' > App.swift
+          xcrun swiftc -sdk "$SDK" -target arm64-apple-ios15.0-simulator -typecheck -I . App.swift
+

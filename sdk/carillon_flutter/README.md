@@ -122,10 +122,28 @@ Carillon.inAppMessages.addClickListener((messageId, button) {
 
 ### Images and buttons (recommended)
 
-Add a **Notification Service Extension** target (*File → New → Target*),
-and replace its `NotificationService.swift` with
-[`ios/extension/NotificationService.swift`](ios/extension/NotificationService.swift).
-Set its deployment target to the one of the app.
+Add a **Notification Service Extension** target (*File → New → Target*) and
+set its deployment target to the one of the app. Then:
+
+1. *File → Add Package Dependencies…* →
+   `https://github.com/TelKine-Studio/carillon`, **Dependency rule:
+   Commit** (or branch/tag) = the same revision as `carillon_flutter` in
+   `pubspec.yaml`; add the product **CarillonExtension** to the extension
+   target only.
+2. Replace its `NotificationService.swift` with:
+
+```swift
+import CarillonExtension
+
+class NotificationService: CarillonNotificationService {}
+```
+
+The extension now follows the SDK: when you move `carillon_flutter` to a new
+revision, move the package to the same one (`CarillonNotificationService.version`
+and `Carillon.sdkVersion` let a test check that they match). Without Swift
+packages, copy
+[`ios/CarillonExtension/Sources/CarillonExtension/CarillonNotificationService.swift`](ios/CarillonExtension/Sources/CarillonExtension/CarillonNotificationService.swift)
+instead and rename its class `NotificationService`.
 
 To also count receptions on iOS, add the same **App Group** to the app and
 to the extension, and its name under the `CarillonAppGroup` key in both

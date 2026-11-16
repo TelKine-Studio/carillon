@@ -1,14 +1,20 @@
-// Carillon notification service extension.
+// Copy of ios/CarillonExtension (the example app does not use the Swift package).
+// Carillon notification service extension, as a Swift package.
 //
-// Copy this file into a Notification Service Extension target of your app
-// (File > New > Target > Notification Service Extension). It adds the image
-// and the buttons of Carillon notifications and, when the app and the
-// extension share an App Group (CarillonAppGroup key in both Info.plist),
-// reports their reception.
+// Adds the image and the buttons of Carillon notifications and, when the app
+// and the extension share an App Group (CarillonAppGroup key in both
+// Info.plist), reports their reception.
 
 import UserNotifications
 
+/// The service of the Notification Service Extension: subclass it.
+///
+///     import CarillonExtension
+///     class NotificationService: CarillonNotificationService {}
 class NotificationService: UNNotificationServiceExtension {
+  /// Version of the extension, to compare with the Dart SDK (Carillon.sdkVersion).
+  static let version = "0.2.0"
+
   private var contentHandler: ((UNNotificationContent) -> Void)?
   private var content: UNMutableNotificationContent?
 
