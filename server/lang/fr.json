@@ -1960,7 +1960,5 @@
     "until": "jusqu’au",
     "Not enough for :count SMS": "Insuffisant pour :count SMS",
     "Logo next to the text on Android and the web (square PNG). By default, the icon of the project. iOS always shows the icon of the app.": "Logo à côté du texte sur Android et le web (PNG carré). Par défaut, l’icône du projet. iOS affiche toujours l’icône de l’app.",
-    "Logo next to the text on Android and the web (square PNG). iOS always shows the icon of the app; add an icon to the project to use it by default.": "Logo à côté du texte sur Android et le web (PNG carré). iOS affiche toujours l’icône de l’app ; ajoutez une icône au projet pour l’utiliser par défaut.",
-    "Show in the inbox of the app": "Afficher dans la boîte de réception de l’app",
-    "The notification stays in the notification center of the app (Carillon SDK), with the earlier ones.": "La notification reste dans le centre de notifications de l’app (SDK Carillon), avec les précédentes."
+    "Logo next to the text on Android and the web (square PNG). iOS always shows the icon of the app; add an icon to the project to use it by default.": "Logo à côté du texte sur Android et le web (PNG carré). iOS affiche toujours l’icône de l’app ; ajoutez une icône au projet pour l’utiliser par défaut."
 }

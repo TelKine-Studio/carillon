@@ -11,4 +11,3 @@ library;
 
 export 'src/carillon.dart';
 export 'src/models.dart';
-export 'src/inbox_view.dart';

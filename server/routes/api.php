@@ -7,7 +7,6 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Sdk\ConfigController;
 use App\Http\Controllers\Sdk\EmailEventsController;
 use App\Http\Controllers\Sdk\InAppController;
-use App\Http\Controllers\Sdk\InboxController;
 use App\Http\Controllers\Sdk\SubscriptionController;
 use App\Http\Middleware\AuthenticateApiKey;
 use Illuminate\Support\Facades\Route;
@@ -52,8 +51,6 @@ Route::prefix('v1')->group(function () {
         Route::post('subscriptions/{id}/events', [SubscriptionController::class, 'event']);
         Route::post('subscriptions/{id}/custom-events', [SubscriptionController::class, 'customEvent']);
         Route::get('subscriptions/{id}/in-app-messages', [InAppController::class, 'index']);
-        Route::get('subscriptions/{id}/inbox', [InboxController::class, 'index']);
-        Route::post('subscriptions/{id}/inbox', [InboxController::class, 'update']);
         Route::post('in-app-messages/{messageId}/events', [InAppController::class, 'event']);
         Route::post('subscriptions/{id}/email', [SubscriptionController::class, 'addEmail']);
         Route::delete('subscriptions/{id}/email', [SubscriptionController::class, 'removeEmail']);

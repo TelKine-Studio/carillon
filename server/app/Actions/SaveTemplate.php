@@ -19,7 +19,7 @@ class SaveTemplate
         'ios_badgeCount', 'thread_id', 'ios_category', 'ios_interruption_level', 'ios_relevance_score',
         'android_channel_id', 'android_accent_color', 'small_icon', 'large_icon', 'android_group', 'android_visibility',
         'priority', 'ttl', 'collapse_id', 'web_push_topic', 'content_available', 'require_interaction',
-        'target_channel', 'email_subject', 'email_preheader', 'email_body', 'email_from_name', 'email_design', 'inbox',
+        'target_channel', 'email_subject', 'email_preheader', 'email_body', 'email_from_name', 'email_design',
     ];
 
     public function __construct(protected CreateMessage $messages) {}

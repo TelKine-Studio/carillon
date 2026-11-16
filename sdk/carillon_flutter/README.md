@@ -153,28 +153,3 @@ flutter run --dart-define=CARILLON_APP_ID=… --dart-define=CARILLON_SERVER=http
   icon of the project in Carillon; downloaded and shown round.
 - iOS always shows the icon of the app (Apple's rule).
 
-## Inbox (notification center)
-
-Every push notification a person received (on all their devices) stays in an
-inbox, unless the message turns "Show in the inbox of the app" off.
-
-```dart
-// A ready-made page: pull to refresh, swipe to remove, unread highlighted.
-Navigator.of(context).push(MaterialPageRoute(
-  builder: (_) => Scaffold(
-    appBar: AppBar(title: const Text('Notifications')),
-    body: CarillonInboxView(onTap: (message) => openDeepLink(message.url)),
-  ),
-));
-
-// A badge on the bell icon.
-ValueListenableBuilder<int>(
-  valueListenable: Carillon.inbox.unreadCount,
-  builder: (_, count, child) => Badge(isLabelVisible: count > 0, label: Text('$count'), child: child),
-  child: const Icon(Icons.notifications_outlined),
-);
-
-await Carillon.inbox.refresh();          // also done when a notification arrives
-await Carillon.inbox.markAllRead();
-```
-

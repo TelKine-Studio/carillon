@@ -504,30 +504,6 @@
       },
     },
 
-    /** Notification center: what this person received, with read state. */
-    inbox: {
-      fetch: function () {
-        return withSubscription(function (id) {
-          return api('GET', '/subscriptions/' + id + '/inbox');
-        });
-      },
-      markRead: function (messageIds) {
-        return withSubscription(function (id) {
-          return api('POST', '/subscriptions/' + id + '/inbox', { message_ids: [].concat(messageIds) });
-        });
-      },
-      markAllRead: function () {
-        return withSubscription(function (id) {
-          return api('POST', '/subscriptions/' + id + '/inbox', { all: true });
-        });
-      },
-      remove: function (messageIds) {
-        return withSubscription(function (id) {
-          return api('POST', '/subscriptions/' + id + '/inbox', { message_ids: [].concat(messageIds), action: 'remove' });
-        });
-      },
-    },
-
     /** Banners and pop-ups designed in Carillon. */
     inAppMessages: {
       paused: false,

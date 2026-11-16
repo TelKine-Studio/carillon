@@ -476,10 +476,6 @@
                         <x-ui.input name="ios_sound" :label="__('iOS sound')" :value="old('ios_sound', $source?->option('ios_sound'))" placeholder="default" optional />
                         <x-ui.input name="android_channel_id" :label="__('Android channel')" :value="old('android_channel_id', $source?->option('android_channel_id'))" optional />
                         <x-ui.input name="thread_id" :label="__('Thread (iOS grouping)')" :value="old('thread_id', $source?->option('thread_id'))" optional />
-                        <div class="sm:col-span-2">
-                            <input type="hidden" name="inbox" value="0">
-                            <x-ui.toggle name="inbox" :checked="$source?->option('inbox') !== false" :label="__('Show in the inbox of the app')" :description="__('The notification stays in the notification center of the app (Carillon SDK), with the earlier ones.')" />
-                        </div>
                         </div>
                         @unless ($templateMode)
                             <x-ui.input name="name" :label="__('Internal name')" :value="old('name', $source instanceof \App\Models\Message ? $source->name : null)" :hint="__('Only shown in the dashboard.')" optional />
