@@ -7,7 +7,7 @@ encrypted in the database and never shown again.
 
 | Platform | What Carillon needs | Where to find it |
 |---|---|---|
-| **iOS** (APNs) | `.p8` key, Key ID, Team ID, bundle id | developer.apple.com → Certificates, IDs & Profiles → Keys. One key works for every app of the team, development and App Store. |
+| **iOS** (APNs) | `.p8` key, Key ID, Team ID, bundle id | developer.apple.com → Certificates, IDs & Profiles → Keys. One key works for every app of the team. Choose the environment **Sandbox & Production**: a Production-only key makes Apple refuse debug builds and simulators (`BadEnvironmentKeyInToken`). |
 | **Android** (FCM) | Service account JSON of the Firebase project, and the `google-services.json` of the app (optional) | Firebase console → Project settings → Service accounts → Generate new private key. With `google-services.json` uploaded, the apps need neither the file nor the Gradle plugin: the SDK gets the options from Carillon. |
 | **Huawei** (Push Kit) | App ID and App secret | AppGallery Connect → Project settings → General information. For Huawei phones without Google services. |
 | **Amazon** (ADM) | Client ID and client secret | Amazon developer console → your app → Device Messaging → security profile. For Fire tablets and Fire TV. |
