@@ -172,6 +172,11 @@ if #available(iOS 16.1, *) {
 }
 ```
 
+No widget to design: the Swift package product **CarillonLiveActivity**
+has a standard activity (`CarillonActivityAttributes`) and its ready-made
+widget (`CarillonLiveActivityWidget`), driven by the `live` object of the
+API on iOS and Android.
+
 The tokens reach Carillon by themselves. For activities managed by hand,
 `Carillon.liveActivities` has the calls of OneSignal: `setPushToStartToken`,
 `removePushToStartToken`, `enterLiveActivity`, `exitLiveActivity`.

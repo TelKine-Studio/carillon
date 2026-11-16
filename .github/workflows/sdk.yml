@@ -53,4 +53,12 @@ jobs:
             -emit-module-path CarillonExtension.swiftmodule ../sdk/carillon_flutter/ios/CarillonExtension/Sources/CarillonExtension/CarillonNotificationService.swift
           printf 'import CarillonExtension\nclass NotificationService: CarillonNotificationService {}\n' > App.swift
           xcrun swiftc -sdk "$SDK" -target arm64-apple-ios15.0-simulator -typecheck -I . App.swift
+      - name: The standard Live Activity package builds and its widget can be used
+        run: |
+          SDK=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          mkdir -p build-la && cd build-la
+          xcrun swiftc -sdk "$SDK" -target arm64-apple-ios15.0-simulator -parse-as-library -emit-module -module-name CarillonLiveActivity \
+            -emit-module-path CarillonLiveActivity.swiftmodule ../sdk/carillon_flutter/ios/CarillonLiveActivity/Sources/CarillonLiveActivity/*.swift
+          printf 'import SwiftUI\nimport WidgetKit\nimport CarillonLiveActivity\n@available(iOS 16.2, *)\nstruct Widgets: WidgetBundle { var body: some Widget { CarillonLiveActivityWidget() } }\n' > Widget.swift
+          xcrun swiftc -sdk "$SDK" -target arm64-apple-ios15.0-simulator -typecheck -I . Widget.swift
 

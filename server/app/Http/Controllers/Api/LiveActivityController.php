@@ -36,6 +36,7 @@ class LiveActivityController extends Controller
             'end_after' => ['nullable', 'integer', 'min:60'],
             'android' => ['nullable', 'array'],
             'data' => ['nullable', 'array'],
+            'live' => ['nullable', 'array'],
             'ios_sound' => ['nullable', 'string', 'max:255'],
             'ios_relevance_score' => ['nullable', 'numeric'],
         ]);
@@ -57,6 +58,7 @@ class LiveActivityController extends Controller
             'priority' => ['nullable', 'integer'],
             'android' => ['nullable', 'array'],
             'data' => ['nullable', 'array'],
+            'live' => ['nullable', 'array'],
             'stale_date' => ['nullable', 'integer'],
             'dismissal_date' => ['nullable', 'integer'],
             'ios_sound' => ['nullable', 'string', 'max:255'],

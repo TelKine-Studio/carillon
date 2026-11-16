@@ -2150,5 +2150,7 @@
     ":count waiting for the token of the app": ":count en attente du jeton de l’app",
     "refused: :errors": "refusé : :errors",
     ":count without start token": ":count sans jeton de démarrage",
-    ":count unable to show it": ":count incapables de l’afficher"
+    ":count unable to show it": ":count incapables de l’afficher",
+    "Standard activity (JSON)": "Activité standard (JSON)",
+    "With the type CarillonActivityAttributes: shown by the ready-made widget on iOS and as a Live Update on Android, without the fields below.": "Avec le type CarillonActivityAttributes : affichée par le widget tout fait sur iOS et en Live Update sur Android, sans les champs ci-dessous."
 }

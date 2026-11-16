@@ -319,6 +319,12 @@ POST /api/v1/apps/{app_id}/activities/activity/{activity_type}
   no update token and only the dates of the start act on the screen). `stale_date` / `dismissal_date` are Unix
   timestamps in seconds.
 
+- `live`: the standard activity of Carillon (type `CarillonActivityAttributes`,
+  ready-made widget on iOS, Live Update on Android) instead of
+  `event_attributes` / `event_updates` / `android`: `name`, `icon`, `color`,
+  `stale_label`, `title`, `body`, `status`, `progress`, `step`, `steps`,
+  `state`. See [Channels](channels.md#ready-made-the-standard-activity).
+
 **Update** or **end**, on every device showing the activity:
 
 ```

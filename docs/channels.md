@@ -85,6 +85,66 @@ Dynamic Island (a delivery, a match, a ride), updated by your server without
 opening the app. Carillon starts them by push (iOS 17.2+), updates and ends
 them through the [API](api.md#live-activities-ios-and-android), with the same APNs key.
 
+### Ready-made: the standard activity
+
+Nothing to design: Carillon has a standard activity, shown by a ready-made
+widget on iOS (lock screen and Dynamic Island, light and dark, progress ring
+or steps, stale state) and as a Live Update on Android. Your server only
+sends a `live` object with the type `CarillonActivityAttributes`:
+
+```
+POST /api/v1/apps/{app_id}/activities/activity/CarillonActivityAttributes
+{"activity_id": "ORDER-7", "include_aliases": {"external_id": ["user-42"]},
+ "live": {"name": "Shop", "icon": "shippingbox.fill", "color": "#0F766E",
+          "title": "Order on its way", "body": "Arrives in 20 min",
+          "status": "1/3", "step": 1, "steps": 3}}
+
+POST /api/v1/apps/{app_id}/live_activities/ORDER-7/notifications
+{"event": "end", "live": {"status": "Delivered", "step": 3, "state": "success"}}
+```
+
+`name`, `icon` (an SF Symbol), `color` and `stale_label` are set at the
+start; `title`, `body`, `status`, `progress` (0 to 1) or `step` / `steps`,
+and `state` (`active`, `success`, `failure`) change along the way, and an
+update only sends what changes.
+
+In the app, once:
+
+1. Add a **Widget Extension** (*File → New → Target*, without Live Activity
+   template code), and `NSSupportsLiveActivities = YES` in the `Info.plist`
+   of the app.
+2. *File → Add Package Dependencies…* → `https://github.com/TelKine-Studio/carillon`,
+   same revision as `carillon_flutter`; product **CarillonLiveActivity** to
+   the widget extension **and** the app.
+3. The whole widget extension:
+
+   ```swift
+   import SwiftUI
+   import WidgetKit
+   import CarillonLiveActivity
+
+   @main
+   struct Widgets: WidgetBundle {
+     var body: some Widget { CarillonLiveActivityWidget() }
+   }
+   ```
+
+4. In the app, at launch (`AppDelegate`, after `GeneratedPluginRegistrant`):
+
+   ```swift
+   import CarillonLiveActivity
+   import carillon_flutter
+
+   extension CarillonActivityAttributes: CarillonLiveActivityAttributes {}
+
+   // in application(_:didFinishLaunchingWithOptions:)
+   if #available(iOS 16.1, *) {
+     CarillonLiveActivities.observe(CarillonActivityAttributes.self)
+   }
+   ```
+
+### Your own design
+
 In the app (the look of the activity belongs to it):
 
 1. Add a **Widget Extension** with a Live Activity, and

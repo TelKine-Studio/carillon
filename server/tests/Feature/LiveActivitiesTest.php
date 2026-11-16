@@ -390,4 +390,38 @@ class LiveActivitiesTest extends TestCase
         app(LiveActivities::class)->sweep();
         $this->assertSame(1, collect(Http::recorded())->filter(fn ($pair) => str_ends_with($pair[0]->url(), '/update-a10'))->count());
     }
+
+    public function test_the_standard_activity_feeds_ios_and_android(): void
+    {
+        $phone = $this->device('phone-token', 'user-1');
+        $this->sdk($phone, 'start-token', ['activity_type' => 'CarillonActivityAttributes', 'token' => 'start-token-1']);
+        $this->device('pixel-token', 'user-1', 'android', 'carillon-flutter/0.3.0');
+
+        $this->api()->postJson("/api/v1/apps/{$this->project->app_id}/activities/activity/CarillonActivityAttributes", [
+            'activity_id' => 'ORDER-7',
+            'include_aliases' => ['external_id' => ['user-1']],
+            'live' => ['name' => 'Shop', 'icon' => 'shippingbox.fill', 'color' => '#0F766E', 'title' => 'Order on its way', 'body' => 'Arrives in 20 min', 'status' => '1/3', 'step' => 1, 'steps' => 3],
+        ])->assertOk()->assertJson(['recipients' => 2]);
+
+        $live = fn (HttpRequest $request) => json_decode($request['message']['data']['carillon_live'] ?? 'null', true);
+        Http::assertSent(fn (HttpRequest $request) => str_ends_with($request->url(), '/start-token-1')
+            && $request['aps']['attributes'] === ['name' => 'Shop', 'icon' => 'shippingbox.fill', 'color' => '#0F766E', 'carillon' => ['activityId' => 'ORDER-7']]
+            && $request['aps']['content-state'] === ['title' => 'Order on its way', 'body' => 'Arrives in 20 min', 'status' => '1/3', 'step' => 1, 'steps' => 3]
+            && $request['aps']['alert'] === ['title' => 'Order on its way', 'body' => 'Arrives in 20 min']);
+        Http::assertSent(fn (HttpRequest $request) => ($live($request)['e'] ?? null) === 'start'
+            && $live($request)['title'] === 'Order on its way' && $live($request)['st'] === '1/3'
+            && $live($request)['p'] === 1 && $live($request)['pm'] === 3 && $live($request)['seg'] === 3 && $live($request)['color'] === '#0F766E');
+
+        // The iPhone sends its update token; an update changes only the step.
+        $this->sdk($phone, 'enter', ['activity_id' => 'ORDER-7', 'activity_type' => 'CarillonActivityAttributes', 'token' => 'update-7']);
+        $this->api()->postJson("/api/v1/apps/{$this->project->app_id}/live_activities/ORDER-7/notifications", [
+            'event' => 'end', 'live' => ['status' => 'Delivered', 'step' => 3, 'state' => 'success'],
+        ])->assertOk()->assertJson(['recipients' => 2]);
+
+        Http::assertSent(fn (HttpRequest $request) => str_ends_with($request->url(), '/update-7')
+            && $request['aps']['event'] === 'end'
+            && $request['aps']['content-state'] === ['title' => 'Order on its way', 'body' => 'Arrives in 20 min', 'status' => 'Delivered', 'step' => 3, 'steps' => 3, 'state' => 'success']);
+        Http::assertSent(fn (HttpRequest $request) => ($live($request)['e'] ?? null) === 'end'
+            && $live($request)['p'] === 3 && $live($request)['pm'] === 3 && $live($request)['st'] === 'Delivered' && $live($request)['title'] === 'Order on its way');
+    }
 }

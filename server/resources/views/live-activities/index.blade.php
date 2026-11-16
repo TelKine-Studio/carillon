@@ -80,6 +80,7 @@
                     <x-ui.input name="title" :label="__('Title')" :optional="true" />
                     <x-ui.input name="body" :label="__('Text')" :optional="true" />
                 </div>
+                <x-ui.textarea name="live" :label="__('Standard activity (JSON)')" rows="3" :optional="true" :hint="__('With the type CarillonActivityAttributes: shown by the ready-made widget on iOS and as a Live Update on Android, without the fields below.')" :placeholder="json_encode(['name' => 'My app', 'icon' => 'shippingbox.fill', 'color' => '#0F766E', 'title' => 'Order on its way', 'body' => 'Arrives in 20 min', 'status' => '1/3', 'step' => 1, 'steps' => 3], JSON_UNESCAPED_UNICODE)" class="font-mono text-xs" />
                 <x-ui.textarea name="state" :label="__('Content state (JSON)')" rows="2" value="{}" class="font-mono text-xs" />
                 <x-ui.textarea name="attributes" :label="__('Attributes (JSON)')" rows="2" value="{}" class="font-mono text-xs" />
                 <x-ui.textarea name="android" :label="__('Android display (JSON)')" rows="2" :optional="true" :placeholder="json_encode(['progress' => 1, 'progress_max' => 3, 'segments' => 3])" class="font-mono text-xs" />
@@ -105,6 +106,7 @@
                         <x-ui.input name="update_title" :label="__('Title')" :optional="true" :hint="__('iOS: shown as an alert.')" />
                         <x-ui.input name="update_body" :label="__('Text')" :optional="true" />
                     </div>
+                    <x-ui.textarea name="update_live" :label="__('Standard activity (JSON)')" rows="2" :optional="true" :placeholder="json_encode(['status' => '2/3', 'step' => 2], JSON_UNESCAPED_UNICODE)" class="font-mono text-xs" />
                     <x-ui.textarea name="update_state" :label="__('Content state (JSON)')" rows="2" :optional="true" class="font-mono text-xs" />
                     <x-ui.textarea name="update_android" :label="__('Android display (JSON)')" rows="2" :optional="true" class="font-mono text-xs" />
                     <div class="grid gap-4 sm:grid-cols-2" x-show="event === 'update'">

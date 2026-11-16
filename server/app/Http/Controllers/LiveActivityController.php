@@ -53,6 +53,7 @@ class LiveActivityController extends Controller
             'state' => ['nullable', 'json'],
             'attributes' => ['nullable', 'json'],
             'android' => ['nullable', 'json'],
+            'live' => ['nullable', 'json'],
             'stale_minutes' => ['nullable', 'integer', 'min:1', 'max:480'],
             'end_minutes' => ['nullable', 'integer', 'min:1', 'max:480'],
         ]);
@@ -65,6 +66,7 @@ class LiveActivityController extends Controller
             'event_updates' => json_decode($data['state'] ?? '{}', true) ?: [],
             'event_attributes' => json_decode($data['attributes'] ?? '{}', true) ?: [],
             'android' => json_decode($data['android'] ?? 'null', true),
+            'live' => json_decode($data['live'] ?? 'null', true),
             'stale_date' => isset($data['stale_minutes']) ? now()->addMinutes((int) $data['stale_minutes'])->getTimestamp() : null,
             'end_after' => isset($data['end_minutes']) ? (int) $data['end_minutes'] * 60 : null,
         ], fn ($value) => $value !== null));
@@ -83,6 +85,7 @@ class LiveActivityController extends Controller
             'update_body' => ['nullable', 'string', 'max:1000'],
             'update_state' => ['nullable', 'json'],
             'update_android' => ['nullable', 'json'],
+            'update_live' => ['nullable', 'json'],
             'priority' => ['nullable', 'in:5,10'],
             'dismiss_minutes' => ['nullable', 'integer', 'min:0', 'max:240'],
         ]);
@@ -92,6 +95,7 @@ class LiveActivityController extends Controller
             'contents' => filled($data['update_body'] ?? null) ? ['en' => $data['update_body']] : null,
             'event_updates' => filled($data['update_state'] ?? null) ? (json_decode($data['update_state'], true) ?: []) : null,
             'android' => json_decode($data['update_android'] ?? 'null', true),
+            'live' => json_decode($data['update_live'] ?? 'null', true),
             'priority' => (int) ($data['priority'] ?? 10),
             'dismissal_date' => isset($data['dismiss_minutes']) ? now()->addMinutes((int) $data['dismiss_minutes'])->getTimestamp() : null,
         ], fn ($value) => $value !== null));

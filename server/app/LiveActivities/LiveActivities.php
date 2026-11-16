@@ -53,6 +53,7 @@ class LiveActivities
      */
     public function start(Project $project, string $type, array $data): array
     {
+        $data = Template::start($data);
         [$apns, $fcm] = $this->credentials($project);
         $targeted = $this->audience->query($project, [...$this->targeting($data), 'platforms' => Subscription::PUSH_TYPES, 'any_permission' => true])
             ->leftJoin('live_activity_start_tokens', function ($join) use ($type) {
@@ -180,8 +181,13 @@ class LiveActivities
         $event = $event === 'end' ? 'end' : 'update';
 
         foreach ($activities as $activity) {
+            // The standard activity ("live"): what changes, on top of the state.
+            $live = Template::live($data);
             if ($activity->subscription->type === 'android') {
-                $activity->content_state = $this->display($activity->content_state ?? [], $data);
+                $android = $live ? [...Template::android($activity->content_state ?? [], $live), ...(array) ($data['android'] ?? [])] : null;
+                $activity->content_state = $this->display($activity->content_state ?? [], $android ? [...$data, 'android' => $android] : $data);
+            } elseif ($live) {
+                $activity->content_state = [...Template::state($activity->content_state ?? [], $live), ...(array) ($data['event_updates'] ?? [])];
             } else {
                 $state = array_key_exists('event_updates', $data) ? $this->object($data['event_updates']) : $activity->content_state;
                 $activity->content_state = $state ?? [];
