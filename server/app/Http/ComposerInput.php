@@ -50,6 +50,11 @@ final class ComposerInput
             $input['isAnyWeb'] = in_array('web', $platforms, true);
         }
 
+        // Kept out of the inbox of the app when switched off.
+        if ($request->has('inbox') && ! $request->boolean('inbox')) {
+            $input['inbox'] = false;
+        }
+
         // One icon for Android (large icon) and the web.
         if (filled($request->input('icon'))) {
             $input['large_icon'] = $input['chrome_web_icon'] = trim((string) $request->input('icon'));

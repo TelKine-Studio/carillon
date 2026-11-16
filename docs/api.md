@@ -105,6 +105,15 @@ of the project (*Settings → Platforms → Email*):
 Addresses are added with the SDKs (`addEmail`), the users API
 (`{"type": "Email", "token": "ada@example.com"}`) or the OneSignal import.
 
+## Inbox of the app
+
+Push notifications stay in an inbox the SDKs show as a notification center
+(`Carillon.inbox`, `CarillonInboxView` in Flutter). `"inbox": false` keeps a
+message out of it. SDK endpoints: `GET /api/v1/sdk/apps/{app_id}/subscriptions/{id}/inbox`
+(messages of every device of the person, newest first, `unread` count) and
+`POST …/inbox` with `message_ids` or `all: true`, and `action: "remove"` to
+delete them.
+
 ## Huawei and Amazon devices
 
 Huawei phones without Google services and Amazon Fire devices receive the

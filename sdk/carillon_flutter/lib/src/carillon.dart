@@ -64,6 +64,9 @@ class Carillon {
   static final user = CarillonUser._();
   static final inAppMessages = CarillonInAppMessages._();
 
+  /// The notifications this person received, for a notification center.
+  static final inbox = CarillonInbox._();
+
   /// Give it to MaterialApp(navigatorKey: Carillon.navigatorKey): in-app
   /// messages are shown above the current page.
   static final navigatorKey = GlobalKey<NavigatorState>();
@@ -104,7 +107,10 @@ class CarillonNotifications {
   /// ADM registration id): Carillon sends through Push Kit or ADM instead
   /// of Firebase. Call it again when the token changes.
   Future<void> setPushToken(String token, {required String service}) {
-    assert(service == 'huawei' || service == 'amazon', 'service is huawei or amazon');
+    assert(
+      service == 'huawei' || service == 'amazon',
+      'service is huawei or amazon',
+    );
     final engine = Carillon._ready;
     engine.externalToken = token.trim();
     engine.externalType = service;
@@ -170,6 +176,61 @@ class CarillonInAppMessages {
   void removeClickListener(
     void Function(String messageId, Map<String, dynamic> button) listener,
   ) => _clickListeners.remove(listener);
+}
+
+/// Notification center of the app: the push notifications received by this
+/// person (all their devices), newest first. [CarillonInboxView] shows it.
+class CarillonInbox {
+  CarillonInbox._();
+
+  /// Unread messages, for a badge (updated by [refresh] and the actions).
+  final unreadCount = ValueNotifier<int>(0);
+
+  /// The last list fetched.
+  final messages = ValueNotifier<List<CarillonInboxMessage>>(const []);
+
+  Future<List<CarillonInboxMessage>> refresh() async {
+    final engine = Carillon._ready;
+    await (engine._syncing ?? Future.value());
+    final id = engine.store.subscriptionId;
+    if (id == null) return messages.value;
+    final result = await engine.api.inbox(id);
+    final list = [
+      for (final item in (result['messages'] as List?) ?? const [])
+        CarillonInboxMessage.fromJson(Map<String, dynamic>.from(item as Map)),
+    ];
+    messages.value = list;
+    unreadCount.value =
+        (result['unread'] as num?)?.toInt() ??
+        list.where((m) => !m.read).length;
+    return list;
+  }
+
+  Future<void> markRead(List<String> messageIds) => _update({
+    'message_ids': messageIds,
+  }, (m) => messageIds.contains(m.id) ? m.copyWith(read: true) : m);
+
+  Future<void> markAllRead() =>
+      _update({'all': true}, (m) => m.copyWith(read: true));
+
+  /// Removes messages from the inbox of this person.
+  Future<void> remove(List<String> messageIds) => _update({
+    'message_ids': messageIds,
+    'action': 'remove',
+  }, (m) => messageIds.contains(m.id) ? null : m);
+
+  Future<void> _update(
+    Map<String, dynamic> body,
+    CarillonInboxMessage? Function(CarillonInboxMessage) change,
+  ) async {
+    final engine = Carillon._ready;
+    final id = engine.store.subscriptionId;
+    if (id == null) return;
+    // Updated right away, sent in the background.
+    messages.value = [for (final m in messages.value) ?change(m)];
+    unreadCount.value = messages.value.where((m) => !m.read).length;
+    await engine.api.inboxUpdate(id, body);
+  }
 }
 
 /// Outcomes, as OneSignal.Session: conversions attributed to notifications.
@@ -238,9 +299,10 @@ class _Engine with WidgetsBindingObserver {
 
     platform.tokens.listen((_) => sync());
     platform.clicks.listen(_handleClick);
-    platform.displayed.listen(
-      (notification) => _report(notification.id, 'received'),
-    );
+    platform.displayed.listen((notification) {
+      _report(notification.id, 'received');
+      unawaited(Carillon.inbox.refresh());
+    });
 
     final launch = await platform.initialClick();
     if (launch != null) _handleClick(launch);

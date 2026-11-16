@@ -32,7 +32,7 @@ class CreateMessage
         'priority', 'ttl', 'collapse_id', 'web_push_topic', 'content_available', 'require_interaction',
         'delayed_option', 'delivery_time_of_day',
         'email_subject', 'email_body', 'email_preheader', 'email_from_name', 'email_from_address', 'email_reply_to_address', 'disable_email_click_tracking',
-        'email_design', 'sms_from', 'sms_media_urls',
+        'email_design', 'sms_from', 'sms_media_urls', 'inbox',
     ];
 
     /** Recipients that can be listed explicitly in one call. */
