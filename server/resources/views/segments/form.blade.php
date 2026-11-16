@@ -10,12 +10,15 @@
             'external_id' => $text, 'device_type' => [['=', __('is')], ['!=', __('is not')]],
             'last_session' => [['>', __('more than … hours ago')], ['<', __('less than … hours ago')]],
             'first_session' => [['>', __('more than … hours ago')], ['<', __('less than … hours ago')]],
+            'last_click' => [['>', __('more than … hours ago (or never)')], ['<', __('less than … hours ago')]],
+            'event' => [['exists', __('at least once')], ['not_exists', __('never')], ['>', __('more than … times')], ['<', __('fewer than … times')], ['=', __('exactly … times')]],
+            'event_value' => [['>', __('total above')], ['<', __('total below')], ['=', __('total of')]],
         ],
     ];
-    $fields = ['tag' => __('Tag'), 'language' => __('Language'), 'country' => __('Country'), 'app_version' => __('App version'), 'session_count' => __('Sessions'), 'last_session' => __('Last session'), 'first_session' => __('First session'), 'external_id' => __('External id'), 'device_type' => __('Platform')];
+    $fields = ['tag' => __('Tag'), 'language' => __('Language'), 'country' => __('Country'), 'app_version' => __('App version'), 'session_count' => __('Sessions'), 'last_session' => __('Last session'), 'first_session' => __('First session'), 'external_id' => __('External id'), 'device_type' => __('Platform'), 'event' => __('Event'), 'event_value' => __('Event total (value)'), 'last_click' => __('Last click')];
 @endphp
 <x-layouts.app :title="($segment->exists ? $segment->name : __('New segment')).' · '.$project->name">
-    <div class="mx-auto max-w-3xl">
+    <div class="mx-auto max-w-5xl">
         <x-ui.page-header :title="$segment->exists ? $segment->name : __('New segment')" :description="__('Devices matching every condition of a group; several groups widen the audience (or).')">
             <x-slot:breadcrumb>
                 <a href="{{ route('projects.segments.index', $project) }}" class="hover:text-zinc-900 dark:hover:text-white">{{ __('Segments') }}</a>
@@ -40,14 +43,15 @@
                         <template x-for="(condition, c) in group" :key="c">
                             <div>
                                 <p class="my-2 text-xs font-semibold tracking-wide text-zinc-400 uppercase" x-show="c > 0">{{ __('and') }}</p>
-                                <div class="grid gap-2 sm:grid-cols-[150px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+                                <div class="grid gap-2 sm:grid-cols-[180px_minmax(0,1fr)_170px_minmax(0,1fr)_minmax(0,1fr)_auto]">
                                     <x-ui.dynamic-select :options="json_encode(collect($fields)->map(fn ($l, $v) => [$v, $l])->values())" model="condition.field" x-on:change="$nextTick(() => fieldChanged(condition))" />
-                                    <input x-show="usesKey(condition.field)" x-model="condition.key" class="form-control font-mono text-sm" placeholder="{{ __('tag key') }}">
+                                    <input x-show="usesKey(condition.field)" x-model="condition.key" class="form-control font-mono text-sm" :placeholder="condition.field === 'tag' ? @js(__('tag key')) : @js(__('event name'))">
                                     <span x-show="!usesKey(condition.field)" class="hidden sm:block"></span>
                                     <x-ui.dynamic-select options="relations(condition.field)" model="condition.relation" />
                                     <input x-show="needsValue(condition)" x-model="condition.value" class="form-control" placeholder="{{ __('value') }}">
-                                    <input x-show="usesHours(condition.field)" x-model="condition.hours_ago" type="number" min="0" step="any" class="form-control" placeholder="{{ __('hours') }}">
-                                    <span x-show="!needsValue(condition) && !usesHours(condition.field)" class="hidden sm:block"></span>
+                                    <span x-show="!needsValue(condition)" class="hidden sm:block"></span>
+                                    <input x-show="usesHours(condition.field)" x-model="condition.hours_ago" type="number" min="0" step="any" class="form-control" :placeholder="['event', 'event_value'].includes(condition.field) ? @js(__('over the last … hours')) : @js(__('hours'))">
+                                    <span x-show="!usesHours(condition.field)" class="hidden sm:block"></span>
                                     <x-ui.button type="button" variant="ghost" size="icon" icon="x" class="size-[42px] justify-self-end" x-on:click="group.splice(c, 1); if (!group.length) groups.splice(g, 1); if (!groups.length) groups.push([blank()])"><span class="sr-only">{{ __('Remove') }}</span></x-ui.button>
                                 </div>
                             </div>

@@ -907,14 +907,16 @@ Alpine.data('segmentBuilder', (config) => ({
     },
 
     usesKey(field) {
-        return field === 'tag';
+        return ['tag', 'event', 'event_value'].includes(field);
     },
 
     usesHours(field) {
-        return field === 'last_session' || field === 'first_session';
+        return ['last_session', 'first_session', 'last_click', 'event', 'event_value'].includes(field);
     },
 
     needsValue(condition) {
+        // Events: a number of times or a total, over an optional period.
+        if (['event', 'event_value'].includes(condition.field)) return !['exists', 'not_exists'].includes(condition.relation);
         return !['exists', 'not_exists'].includes(condition.relation) && !this.usesHours(condition.field);
     },
 

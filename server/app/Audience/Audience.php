@@ -191,6 +191,9 @@ class Audience
             'device_type' => $this->compare($query, 'subscriptions.type', $relation, $value),
             'last_session' => $this->hoursAgo($query, 'subscriptions.last_active_at', $relation, $filter),
             'first_session' => $this->hoursAgo($query, 'subscriptions.created_at', $relation, $filter),
+            'event' => $this->eventFilter($query, $filter, 'count(*)', $relation, $value),
+            'event_value' => $this->eventFilter($query, $filter, 'coalesce(sum(custom_events.value), 0)', $relation, $value),
+            'last_click' => $this->lastClick($query, $relation, $filter),
             default => throw ValidationException::withMessages(['filters' => __('Unknown filter field: :field', ['field' => (string) $field])]),
         };
     }
@@ -220,6 +223,55 @@ class Audience
         $relation === '>'
             ? $query->where(fn (Builder $q) => $q->whereNull($column)->orWhere($column, '<', $limit))
             : $query->where($column, '>=', $limit);
+    }
+
+    /**
+     * event / event_value: how many times the person did an event (or the
+     * total of its values, e.g. money spent), optionally over the last hours.
+     *
+     * @param  Builder<Subscription>  $query
+     * @param  array<string, mixed>  $filter
+     */
+    protected function eventFilter(Builder $query, array $filter, string $aggregate, string $relation, mixed $value): void
+    {
+        $name = trim((string) ($filter['key'] ?? ''));
+        if ($name === '') {
+            throw ValidationException::withMessages(['filters' => __('Name the event of the condition.')]);
+        }
+        $since = isset($filter['hours_ago']) && (float) $filter['hours_ago'] > 0 ? now()->subSeconds((int) round((float) $filter['hours_ago'] * 3600)) : null;
+
+        $total = DB::table('custom_events')
+            ->selectRaw($aggregate)
+            ->whereColumn('custom_events.subscriber_id', 'subscribers.id')
+            ->where('custom_events.name', $name)
+            ->when($since, fn ($q) => $q->where('custom_events.occurred_at', '>=', $since));
+        $sql = '('.$total->toSql().')';
+        $bindings = $total->getBindings();
+
+        match ($relation) {
+            'exists' => $query->whereRaw("{$sql} > 0", $bindings),
+            'not_exists' => $query->whereRaw("{$sql} = 0", $bindings),
+            // Cast: PDO sends numbers as text, which SQLite does not compare to numbers.
+            '>', '<', '=', '!=' => $query->whereRaw("{$sql} ".($relation === '!=' ? '<>' : $relation).' cast(? as double precision)', [...$bindings, (float) $value]),
+            default => throw ValidationException::withMessages(['filters' => __('Unknown relation: :relation', ['relation' => $relation])]),
+        };
+    }
+
+    /**
+     * Last click on a message: more (">") or less ("<") than "hours_ago" hours ago.
+     *
+     * @param  Builder<Subscription>  $query
+     * @param  array<string, mixed>  $filter
+     */
+    protected function lastClick(Builder $query, string $relation, array $filter): void
+    {
+        $limit = now()->subSeconds((int) round((float) ($filter['hours_ago'] ?? $filter['value'] ?? 0) * 3600));
+        $clicked = fn ($q) => $q->from('deliveries')
+            ->join('subscriptions as clicked_devices', 'clicked_devices.id', '=', 'deliveries.subscription_id')
+            ->whereColumn('clicked_devices.subscriber_id', 'subscribers.id')
+            ->where('deliveries.clicked_at', '>=', $limit);
+
+        $relation === '>' ? $query->whereNotExists($clicked) : $query->whereExists($clicked);
     }
 
     /** @param Builder<Subscription> $query */

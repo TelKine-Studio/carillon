@@ -2018,5 +2018,19 @@
     "Otherwise: leave the journey": "Sinon : quitter le parcours",
     "Wait for :event (at most :duration)": "Attendre :event (au plus :duration)",
     "Hours": "Heures",
-    "Step": "Étape"
+    "Step": "Étape",
+    "more than … hours ago (or never)": "il y a plus de … heures (ou jamais)",
+    "at least once": "au moins une fois",
+    "never": "jamais",
+    "more than … times": "plus de … fois",
+    "fewer than … times": "moins de … fois",
+    "exactly … times": "exactement … fois",
+    "total above": "total supérieur à",
+    "total below": "total inférieur à",
+    "total of": "total égal à",
+    "Event total (value)": "Total d’un événement (valeur)",
+    "Last click": "Dernier clic",
+    "event name": "nom de l’événement",
+    "over the last … hours": "sur les … dernières heures",
+    "Name the event of the condition.": "Indiquez le nom de l’événement de la condition."
 }

@@ -91,7 +91,7 @@ class SegmentController extends Controller
         try {
             // Conditions still being typed are left out of the live count.
             $filters = array_values(array_filter($this->filters($request), fn (array $f) => isset($f['operator'])
-                || (($f['field'] !== 'tag' || filled($f['key'] ?? null))
+                || ((! in_array($f['field'], ['tag', 'event', 'event_value'], true) || filled($f['key'] ?? null))
                     && (in_array($f['relation'], ['exists', 'not_exists'], true) || filled($f['value'] ?? null) || isset($f['hours_ago'])))));
             $total = $filters === [] || collect($filters)->every(fn ($f) => isset($f['operator'])) ? null : $this->audience->query($project, ['filters' => $filters])->count();
         } catch (ValidationException $e) {
