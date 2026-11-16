@@ -288,7 +288,45 @@
         </x-ui.card>
     @endif
 
-    @foreach (['apns', 'fcm', 'hms', 'adm', 'webpush', 'email', 'sms'] as $provider)
+    {{-- WhatsApp --}}
+    @php $whatsapp = $project->credential('whatsapp'); @endphp
+    <form method="POST" action="{{ route('projects.push.update', [$project, 'whatsapp']) }}">
+        @csrf
+        @method('PUT')
+        <x-settings.section :title="__('WhatsApp · Cloud API')" :description="__('Messages on WhatsApp from your WhatsApp Business number (Meta).')" icon="chat"
+            :editable="$canConfigure" :empty="! $whatsapp" :fields="['phone_number_id', 'business_account_id', 'access_token']">
+            <x-slot:status>
+                @if ($whatsapp?->isUsable())<x-ui.badge color="green" dot>{{ __('Configured') }}</x-ui.badge>@else<x-ui.badge color="zinc">{{ __('Not configured') }}</x-ui.badge>@endif
+            </x-slot:status>
+            <x-slot:summary>
+                @if ($whatsapp)
+                    <x-settings.summary>
+                        <x-settings.value :label="__('Phone number ID')" :value="$whatsapp->detail('phone_number_id')" mono />
+                        <x-settings.value :label="__('Business account ID')" :value="$whatsapp->detail('business_account_id')" :empty="__('Not set: templates cannot be listed')" mono />
+                    </x-settings.summary>
+                    @if ($whatsapp->last_error)
+                        <p class="mt-3 text-sm text-red-600 dark:text-red-400">{{ __('Last error: :error', ['error' => $whatsapp->last_error]) }}</p>
+                    @endif
+                @else
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('In the Meta developer console: your app → WhatsApp → API setup. Use the token of a system user, which does not expire.') }}</p>
+                @endif
+            </x-slot:summary>
+            <fieldset @disabled(! $canConfigure) class="space-y-5">
+                <div class="grid gap-5 sm:grid-cols-2">
+                    <x-ui.input name="phone_number_id" :label="__('Phone number ID')" :value="old('phone_number_id', $whatsapp?->detail('phone_number_id'))" required />
+                    <x-ui.input name="business_account_id" :label="__('Business account ID')" :value="old('business_account_id', $whatsapp?->detail('business_account_id'))" :hint="__('To list your approved templates in the composer.')" optional />
+                </div>
+                <x-ui.input name="access_token" type="password" :label="__('Access token')" :required="! $whatsapp" autocomplete="off" :hint="$whatsapp ? __('Leave empty to keep the current one.') : __('Permanent token of a system user with the whatsapp_business_messaging permission.')" />
+            </fieldset>
+            @if ($whatsapp)
+                <x-slot:danger>
+                    <x-ui.button type="submit" form="remove-whatsapp" variant="ghost-danger" icon="trash" class="mr-auto">{{ __('Remove') }}</x-ui.button>
+                </x-slot:danger>
+            @endif
+        </x-settings.section>
+    </form>
+
+    @foreach (['apns', 'fcm', 'hms', 'adm', 'webpush', 'email', 'sms', 'whatsapp'] as $provider)
         <form id="remove-{{ $provider }}" method="POST" action="{{ route('projects.push.destroy', [$project, $provider]) }}" class="hidden"
             data-confirm-title="{{ __('Remove these keys?') }}" data-confirm="{{ __('Devices of this platform stop receiving notifications until you add keys again.') }}" data-confirm-action="{{ __('Remove') }}">
             @csrf

@@ -56,5 +56,7 @@ Route::prefix('v1')->group(function () {
         Route::delete('subscriptions/{id}/email', [SubscriptionController::class, 'removeEmail']);
         Route::post('subscriptions/{id}/sms', [SubscriptionController::class, 'addSms']);
         Route::delete('subscriptions/{id}/sms', [SubscriptionController::class, 'removeSms']);
+        Route::post('subscriptions/{id}/whatsapp', [SubscriptionController::class, 'addWhatsApp']);
+        Route::delete('subscriptions/{id}/whatsapp', [SubscriptionController::class, 'removeWhatsApp']);
     });
 });

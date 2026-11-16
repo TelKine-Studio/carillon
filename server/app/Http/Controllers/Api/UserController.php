@@ -22,7 +22,7 @@ use Illuminate\Validation\ValidationException;
 class UserController extends Controller
 {
     /** OneSignal subscription types and ours. */
-    public const TYPES = ['iOSPush' => 'ios', 'AndroidPush' => 'android', 'ChromePush' => 'web', 'SafariPush' => 'web', 'FirefoxPush' => 'web', 'SafariLegacyPush' => 'web', 'Email' => 'email', 'SMS' => 'sms'];
+    public const TYPES = ['iOSPush' => 'ios', 'AndroidPush' => 'android', 'ChromePush' => 'web', 'SafariPush' => 'web', 'FirefoxPush' => 'web', 'SafariLegacyPush' => 'web', 'Email' => 'email', 'SMS' => 'sms', 'WhatsApp' => 'whatsapp'];
 
     /** Creates (or updates) a person with devices: used to import an audience. */
     public function store(Request $request, string $appId): JsonResponse
@@ -62,11 +62,11 @@ class UserController extends Controller
                     $item['token'] = SubscriptionController::email($item['token'])
                         ?? throw ValidationException::withMessages(['subscriptions' => 'Invalid email address.']);
                 }
-                if ($type === 'sms') {
+                if ($type === 'sms' || $type === 'whatsapp') {
                     $item['token'] = Phone::normalize($item['token'])
                         ?? throw ValidationException::withMessages(['subscriptions' => 'Invalid phone number: use the international format (+2250700000000).']);
                 }
-                $subscription = Subscription::query()->firstOrNew(['project_id' => $project->id, 'token_hash' => hash('sha256', $item['token'])]);
+                $subscription = Subscription::query()->firstOrNew(array_filter(['project_id' => $project->id, 'type' => in_array($type, Subscription::PUSH_TYPES, true) ? null : $type, 'token_hash' => hash('sha256', $item['token'])]));
                 $subscription->fill([
                     'subscriber_id' => $subscriber->id,
                     'type' => $type,
@@ -165,7 +165,7 @@ class UserController extends Controller
     /** @return array<string, mixed> */
     protected function present(Subscriber $subscriber): array
     {
-        $types = array_flip(['iOSPush' => 'ios', 'AndroidPush' => 'android', 'ChromePush' => 'web', 'Email' => 'email', 'SMS' => 'sms']);
+        $types = array_flip(['iOSPush' => 'ios', 'AndroidPush' => 'android', 'ChromePush' => 'web', 'Email' => 'email', 'SMS' => 'sms', 'WhatsApp' => 'whatsapp']);
 
         return [
             'identity' => array_filter(['onesignal_id' => $subscriber->id, 'external_id' => $subscriber->external_id]),

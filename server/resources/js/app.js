@@ -593,6 +593,64 @@ Alpine.data('smsBalance', (url) => ({
     },
 }));
 
+/** WhatsApp part of the composer: approved templates and their variables. */
+Alpine.data('whatsAppComposer', (initial, url) => ({
+    mode: initial.mode || 'template',
+    template: initial.template || '',
+    variables: { ...(Array.isArray(initial.variables) ? Object.fromEntries(initial.variables.map((v, i) => [String(i + 1), v])) : initial.variables) },
+    body: initial.body || '',
+    templates: [],
+    loading: false,
+    error: null,
+
+    init() {
+        this.$watch('mode', () => this.update());
+        this.$watch('body', () => this.update());
+        this.$watch('variables', () => this.update(), { deep: true });
+        this.$watch('template', () => this.update());
+        this.load();
+        this.update();
+    },
+
+    async load() {
+        if (!url) return;
+        this.loading = true;
+        try {
+            const response = await fetch(url, { headers: { Accept: 'application/json' } });
+            const data = await response.json();
+            this.templates = data.templates || [];
+            this.error = data.error || null;
+        } catch {
+            this.error = 'WhatsApp';
+        } finally {
+            this.loading = false;
+            this.update();
+        }
+    },
+
+    get current() {
+        return this.templates.find((item) => item.name + '|' + item.language === this.template) || null;
+    },
+
+    pick(item) {
+        this.template = item.name + '|' + item.language;
+        item.variables.forEach((name) => (this.variables[name] ??= ''));
+    },
+
+    /** The template with its variables (or the text), for the preview. */
+    get preview() {
+        if (this.mode === 'text') return this.body;
+        const current = this.current;
+        if (!current) return '';
+        return current.body.replace(/\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g, (all, name) => this.variables[name] || all);
+    },
+
+    update() {
+        // Shown by the preview card of the composer (parent scope).
+        this.whatsAppPreview = (this.preview || '…').replace(/\{\{\s*tags\.([A-Za-z0-9_]+)(?:\s*\|\s*default:\s*"([^"]*)")?\s*\}\}/g, (all, key, fallback) => (key === 'first_name' ? 'Ada' : fallback ?? ''));
+    },
+}));
+
 Alpine.data('emailDesigner', (initial, labels) => ({
     mode: initial ? 'visual' : null,
     design: initial,
@@ -710,6 +768,7 @@ Alpine.data('messageComposer', (config) => ({
     emailPreheader: config.emailPreheader ?? '',
     emailBody: config.emailBody ?? '',
     smsBody: config.smsBody ?? '',
+    whatsAppPreview: '…',
     advanced: false,
     estimate: { total: null, platforms: {}, error: null, loading: false },
     timer: null,

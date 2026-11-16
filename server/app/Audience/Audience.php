@@ -47,10 +47,11 @@ class Audience
         $query->whereIn('subscriptions.type', match ($channel) {
             'email' => ['email'],
             'sms' => ['sms'],
+            'whatsapp' => ['whatsapp'],
             default => Subscription::PUSH_TYPES,
         });
 
-        if ($channel === 'sms' && ($phones = $targeting['phones'] ?? null)) {
+        if (in_array($channel, ['sms', 'whatsapp'], true) && ($phones = $targeting['phones'] ?? null)) {
             return $query->whereIn('subscriptions.token_hash', array_map(fn ($phone) => hash('sha256', $phone), $phones));
         }
 

@@ -31,6 +31,12 @@
         'schedule' => old('schedule', 'now'),
         'ab' => (bool) old('ab_enabled'),
         'channel' => old('channel', $source instanceof \App\Models\Message ? $source->channel : (in_array($source?->option('target_channel'), ['email', 'sms'], true) ? $source->option('target_channel') : 'push')),
+        'whatsapp' => [
+            'mode' => old('whatsapp_mode', $source?->option('whatsapp_template') ? 'template' : (($source instanceof \App\Models\Message && $source->channel === 'whatsapp') ? 'text' : 'template')),
+            'template' => old('whatsapp_template', $source?->option('whatsapp_template') ? $source->option('whatsapp_template').'|'.$source->option('whatsapp_language') : ''),
+            'variables' => old('whatsapp_variables', (array) $source?->option('whatsapp_variables', [])),
+            'body' => old('whatsapp_body', ! $source?->option('whatsapp_template') && ($source instanceof \App\Models\Message ? $source->channel === 'whatsapp' : $source?->option('target_channel') === 'whatsapp') ? (string) \App\Models\Message::localized($source->contents, 'en') : ''),
+        ],
         'smsBody' => old('sms_body', ($source instanceof \App\Models\Message ? $source->channel === 'sms' : $source?->option('target_channel') === 'sms') ? (string) \App\Models\Message::localized($source->contents, 'en') : ''),
         'emailSubject' => old('email_subject', is_string($source?->option('email_subject')) ? $source->option('email_subject') : ''),
         'emailPreheader' => old('email_preheader', is_string($source?->option('email_preheader')) ? $source->option('email_preheader') : ''),
@@ -109,8 +115,8 @@
                 <input type="hidden" name="channel" :value="channel">
             @else
                 <input type="hidden" name="channel" :value="channel">
-                <div class="grid grid-cols-3 gap-1 rounded-lg border border-zinc-200 bg-white p-1 text-sm shadow-(--shadow-soft) dark:border-zinc-800 dark:bg-zinc-900">
-                    @foreach (['push' => [__('Push'), 'smartphone'], 'email' => [__('Email'), 'mail'], 'sms' => ['SMS', 'message']] as $key => [$label, $icon])
+                <div class="grid grid-cols-2 gap-1 rounded-lg border border-zinc-200 bg-white p-1 text-sm shadow-(--shadow-soft) sm:grid-cols-4 dark:border-zinc-800 dark:bg-zinc-900">
+                    @foreach (['push' => [__('Push'), 'smartphone'], 'email' => [__('Email'), 'mail'], 'sms' => ['SMS', 'message'], 'whatsapp' => ['WhatsApp', 'chat']] as $key => [$label, $icon])
                         <button type="button" x-on:click="channel = '{{ $key }}'" class="flex items-center justify-center gap-2 rounded-md py-2 font-medium transition"
                             :class="channel === '{{ $key }}' ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'">
                             <x-ui.icon :name="$icon" class="size-4" />{{ $label }}
@@ -121,6 +127,12 @@
                     <div x-show="channel === 'email'" x-cloak class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
                         <x-ui.icon name="alert" class="mt-0.5 size-4 shrink-0" />
                         <span>{!! __('Emails are not set up for this project yet: choose how they are sent in :settings.', ['settings' => '<a class="font-medium underline" href="'.route('projects.settings', [$project, 'platforms']).'">'.e(__('Platforms')).'</a>']) !!}</span>
+                    </div>
+                @endunless
+                @unless ($project->credential('whatsapp')?->isUsable())
+                    <div x-show="channel === 'whatsapp'" x-cloak class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
+                        <x-ui.icon name="alert" class="mt-0.5 size-4 shrink-0" />
+                        <span>{!! __('WhatsApp is not set up for this project yet: connect your WhatsApp Business number in :settings.', ['settings' => '<a class="font-medium underline" href="'.route('projects.settings', [$project, 'platforms']).'">'.e(__('Platforms')).'</a>']) !!}</span>
                     </div>
                 @endunless
                 @unless ($project->credential('sms')?->isUsable())
@@ -139,7 +151,7 @@
                         <label class="cursor-pointer">
                             <input type="radio" name="audience" value="{{ $key }}" x-model="audience" class="sr-only">
                             <span class="block rounded-md py-1.5 text-center font-medium transition" :class="audience === '{{ $key }}' ? 'bg-white text-zinc-900 shadow-(--shadow-soft) dark:bg-zinc-800 dark:text-white' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'"
-                                @if ($key === 'devices') x-text="channel === 'email' ? @js(__('Addresses')) : (channel === 'sms' ? @js(__('Numbers')) : @js($label))" @endif>{{ $label }}</span>
+                                @if ($key === 'devices') x-text="channel === 'email' ? @js(__('Addresses')) : (['sms', 'whatsapp'].includes(channel) ? @js(__('Numbers')) : @js($label))" @endif>{{ $label }}</span>
                         </label>
                     @endforeach
                 </div>
@@ -181,7 +193,7 @@
                     <x-ui.textarea name="subscription_ids" rows="3" :label="__('Device ids')" :value="$deviceIds"
                         :hint="__('Useful to test on your own devices: their id is shown in Audience.')" x-on:input.debounce.500ms="refresh()" />
                 </div>
-                <div x-show="audience === 'devices' && channel === 'sms'" x-cloak class="mt-5">
+                <div x-show="audience === 'devices' && ['sms', 'whatsapp'].includes(channel)" x-cloak class="mt-5">
                     <x-ui.textarea name="phone_numbers" rows="3" :label="__('Phone numbers')" :value="old('phone_numbers')" placeholder="+2250700000000"
                         :hint="__('Numbers already in your audience, in the international format, one per line.')" x-on:input.debounce.500ms="refresh()" />
                 </div>
@@ -316,6 +328,51 @@
                             <textarea id="email_body" x-model="emailBody" rows="14" spellcheck="false" class="form-control resize-y font-mono text-[12.5px] leading-relaxed" placeholder="{{ '<p>'.__('Hello').' '.$open.' tags.first_name | default: "'.__('there').'" '.$close.'</p>' }}"></textarea>
                         </div>
                         <p class="text-xs text-zinc-500 dark:text-zinc-400">{!! __('Variables: :vars. An unsubscribe link is added at the bottom unless you place :unsubscribe yourself.', ['vars' => collect(['email', 'external_id', 'tags.first_name', 'tags.plan | default: "free"'])->map($variable)->implode(', '), 'unsubscribe' => $variable('unsubscribe_url')]) !!}</p>
+                    </div>
+                </div>
+            </x-ui.card>
+
+            {{-- WhatsApp --}}
+            <x-ui.card :title="__('WhatsApp')" icon="chat" x-show="channel === 'whatsapp'" x-cloak>
+                <div class="space-y-4" x-data="whatsAppComposer(@js($config['whatsapp']), @js($project->credential('whatsapp')?->isUsable() ? route('projects.whatsapp.templates', $project) : null))">
+                    <input type="hidden" name="whatsapp_mode" :value="mode">
+                    <div class="grid grid-cols-2 gap-1 rounded-lg bg-zinc-100 p-1 text-sm dark:bg-white/5">
+                        @foreach (['template' => __('Approved template'), 'text' => __('Free text')] as $key => $label)
+                            <button type="button" x-on:click="mode = '{{ $key }}'" class="rounded-md py-1.5 font-medium transition" :class="mode === '{{ $key }}' ? 'bg-white text-zinc-900 shadow-(--shadow-soft) dark:bg-zinc-800 dark:text-white' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'">{{ $label }}</button>
+                        @endforeach
+                    </div>
+
+                    <div x-show="mode === 'template'" class="space-y-4">
+                        <input type="hidden" name="whatsapp_template" :value="template">
+                        <input type="hidden" name="whatsapp_preview" :value="preview">
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Required to write first or after 24 hours without a reply: templates are approved by Meta in the WhatsApp Manager.') }}</p>
+                        <p x-show="loading" class="text-sm text-zinc-400">{{ __('Loading…') }}</p>
+                        <p x-show="error" x-cloak class="text-sm text-red-600 dark:text-red-400" x-text="error"></p>
+                        <p x-show="!loading && !error && templates.length === 0" x-cloak class="text-sm text-zinc-500">{{ __('No approved template yet (or the business account id is missing in the settings).') }}</p>
+                        <div class="grid gap-2" x-show="templates.length">
+                            <template x-for="item in templates" :key="item.name + '|' + item.language">
+                                <button type="button" x-on:click="pick(item)" class="rounded-lg border p-3 text-left transition"
+                                    :class="template === item.name + '|' + item.language ? 'border-brand-500 bg-brand-50/60 dark:border-brand-500/60 dark:bg-brand-500/10' : 'border-zinc-200 hover:border-zinc-300 dark:border-zinc-700 dark:hover:border-zinc-600'">
+                                    <span class="flex items-center gap-2 text-sm font-medium text-zinc-900 dark:text-white"><span class="font-mono" x-text="item.name"></span><span class="rounded bg-zinc-100 px-1.5 text-[11px] text-zinc-500 dark:bg-white/10" x-text="item.language"></span><span class="text-[11px] text-zinc-400 lowercase" x-text="item.category"></span></span>
+                                    <span class="mt-1 line-clamp-2 block text-xs text-zinc-500 dark:text-zinc-400" x-text="item.body"></span>
+                                </button>
+                            </template>
+                        </div>
+                        <template x-if="current && current.variables.length">
+                            <div class="grid gap-3 sm:grid-cols-2">
+                                <template x-for="name in current.variables" :key="name">
+                                    <div>
+                                        <label class="text-sm font-medium text-zinc-800 dark:text-zinc-200" x-text="'{' + '{' + name + '}' + '}'"></label>
+                                        <input class="form-control mt-1.5" :name="`whatsapp_variables[${name}]`" x-model="variables[name]" placeholder="{{ $open }} tags.first_name {{ $close }}">
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div x-show="mode === 'text'" x-cloak class="space-y-1.5">
+                        <textarea name="whatsapp_body" x-model="body" rows="5" maxlength="4096" class="form-control resize-y" placeholder="{{ __('Hello').' '.$open.' tags.first_name '.$close.', …' }}"></textarea>
+                        <p class="text-xs text-amber-700 dark:text-amber-400">{{ __('Only delivered to people who wrote to your number in the last 24 hours (WhatsApp rule).') }}</p>
                     </div>
                 </div>
             </x-ui.card>
@@ -491,6 +548,11 @@
             <x-ui.card :title="__('Preview')" icon="smartphone" x-show="channel === 'push'">
                 <x-messages.preview :project="$project" />
             </x-ui.card>
+                <x-ui.card :title="__('Preview')" icon="chat" x-show="channel === 'whatsapp'" x-cloak>
+                    <div class="rounded-2xl bg-[#efe7dd] p-4 dark:bg-[#0b141a]">
+                        <p class="ml-auto max-w-[85%] rounded-xl rounded-tr-sm bg-[#d9fdd3] px-3 py-2 text-sm break-words whitespace-pre-line text-zinc-900 shadow-sm dark:bg-[#005c4b] dark:text-zinc-100" x-text="whatsAppPreview"></p>
+                    </div>
+                </x-ui.card>
                 <x-ui.card :title="__('Preview')" icon="message" x-show="channel === 'sms'" x-cloak>
                     <div class="rounded-2xl bg-zinc-100 p-4 dark:bg-white/5">
                         <p class="text-center text-[11px] text-zinc-400">{{ $project->credential('sms')?->detail('from') ?? $project->credential('sms')?->detail('sender_name') ?? $project->credential('sms')?->detail('sender_address') ?? 'SMS' }}</p>
@@ -519,22 +581,22 @@
                     <x-ui.icon name="refresh" class="size-4 animate-spin text-zinc-400" x-show="estimate.loading" x-cloak />
                 </div>
                 <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500" x-show="estimate.total">
-                    @foreach (['ios' => 'iOS', 'android' => 'Android', 'huawei' => 'Huawei', 'amazon' => 'Amazon', 'web' => 'Web', 'email' => __('Email'), 'sms' => 'SMS'] as $key => $label)
+                    @foreach (['ios' => 'iOS', 'android' => 'Android', 'huawei' => 'Huawei', 'amazon' => 'Amazon', 'web' => 'Web', 'email' => __('Email'), 'sms' => 'SMS', 'whatsapp' => 'WhatsApp'] as $key => $label)
                         <span x-show="estimate.platforms.{{ $key }}">{{ $label }} <strong class="font-semibold tabular-nums text-zinc-700 dark:text-zinc-300" x-text="format(estimate.platforms.{{ $key }})"></strong></span>
                     @endforeach
                 </div>
                 <p class="mt-3 text-xs text-amber-700 dark:text-amber-400" x-show="estimate.error" x-text="estimate.error" x-cloak></p>
-                <p class="mt-3 text-xs text-amber-700 dark:text-amber-400" x-show="estimate.total === 0 && !estimate.error" x-cloak x-text="channel === 'sms' ? @js(__('No subscribed phone number matches this audience yet.')) : channel === 'email' ? @js(__('No subscribed address matches this audience yet.')) : @js(__('No subscribed device matches this audience yet.'))">{{ __('No subscribed device matches this audience yet.') }}</p>
+                <p class="mt-3 text-xs text-amber-700 dark:text-amber-400" x-show="estimate.total === 0 && !estimate.error" x-cloak x-text="['sms', 'whatsapp'].includes(channel) ? @js(__('No subscribed phone number matches this audience yet.')) : channel === 'email' ? @js(__('No subscribed address matches this audience yet.')) : @js(__('No subscribed device matches this audience yet.'))">{{ __('No subscribed device matches this audience yet.') }}</p>
 
                 <x-ui.button class="send-plane mt-5 w-full" size="lg" icon="send">
-                    <span x-text="ab && channel === 'push' ? @js(__('Start the A/B test')) : (schedule !== 'now' ? @js(__('Schedule the message')) : (channel === 'email' ? @js(__('Send the email')) : (channel === 'sms' ? @js(__('Send the SMS')) : @js(__('Send the message')))))">{{ __('Send the message') }}</span>
+                    <span x-text="ab && channel === 'push' ? @js(__('Start the A/B test')) : (schedule !== 'now' ? @js(__('Schedule the message')) : (channel === 'email' ? @js(__('Send the email')) : (channel === 'sms' ? @js(__('Send the SMS')) : (channel === 'whatsapp' ? @js(__('Send on WhatsApp')) : @js(__('Send the message'))))))">{{ __('Send the message') }}</span>
                 </x-ui.button>
                 @isset($draft)
                     @if ($draft)<input type="hidden" name="draft_id" value="{{ $draft->id }}">@endif
                 @endisset
                 <x-ui.button type="submit" name="save_draft" value="1" variant="ghost" class="mt-2 w-full" icon="file">{{ __('Save as draft') }}</x-ui.button>
                 @php($testDevices = $project->subscriptions()->where('is_test', true)->where('enabled', true)->whereNull('invalid_at')->count())
-                <div x-show="channel !== 'sms'" class="mt-3 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+                <div x-show="! ['sms', 'whatsapp'].includes(channel)" class="mt-3 border-t border-zinc-100 pt-3 dark:border-zinc-800">
                     <x-ui.button type="button" variant="secondary" class="w-full" icon="smartphone" x-on:click="sendTest(@js(route('projects.messages.test', $project)))" ::disabled="test.sending">
                         <span x-text="test.sending ? @js(__('Sending…')) : @js($testDevices ? trans_choice('Send a test to my device|Send a test to my :count devices', $testDevices, ['count' => $testDevices]) : __('Send a test'))">{{ __('Send a test') }}</span>
                     </x-ui.button>

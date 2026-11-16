@@ -3,7 +3,7 @@
     $n = fn ($v) => number_format((int) $v, 0, ',', ' ');
     $pct = fn ($part, $total) => $total > 0 ? number_format($part / $total * 100, 1, ',', ' ').' %' : '—';
     $live = in_array($message->status, ['queued', 'sending'], true);
-    $platformNames = ['ios' => ['iOS', 'apple'], 'android' => ['Android', 'android'], 'huawei' => ['Huawei', 'android'], 'amazon' => ['Amazon', 'android'], 'web' => ['Web', 'globe-web'], 'email' => [__('Email'), 'mail'], 'sms' => ['SMS', 'message']];
+    $platformNames = ['ios' => ['iOS', 'apple'], 'android' => ['Android', 'android'], 'huawei' => ['Huawei', 'android'], 'amazon' => ['Amazon', 'android'], 'web' => ['Web', 'globe-web'], 'email' => [__('Email'), 'mail'], 'sms' => ['SMS', 'message'], 'whatsapp' => ['WhatsApp', 'chat']];
     $isEmail = $message->channel === 'email';
     $preview = [
         'title' => \App\Models\Message::localized($message->headings, $lang),
@@ -286,6 +286,15 @@
                 @endphp
                 <x-ui.card :title="__('Preview')" icon="mail" :padding="false">
                     <iframe title="{{ __('Preview') }}" class="mt-1 block h-[28rem] w-full rounded-b-2xl border-t border-zinc-100 bg-white dark:border-zinc-800" sandbox="" srcdoc="{{ $sample }}"></iframe>
+                </x-ui.card>
+            @elseif ($message->channel === 'whatsapp')
+                <x-ui.card :title="__('Preview')" icon="chat">
+                    <div class="rounded-2xl bg-[#efe7dd] p-4 dark:bg-[#0b141a]">
+                        <p class="ml-auto max-w-[85%] rounded-xl rounded-tr-sm bg-[#d9fdd3] px-3 py-2 text-sm break-words whitespace-pre-line text-zinc-900 shadow-sm dark:bg-[#005c4b] dark:text-zinc-100">{{ \App\Models\Message::localized($message->contents, $lang) ?? $message->option('whatsapp_template') }}</p>
+                    </div>
+                    @if ($message->option('whatsapp_template'))
+                        <p class="mt-3 text-xs text-zinc-500">{{ __('Template :name (:language)', ['name' => $message->option('whatsapp_template'), 'language' => $message->option('whatsapp_language')]) }}</p>
+                    @endif
                 </x-ui.card>
             @elseif ($message->channel === 'sms')
                 <x-ui.card :title="__('Preview')" icon="message">

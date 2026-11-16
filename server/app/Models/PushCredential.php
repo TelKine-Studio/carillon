@@ -18,7 +18,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * - email: details {driver, from_address, ...} (see App\Email\Drivers),
  *   secret = password, API key or DKIM private key;
  * - sms: details {driver: twilio, account_sid, from}, secret = auth token,
- *   or {driver: orange, client_id, sender_address, sender_name}, secret = client secret.
+ *   or {driver: orange, client_id, sender_address, sender_name}, secret = client secret;
+ * - whatsapp: details {phone_number_id, business_account_id}, secret = access token.
  */
 #[Fillable(['project_id', 'provider', 'details', 'secret', 'verified_at', 'last_error'])]
 #[Hidden(['secret'])]
@@ -60,6 +61,7 @@ class PushCredential extends Model
             'fcm' => filled($this->detail('project_id')),
             'webpush' => filled($this->detail('public_key')),
             'hms' => filled($this->detail('app_id')),
+            'whatsapp' => filled($this->detail('phone_number_id')),
             'adm' => filled($this->detail('client_id')),
             'sms' => $this->detail('driver') === 'orange'
                 ? filled($this->detail('client_id')) && filled($this->detail('sender_address'))

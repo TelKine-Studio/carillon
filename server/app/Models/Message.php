@@ -157,7 +157,9 @@ class Message extends Model
             return trim(EmailBuilder::render((string) (is_array($subject) ? self::localized($subject, app()->getLocale()) : $subject), [], false));
         }
 
-        return self::localized($this->headings, app()->getLocale()) ?? mb_strimwidth((string) self::localized($this->contents, app()->getLocale()), 0, 80, '…');
+        $text = self::localized($this->headings, app()->getLocale()) ?? mb_strimwidth((string) self::localized($this->contents, app()->getLocale()), 0, 80, '…');
+
+        return $text !== '' ? $text : (string) ($this->option('whatsapp_template') ? 'WhatsApp · '.$this->option('whatsapp_template') : '');
     }
 
     public function rate(int $value): ?float

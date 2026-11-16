@@ -570,6 +570,19 @@
         });
       },
 
+      /** Adds a WhatsApp number, once the visitor agreed to receive messages there. */
+      addWhatsApp: function (phoneNumber) {
+        return withSubscription(function (id) {
+          return api('POST', '/subscriptions/' + id + '/whatsapp', { phone_number: String(phoneNumber).trim() });
+        });
+      },
+
+      removeWhatsApp: function (phoneNumber) {
+        return withSubscription(function (id) {
+          return api('DELETE', '/subscriptions/' + id + '/whatsapp', { phone_number: String(phoneNumber).trim() });
+        });
+      },
+
       removeSms: function (phoneNumber) {
         return withSubscription(function (id) {
           return api('DELETE', '/subscriptions/' + id + '/sms', { phone_number: String(phoneNumber).trim() });

@@ -23,7 +23,7 @@ class OneSignalImport
     /** OneSignal device_type numbers. */
     protected const DEVICE_TYPES = [0 => 'ios', 1 => 'android', 2 => 'amazon', 5 => 'web', 7 => 'web', 8 => 'web', 17 => 'web', 11 => 'email', 13 => 'huawei', 14 => 'sms'];
 
-    protected const SUBSCRIPTION_TYPES = ['iospush' => 'ios', 'androidpush' => 'android', 'huaweipush' => 'huawei', 'fireospush' => 'amazon', 'chromepush' => 'web', 'firefoxpush' => 'web', 'safaripush' => 'web', 'safarilegacypush' => 'web', 'email' => 'email', 'sms' => 'sms'];
+    protected const SUBSCRIPTION_TYPES = ['iospush' => 'ios', 'androidpush' => 'android', 'huaweipush' => 'huawei', 'fireospush' => 'amazon', 'chromepush' => 'web', 'firefoxpush' => 'web', 'safaripush' => 'web', 'safarilegacypush' => 'web', 'email' => 'email', 'sms' => 'sms', 'whatsapp' => 'whatsapp'];
 
     /** @var array<string, int> */
     public array $counts = ['rows' => 0, 'created' => 0, 'updated' => 0, 'skipped' => 0];
@@ -120,7 +120,7 @@ class OneSignalImport
         if ($type === 'web') {
             return 'web';
         }
-        if (! in_array($type, ['ios', 'android', 'huawei', 'amazon', 'email', 'sms'], true)) {
+        if (! in_array($type, ['ios', 'android', 'huawei', 'amazon', 'email', 'sms', 'whatsapp'], true)) {
             return 'unsupported';
         }
 
@@ -137,7 +137,7 @@ class OneSignalImport
                 return 'invalid_token';
             }
         }
-        if ($type === 'sms') {
+        if ($type === 'sms' || $type === 'whatsapp') {
             $token = Phone::normalize($token);
             if (! $token) {
                 return 'invalid_token';
@@ -202,6 +202,7 @@ class OneSignalImport
         $subscription = Subscription::query()
             ->where('project_id', $this->project->id)
             ->where('token_hash', hash('sha256', $device['token']))
+            ->when(! in_array($device['type'], Subscription::PUSH_TYPES, true), fn ($q) => $q->where('type', $device['type']))
             ->first();
 
         $subscriber = $device['external_id']

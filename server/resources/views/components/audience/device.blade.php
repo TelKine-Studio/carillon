@@ -7,6 +7,7 @@
         'amazon' => ['android', 'Amazon'],
         'email' => ['mail', __('Email')],
         'sms' => ['message', 'SMS'],
+        'whatsapp' => ['chat', 'WhatsApp'],
         default => ['globe-web', 'Web'],
     };
 @endphp

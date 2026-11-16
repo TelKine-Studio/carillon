@@ -7,10 +7,12 @@ use App\Models\PushCredential;
 use App\Sms\Balance;
 use App\Sms\Phone;
 use App\Support\Audit;
+use App\WhatsApp\WhatsAppSender;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 use Minishlink\WebPush\VAPID;
 
@@ -20,7 +22,7 @@ class PushCredentialController extends Controller
     public function update(Request $request, Project $project, string $provider): RedirectResponse
     {
         $this->authorize('configure', $project);
-        abort_unless(in_array($provider, ['apns', 'fcm', 'hms', 'adm', 'webpush', 'sms'], true), 404);
+        abort_unless(in_array($provider, ['apns', 'fcm', 'hms', 'adm', 'webpush', 'sms', 'whatsapp'], true), 404);
 
         $existing = $project->credential($provider);
 
@@ -31,6 +33,7 @@ class PushCredentialController extends Controller
             'sms' => $this->sms($request, $existing),
             'hms' => $this->clientCredentials($request, $existing, 'app_id', 'app_secret'),
             'adm' => $this->clientCredentials($request, $existing, 'client_id', 'client_secret'),
+            'whatsapp' => $this->whatsApp($request, $existing),
         };
 
         PushCredential::query()->updateOrCreate(
@@ -46,6 +49,7 @@ class PushCredentialController extends Controller
             'sms' => __('SMS settings saved.'),
             'hms' => __('Huawei Push Kit keys saved.'),
             'adm' => __('Amazon Device Messaging keys saved.'),
+            'whatsapp' => __('WhatsApp settings saved.'),
         });
     }
 
@@ -158,6 +162,40 @@ class PushCredentialController extends Controller
         ]);
 
         return [[$idField => trim($data[$idField])], filled($data[$secretField] ?? null) ? trim($data[$secretField]) : $existing->secret];
+    }
+
+    /** WhatsApp Cloud API: phone number id, business account id, access token. */
+    protected function whatsApp(Request $request, ?PushCredential $existing): array
+    {
+        $data = $request->validate([
+            'phone_number_id' => ['required', 'string', 'regex:/^\d{6,32}$/'],
+            'business_account_id' => ['nullable', 'string', 'regex:/^\d{6,32}$/'],
+            'access_token' => [$existing ? 'nullable' : 'required', 'string', 'max:1024'],
+        ], [
+            'phone_number_id.regex' => __('Digits only, as shown in the WhatsApp Manager (API setup).'),
+            'business_account_id.regex' => __('Digits only, as shown in the WhatsApp Manager (API setup).'),
+        ]);
+
+        return [
+            array_filter(['phone_number_id' => $data['phone_number_id'], 'business_account_id' => $data['business_account_id'] ?? null]),
+            filled($data['access_token'] ?? null) ? trim($data['access_token']) : $existing->secret,
+        ];
+    }
+
+    /** Approved WhatsApp templates, for the composer (kept 5 minutes). */
+    public function whatsAppTemplates(Request $request, Project $project): JsonResponse
+    {
+        $this->authorize('send', $project);
+        $credential = $project->credential('whatsapp');
+        abort_unless($credential?->isUsable(), 404);
+
+        try {
+            $templates = Cache::remember('whatsapp-templates:'.$credential->id.':'.md5(json_encode($credential->details).$credential->secret), $request->boolean('fresh') ? 0 : 300, fn () => WhatsAppSender::templates($credential));
+        } catch (\Throwable $e) {
+            return response()->json(['templates' => [], 'error' => $e->getMessage()]);
+        }
+
+        return response()->json(['templates' => $templates]);
     }
 
     /** Twilio or Orange; the secret is kept when left empty. */

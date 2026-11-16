@@ -14,6 +14,7 @@ use App\Push\Sender;
 use App\Push\WebPushSender;
 use App\Sms\SmsSender;
 use App\Webhooks\Webhooks;
+use App\WhatsApp\WhatsAppSender;
 use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -72,6 +73,7 @@ class SendBatch implements ShouldQueue
             'web' => app(WebPushSender::class),
             'email' => app(EmailSender::class),
             'sms' => app(SmsSender::class),
+            'whatsapp' => app(WhatsAppSender::class),
         };
     }
 

@@ -104,7 +104,10 @@ class CarillonNotifications {
   /// ADM registration id): Carillon sends through Push Kit or ADM instead
   /// of Firebase. Call it again when the token changes.
   Future<void> setPushToken(String token, {required String service}) {
-    assert(service == 'huawei' || service == 'amazon', 'service is huawei or amazon');
+    assert(
+      service == 'huawei' || service == 'amazon',
+      'service is huawei or amazon',
+    );
     final engine = Carillon._ready;
     engine.externalToken = token.trim();
     engine.externalType = service;
@@ -134,6 +137,13 @@ class CarillonUser {
 
   Future<void> removeSms(String phoneNumber) =>
       Carillon._ready.sms(phoneNumber, add: false);
+
+  /// Adds a WhatsApp number, once the person agreed to receive messages there.
+  Future<void> addWhatsApp(String phoneNumber) =>
+      Carillon._ready.sms(phoneNumber, add: true, whatsApp: true);
+
+  Future<void> removeWhatsApp(String phoneNumber) =>
+      Carillon._ready.sms(phoneNumber, add: false, whatsApp: true);
 
   Future<void> addTags(Map<String, Object> tags) => Carillon._ready.setTags(
     tags.map((key, value) => MapEntry(key, '$value')),
@@ -301,13 +311,23 @@ class _Engine with WidgetsBindingObserver {
     add ? await api.addEmail(id, address) : await api.removeEmail(id, address);
   }
 
-  Future<void> sms(String phoneNumber, {required bool add}) async {
+  Future<void> sms(
+    String phoneNumber, {
+    required bool add,
+    bool whatsApp = false,
+  }) async {
     await (_syncing ?? Future.value());
     final id = store.subscriptionId;
     if (id == null) {
       throw StateError('Carillon: this device is not registered yet.');
     }
     final number = phoneNumber.trim();
+    if (whatsApp) {
+      add
+          ? await api.addWhatsApp(id, number)
+          : await api.removeWhatsApp(id, number);
+      return;
+    }
     add ? await api.addSms(id, number) : await api.removeSms(id, number);
   }
 

@@ -32,7 +32,7 @@ class CreateMessage
         'priority', 'ttl', 'collapse_id', 'web_push_topic', 'content_available', 'require_interaction',
         'delayed_option', 'delivery_time_of_day',
         'email_subject', 'email_body', 'email_preheader', 'email_from_name', 'email_from_address', 'email_reply_to_address', 'disable_email_click_tracking',
-        'email_design', 'sms_from', 'sms_media_urls',
+        'email_design', 'sms_from', 'sms_media_urls', 'whatsapp_template', 'whatsapp_language', 'whatsapp_variables',
     ];
 
     /** Recipients that can be listed explicitly in one call. */
@@ -127,7 +127,8 @@ class CreateMessage
         $text = ['nullable', 'array'];
 
         Validator::make($input, [
-            'contents' => [empty($input['content_available']) && ! self::isEmail($input) ? 'required' : 'nullable', 'array', 'min:1'],
+            // A WhatsApp template carries its own text.
+            'contents' => [empty($input['content_available']) && ! self::isEmail($input) && ! (self::channel($input) === 'whatsapp' && filled($input['whatsapp_template'] ?? null)) ? 'required' : 'nullable', 'array', 'min:1'],
             'contents.*' => ['nullable', 'string', 'max:4000'],
             'headings' => $text, 'headings.*' => ['nullable', 'string', 'max:500'],
             'subtitle' => $text, 'subtitle.*' => ['nullable', 'string', 'max:500'],
@@ -155,7 +156,11 @@ class CreateMessage
             'include_external_user_ids' => ['nullable', 'array', 'max:'.self::MAX_IDS],
             'include_aliases' => ['nullable', 'array'],
             'include_aliases.external_id' => ['nullable', 'array', 'max:'.self::MAX_IDS],
-            'target_channel' => ['nullable', 'in:push,email,sms'],
+            'target_channel' => ['nullable', 'in:push,email,sms,whatsapp'],
+            'whatsapp_template' => ['nullable', 'string', 'max:512'],
+            'whatsapp_language' => ['nullable', 'string', 'max:16'],
+            'whatsapp_variables' => ['nullable', 'array', 'max:20'],
+            'whatsapp_variables.*' => ['nullable', 'string', 'max:1024'],
             'include_phone_numbers' => ['nullable', 'array', 'max:'.self::MAX_IDS],
             'include_phone_numbers.*' => ['string', 'max:32'],
             'sms_from' => ['nullable', 'string', 'max:64'],
@@ -184,7 +189,7 @@ class CreateMessage
             'email_subject.required' => 'Email messages need an email_subject.',
             'email_body.required' => 'Email messages need an email_body.',
             'contents.required' => 'Message Notifications must have English language content',
-            'target_channel.in' => 'target_channel is push, email or sms.',
+            'target_channel.in' => 'target_channel is push, email, sms or whatsapp.',
         ])->after(function ($validator) use ($input) {
             if (($input['delayed_option'] ?? null) === 'timezone' && ! LocalTime::parse($input['delivery_time_of_day'] ?? null)) {
                 $validator->errors()->add('delivery_time_of_day', 'delivery_time_of_day must be a time of day like "9:00AM" when delayed_option is "timezone".');
@@ -214,9 +219,9 @@ class CreateMessage
             throw ValidationException::withMessages(['targeting' => 'You must include which players, segments, or tags you wish to send this notification to.']);
         }
 
-        if (self::channel($input) === 'sms') {
+        if (in_array(self::channel($input), ['sms', 'whatsapp'], true)) {
             return array_filter([
-                'channel' => 'sms',
+                'channel' => self::channel($input),
                 'subscription_ids' => $ids,
                 'external_ids' => $externalIds,
                 'phones' => $phones,
@@ -255,6 +260,9 @@ class CreateMessage
     /** push, email or sms (OneSignal target_channel, else guessed from the fields). */
     public static function channel(array $input): string
     {
+        if (($input['target_channel'] ?? null) === 'whatsapp') {
+            return 'whatsapp';
+        }
         if (($input['target_channel'] ?? null) === 'sms' || (! isset($input['target_channel']) && filled($input['include_phone_numbers'] ?? null))) {
             return 'sms';
         }

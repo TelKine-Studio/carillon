@@ -105,6 +105,9 @@ final class ComposerInput
         if ($request->input('channel') === 'sms') {
             $input = self::sms($request, $input);
         }
+        if ($request->input('channel') === 'whatsapp') {
+            $input = self::whatsApp($request, $input);
+        }
 
         if ($request->input('schedule') === 'timezone') {
             $input['delayed_option'] = 'timezone';
@@ -165,6 +168,34 @@ final class ComposerInput
         }
 
         return array_filter($kept, fn ($value) => $value !== null);
+    }
+
+    /**
+     * A WhatsApp template with its variables, or a text (24-hour window).
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
+    protected static function whatsApp(Request $request, array $input): array
+    {
+        $kept = self::sms($request, $input);
+        $kept['target_channel'] = 'whatsapp';
+        unset($kept['sms_media_urls']);
+        $kept['contents'] = filled($request->input('whatsapp_body')) ? ['en' => (string) $request->input('whatsapp_body')] : null;
+
+        if ($request->input('whatsapp_mode', 'template') === 'template' && filled($request->input('whatsapp_template'))) {
+            [$name, $language] = array_pad(explode('|', (string) $request->input('whatsapp_template'), 2), 2, null);
+            $kept['whatsapp_template'] = $name;
+            $kept['whatsapp_language'] = $language ?: 'fr';
+            $variables = (array) $request->input('whatsapp_variables', []);
+            // Numbered variables ({{1}}) are sent in order, named ones by name.
+            $kept['whatsapp_variables'] = array_is_list($variables) || collect(array_keys($variables))->every(fn ($key) => is_numeric($key))
+                ? array_values(array_map('strval', $variables))
+                : array_map('strval', $variables);
+            $kept['contents'] = filled($request->input('whatsapp_preview')) ? ['en' => (string) $request->input('whatsapp_preview')] : null;
+        }
+
+        return array_filter($kept, fn ($value) => $value !== null && $value !== []);
     }
 
     /** @return list<string> */

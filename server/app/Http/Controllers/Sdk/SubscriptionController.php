@@ -43,9 +43,11 @@ class SubscriptionController extends Controller
 
         $created = false;
         $subscription = DB::transaction(function () use ($project, $data, $token, &$created) {
+            // A phone number may be both an SMS and a WhatsApp subscription.
             $subscription = Subscription::query()
                 ->where('project_id', $project->id)
                 ->where('token_hash', hash('sha256', $token))
+                ->when(! in_array($data['type'], Subscription::PUSH_TYPES, true), fn ($q) => $q->where('type', $data['type']))
                 ->first();
 
             if (! $subscription) {
@@ -244,7 +246,7 @@ class SubscriptionController extends Controller
 
             return $email;
         }
-        if ($type === 'sms') {
+        if ($type === 'sms' || $type === 'whatsapp') {
             $phone = Phone::normalize($token);
             abort_unless($phone, 422, 'Invalid phone number: use the international format (+2250700000000).');
 
@@ -323,14 +325,35 @@ class SubscriptionController extends Controller
     /** Adds a phone number to the person of this device (OneSignal addSms). */
     public function addSms(Request $request, string $appId, string $id): JsonResponse
     {
+        return $this->addPhone($request, $appId, $id, 'sms');
+    }
+
+    /** Adds a WhatsApp number (the person agreed to receive messages there). */
+    public function addWhatsApp(Request $request, string $appId, string $id): JsonResponse
+    {
+        return $this->addPhone($request, $appId, $id, 'whatsapp');
+    }
+
+    public function removeSms(Request $request, string $appId, string $id): JsonResponse
+    {
+        return $this->removePhone($request, $appId, $id, 'sms');
+    }
+
+    public function removeWhatsApp(Request $request, string $appId, string $id): JsonResponse
+    {
+        return $this->removePhone($request, $appId, $id, 'whatsapp');
+    }
+
+    protected function addPhone(Request $request, string $appId, string $id, string $type): JsonResponse
+    {
         $device = $this->subscription($appId, $id);
         $request->validate(['phone_number' => ['required', 'string', 'max:32']]);
         $phone = Phone::normalize((string) $request->input('phone_number'));
         abort_unless($phone, 422, 'Invalid phone number: use the international format (+2250700000000).');
 
-        $subscription = Subscription::query()->firstOrNew(['project_id' => $device->project_id, 'token_hash' => hash('sha256', $phone)]);
+        $subscription = Subscription::query()->firstOrNew(['project_id' => $device->project_id, 'type' => $type, 'token_hash' => hash('sha256', $phone)]);
         $created = ! $subscription->exists;
-        $subscription->fill(['subscriber_id' => $device->subscriber_id, 'type' => 'sms', 'token' => $phone, 'invalid_at' => null, 'sdk' => $device->sdk]);
+        $subscription->fill(['subscriber_id' => $device->subscriber_id, 'type' => $type, 'token' => $phone, 'invalid_at' => null, 'sdk' => $device->sdk]);
         if ($created) {
             $subscription->enabled = true;
         }
@@ -344,7 +367,7 @@ class SubscriptionController extends Controller
     }
 
     /** Removes a phone number of the person (OneSignal removeSms). */
-    public function removeSms(Request $request, string $appId, string $id): JsonResponse
+    protected function removePhone(Request $request, string $appId, string $id, string $type): JsonResponse
     {
         $device = $this->subscription($appId, $id);
         $phone = Phone::normalize((string) $request->input('phone_number'));
@@ -352,7 +375,7 @@ class SubscriptionController extends Controller
         Subscription::query()
             ->where('project_id', $device->project_id)
             ->where('subscriber_id', $device->subscriber_id)
-            ->where('type', 'sms')
+            ->where('type', $type)
             ->when($phone, fn ($q) => $q->where('token_hash', hash('sha256', $phone)))
             ->delete();
 

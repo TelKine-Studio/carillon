@@ -105,6 +105,34 @@ of the project (*Settings → Platforms → Email*):
 Addresses are added with the SDKs (`addEmail`), the users API
 (`{"type": "Email", "token": "ada@example.com"}`) or the OneSignal import.
 
+## Send on WhatsApp
+
+WhatsApp messages go through the WhatsApp Cloud API of Meta (*Settings →
+Platforms → WhatsApp*: phone number id, business account id, token of a
+system user). Outside the 24-hour window after a reply of the person, only
+templates approved by Meta are delivered:
+
+```json
+{
+  "app_id": "…",
+  "target_channel": "whatsapp",
+  "included_segments": ["Subscribed Users"],
+  "whatsapp_template": "promo",
+  "whatsapp_language": "fr",
+  "whatsapp_variables": ["{{ tags.first_name | default: \"toi\" }}", "20"]
+}
+```
+
+- Named template variables: `"whatsapp_variables": {"first_name": "…"}`.
+- Within the 24-hour window, a text: `"contents": {"en": "…"}` without
+  `whatsapp_template`.
+- Audience: segments, filters, `include_aliases.external_id` or
+  `include_phone_numbers`. A number may be both an SMS and a WhatsApp
+  subscription; numbers WhatsApp refuses (not on WhatsApp, blocked, opted
+  out of marketing) are no longer targeted.
+- Numbers are added with the SDKs (`addWhatsApp`, once the person agreed), the
+  users API (subscription type `WhatsApp`) or an import.
+
 ## Huawei and Amazon devices
 
 Huawei phones without Google services and Amazon Fire devices receive the
