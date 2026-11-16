@@ -19,14 +19,86 @@
 <form method="POST" action="{{ route('projects.email.update', $project) }}" x-data="{ driver: @js($driver) }">
     @csrf
     @method('PUT')
-    <x-ui.card :title="__('Email')" :description="__('Send emails to your audience, with the service of your choice.')" icon="mail">
-        <x-slot:actions>
+    <x-settings.section :title="__('Email')" :description="__('Send emails to your audience, with the service of your choice.')" icon="mail"
+        :editable="$canConfigure" :empty="! $mail"
+        :fields="['driver', 'from_address', 'from_name', 'host', 'port', 'encryption', 'username', 'secret', 'aws_key_id', 'region', 'domain', 'message_stream', 'helo', 'rate', 'reply_to', 'tracking']">
+        <x-slot:status>
             @if ($mail?->isUsable())
                 <x-ui.badge color="green" dot>{{ \App\Http\Controllers\EmailSettingsController::label($mail->detail('driver')) }}</x-ui.badge>
             @else
                 <x-ui.badge color="zinc">{{ __('Not configured') }}</x-ui.badge>
             @endif
-        </x-slot:actions>
+        </x-slot:status>
+        <x-slot:summary>
+            @if ($mail)
+                <x-settings.summary>
+                    <x-settings.value :label="__('Sending method')" :value="$drivers[$mail->detail('driver')][0] ?? $mail->detail('driver')" />
+                    <x-settings.value :label="__('Sender')" :value="trim(($mail->detail('from_name') ? $mail->detail('from_name').' ' : '').'<'.$mail->detail('from_address').'>')" />
+                    @if ($mail->detail('driver') === 'smtp')
+                        <x-settings.value :label="__('Server')" :value="$mail->detail('host').($mail->detail('port') ? ':'.$mail->detail('port') : '')" mono />
+                    @elseif (in_array($mail->detail('driver'), ['ses', 'mailgun'], true))
+                        <x-settings.value :label="__('Region')" :value="$mail->detail('region')" mono />
+                    @endif
+                    @if ($mail->detail('domain'))
+                        <x-settings.value :label="__('Domain')" :value="$mail->detail('domain')" mono />
+                    @endif
+                    <x-settings.value :label="__('Open and click tracking')" :on="(bool) $mail->detail('tracking', true)" />
+                    <x-settings.value :label="__('Sending rate')" :value="$mail->detail('rate') ? trans_choice(':count email per second|:count emails per second', (int) $mail->detail('rate')) : null" :empty="__('Default of the service')" />
+                </x-settings.summary>
+                @if ($mail->isUsable())
+            <div class="mt-5 space-y-5 border-t border-zinc-100 pt-6 dark:border-zinc-800">
+                @if ($isDirect && $domain)
+                    <div>
+                        <p class="mb-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('DNS records of :domain', ['domain' => $domain]) }}</p>
+                        <p class="mb-3 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Add them at your domain registrar, so that receiving servers trust your emails.') }}</p>
+                        <div class="space-y-3">
+                            <x-ui.code :label="'DKIM · TXT · '.$mail->detail('dkim_selector').'._domainkey.'.$domain">{{ \App\Http\Controllers\EmailSettingsController::dkimRecord($mail) }}</x-ui.code>
+                            <x-ui.code :label="'SPF · TXT · '.$domain">v=spf1 a mx ip4:{{ __('IP_OF_THIS_SERVER') }} ~all</x-ui.code>
+                            <x-ui.code :label="'DMARC · TXT · _dmarc.'.$domain">v=DMARC1; p=none; rua=mailto:postmaster@{{ $domain }}</x-ui.code>
+                        </div>
+                    </div>
+                @endif
+
+                @if ($webhook)
+                    <div>
+                        <p class="mb-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Bounces and complaints') }}</p>
+                        <p class="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
+                            @switch($mail->detail('driver'))
+                                @case('resend') {{ __('In Resend → Webhooks, add this address with the email.bounced and email.complained events.') }} @break
+                                @case('postmark') {{ __('In Postmark → your server → Webhooks, add this address with Bounce and Spam complaint.') }} @break
+                                @case('mailgun') {{ __('In Mailgun → Webhooks, use this address for Permanent failure, Spam complaints and Unsubscribes.') }} @break
+                                @case('ses') {{ __('In Amazon SNS, create a topic with an HTTPS subscription to this address, then send the bounces and complaints of SES to it (confirmed automatically).') }} @break
+                            @endswitch
+                            {{ __('Dead addresses then stop receiving emails, which protects your reputation.') }}
+                        </p>
+                        <x-ui.code :label="__('Webhook address')">{{ $webhook }}</x-ui.code>
+                    </div>
+                @endif
+
+                @if ($canConfigure)
+                    <div>
+                        <p class="mb-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Send a test email') }}</p>
+                        <div class="flex flex-wrap items-start gap-2">
+                            <input form="email-test" type="email" name="to" required value="{{ auth()->user()->email }}" class="form-control min-w-0 flex-1 basis-56" aria-label="{{ __('Address') }}">
+                            <x-ui.button form="email-test" variant="secondary" icon="send">{{ __('Send') }}</x-ui.button>
+                            @if ($isDirect)
+                                <x-ui.button form="email-port" variant="secondary" icon="shield">{{ __('Check port 25') }}</x-ui.button>
+                            @endif
+                        </div>
+                        @if ($mail->last_error)
+                            <p class="mt-2 flex items-start gap-2 text-sm text-red-700 dark:text-red-400"><x-ui.icon name="alert" class="mt-0.5 size-4 shrink-0" />{{ $mail->last_error }}</p>
+                        @elseif ($mail->verified_at)
+                            <p class="mt-2 text-xs text-zinc-500">{{ __('Last test sent :date.', ['date' => $mail->verified_at->diffForHumans()]) }}</p>
+                        @endif
+                    </div>
+                @endif
+            </div>
+                @endif
+
+            @else
+                <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Choose how emails leave: SMTP, Resend, Amazon SES, Postmark, Mailgun or direct delivery.') }}</p>
+            @endif
+        </x-slot:summary>
 
         <fieldset @disabled(! $canConfigure) class="space-y-6">
             <div>
@@ -99,65 +171,12 @@
             </details>
         </fieldset>
 
-        @if ($mail?->isUsable())
-            <div class="mt-6 space-y-5 border-t border-zinc-100 pt-6 dark:border-zinc-800">
-                @if ($isDirect && $domain)
-                    <div>
-                        <p class="mb-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('DNS records of :domain', ['domain' => $domain]) }}</p>
-                        <p class="mb-3 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Add them at your domain registrar, so that receiving servers trust your emails.') }}</p>
-                        <div class="space-y-3">
-                            <x-ui.code :label="'DKIM · TXT · '.$mail->detail('dkim_selector').'._domainkey.'.$domain">{{ \App\Http\Controllers\EmailSettingsController::dkimRecord($mail) }}</x-ui.code>
-                            <x-ui.code :label="'SPF · TXT · '.$domain">v=spf1 a mx ip4:{{ __('IP_OF_THIS_SERVER') }} ~all</x-ui.code>
-                            <x-ui.code :label="'DMARC · TXT · _dmarc.'.$domain">v=DMARC1; p=none; rua=mailto:postmaster@{{ $domain }}</x-ui.code>
-                        </div>
-                    </div>
-                @endif
-
-                @if ($webhook)
-                    <div>
-                        <p class="mb-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Bounces and complaints') }}</p>
-                        <p class="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
-                            @switch($mail->detail('driver'))
-                                @case('resend') {{ __('In Resend → Webhooks, add this address with the email.bounced and email.complained events.') }} @break
-                                @case('postmark') {{ __('In Postmark → your server → Webhooks, add this address with Bounce and Spam complaint.') }} @break
-                                @case('mailgun') {{ __('In Mailgun → Webhooks, use this address for Permanent failure, Spam complaints and Unsubscribes.') }} @break
-                                @case('ses') {{ __('In Amazon SNS, create a topic with an HTTPS subscription to this address, then send the bounces and complaints of SES to it (confirmed automatically).') }} @break
-                            @endswitch
-                            {{ __('Dead addresses then stop receiving emails, which protects your reputation.') }}
-                        </p>
-                        <x-ui.code :label="__('Webhook address')">{{ $webhook }}</x-ui.code>
-                    </div>
-                @endif
-
-                @if ($canConfigure)
-                    <div>
-                        <p class="mb-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Send a test email') }}</p>
-                        <div class="flex flex-wrap items-start gap-2">
-                            <input form="email-test" type="email" name="to" required value="{{ auth()->user()->email }}" class="form-control min-w-0 flex-1 basis-56" aria-label="{{ __('Address') }}">
-                            <x-ui.button form="email-test" variant="secondary" icon="send">{{ __('Send') }}</x-ui.button>
-                            @if ($isDirect)
-                                <x-ui.button form="email-port" variant="secondary" icon="shield">{{ __('Check port 25') }}</x-ui.button>
-                            @endif
-                        </div>
-                        @if ($mail->last_error)
-                            <p class="mt-2 flex items-start gap-2 text-sm text-red-700 dark:text-red-400"><x-ui.icon name="alert" class="mt-0.5 size-4 shrink-0" />{{ $mail->last_error }}</p>
-                        @elseif ($mail->verified_at)
-                            <p class="mt-2 text-xs text-zinc-500">{{ __('Last test sent :date.', ['date' => $mail->verified_at->diffForHumans()]) }}</p>
-                        @endif
-                    </div>
-                @endif
-            </div>
+        @if ($mail)
+            <x-slot:danger>
+                <x-ui.button type="submit" form="remove-email" variant="ghost-danger" icon="trash" class="mr-auto">{{ __('Remove') }}</x-ui.button>
+            </x-slot:danger>
         @endif
-
-        @if ($canConfigure)
-            <x-slot:footer>
-                @if ($mail)
-                    <x-ui.button type="submit" form="remove-email" variant="ghost-danger" icon="trash" class="mr-auto">{{ __('Remove') }}</x-ui.button>
-                @endif
-                <x-ui.button>{{ __('Save') }}</x-ui.button>
-            </x-slot:footer>
-        @endif
-    </x-ui.card>
+    </x-settings.section>
 </form>
 
 <form id="email-test" method="POST" action="{{ route('projects.email.test', $project) }}" class="hidden">@csrf</form>

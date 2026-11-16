@@ -2,7 +2,16 @@
     <form method="POST" action="{{ route('projects.update', $project) }}" enctype="multipart/form-data">
         @csrf
         @method('PUT')
-        <x-ui.card :title="__('Project')" icon="settings">
+        <x-settings.section :title="__('Project')" icon="settings" :editable="$canConfigure" :fields="['name', 'icon']">
+            <x-slot:summary>
+                <div class="flex items-center gap-4">
+                    <x-ui.project-icon :project="$project" size="lg" />
+                    <x-settings.summary class="flex-1">
+                        <x-settings.value :label="__('Name')" :value="$project->name" />
+                        <x-settings.value :label="__('App ID')" :value="$project->app_id" mono />
+                    </x-settings.summary>
+                </div>
+            </x-slot:summary>
             <fieldset @disabled(! $canConfigure) class="space-y-6">
                 <x-ui.input name="name" :label="__('Name')" :value="$project->name" required maxlength="80" />
                 <div class="flex items-start gap-4">
@@ -15,17 +24,20 @@
                     </div>
                 </div>
             </fieldset>
-        </x-ui.card>
+        </x-settings.section>
 
-        <x-ui.card class="mt-6" :title="__('Defaults')" :description="__('Used when a message does not specify them.')" icon="sliders">
+        <x-settings.section class="mt-6" :title="__('Defaults')" :description="__('Used when a message does not specify them.')" icon="sliders" :editable="$canConfigure" :fields="['default_url', 'default_ttl']">
+            <x-slot:summary>
+                <x-settings.summary>
+                    <x-settings.value :label="__('Default link')" :value="$project->setting('default_url')" mono />
+                    <x-settings.value :label="__('Time to live')" :value="$project->setting('default_ttl') ? trans_choice(':count second|:count seconds', (int) $project->setting('default_ttl')) : null" :empty="__('3 days (default)')" />
+                </x-settings.summary>
+            </x-slot:summary>
             <fieldset @disabled(! $canConfigure) class="grid gap-5 sm:grid-cols-2">
                 <x-ui.input name="default_url" type="url" :label="__('Default link')" :value="$project->setting('default_url')" placeholder="https://" :hint="__('Opened when a notification without link is tapped (web).')" optional />
                 <x-ui.input name="default_ttl" type="number" min="0" max="2419200" :label="__('Time to live (seconds)')" :value="$project->setting('default_ttl')" placeholder="259200" :hint="__('How long Apple and Google keep trying to deliver to a device that is offline. 3 days by default.')" optional />
             </fieldset>
-            @if ($canConfigure)
-                <x-slot:footer><x-ui.button>{{ __('Save') }}</x-ui.button></x-slot:footer>
-            @endif
-        </x-ui.card>
+        </x-settings.section>
     </form>
 
     @can('delete', $project)

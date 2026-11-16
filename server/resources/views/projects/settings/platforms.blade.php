@@ -8,10 +8,23 @@
     <form method="POST" action="{{ route('projects.push.update', [$project, 'apns']) }}" enctype="multipart/form-data">
         @csrf
         @method('PUT')
-        <x-ui.card :title="__('iOS · Apple Push Notification service')" :description="__('A .p8 key of your Apple Developer account: one key works for all your apps and for both development and App Store builds.')" icon="apple">
-            <x-slot:actions>
+        <x-settings.section :title="__('iOS · Apple Push Notification service')" :description="__('A .p8 key of your Apple Developer account: one key works for all your apps and for both development and App Store builds.')" icon="apple"
+            :editable="$canConfigure" :empty="! $apns" :fields="['key_id', 'team_id', 'bundle_id', 'private_key']">
+            <x-slot:status>
                 @if ($apns?->isUsable())<x-ui.badge color="green" dot>{{ __('Configured') }}</x-ui.badge>@else<x-ui.badge color="zinc">{{ __('Not configured') }}</x-ui.badge>@endif
-            </x-slot:actions>
+            </x-slot:status>
+            <x-slot:summary>
+                @if ($apns)
+                    <x-settings.summary>
+                        <x-settings.value :label="__('Key ID')" :value="$apns->detail('key_id')" mono />
+                        <x-settings.value :label="__('Team ID')" :value="$apns->detail('team_id')" mono />
+                        <x-settings.value :label="__('Bundle ID')" :value="$apns->detail('bundle_id')" mono />
+                        <x-settings.value :label="__('Private key (.p8)')" :value="__('Stored (encrypted)')" />
+                    </x-settings.summary>
+                @else
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Add your Apple key to send notifications to iPhone and iPad.') }}</p>
+                @endif
+            </x-slot:summary>
             <fieldset @disabled(! $canConfigure) class="space-y-5">
                 <div class="grid gap-5 sm:grid-cols-2">
                     <x-ui.input name="key_id" :label="__('Key ID')" :value="old('key_id', $apns?->detail('key_id'))" placeholder="ABC123DEFG" maxlength="10" required />
@@ -32,54 +45,64 @@
                     <li>{{ __('Already using OneSignal? Reuse the same key: existing subscribers keep receiving notifications after migrating.') }}</li>
                 </ol>
             </details>
-            @if ($canConfigure)
-                <x-slot:footer>
-                    @if ($apns)
-                        <x-ui.button type="submit" form="remove-apns" variant="ghost-danger" icon="trash" class="mr-auto">{{ __('Remove') }}</x-ui.button>
-                    @endif
-                    <x-ui.button>{{ __('Save') }}</x-ui.button>
-                </x-slot:footer>
+            @if ($apns)
+                <x-slot:danger>
+                    <x-ui.button type="submit" form="remove-apns" variant="ghost-danger" icon="trash" class="mr-auto">{{ __('Remove') }}</x-ui.button>
+                </x-slot:danger>
             @endif
-        </x-ui.card>
+        </x-settings.section>
     </form>
 
     {{-- Android --}}
     <form method="POST" action="{{ route('projects.push.update', [$project, 'fcm']) }}" enctype="multipart/form-data">
         @csrf
         @method('PUT')
-        <x-ui.card :title="__('Android · Firebase Cloud Messaging')" :description="__('The service account key of the Firebase project of your Android app.')" icon="android">
-            <x-slot:actions>
+        <x-settings.section :title="__('Android · Firebase Cloud Messaging')" :description="__('The service account key of the Firebase project of your Android app.')" icon="android"
+            :editable="$canConfigure" :empty="! $fcm" :fields="['service_account']">
+            <x-slot:status>
                 @if ($fcm?->isUsable())<x-ui.badge color="green" dot>{{ __('Configured') }}</x-ui.badge>@else<x-ui.badge color="zinc">{{ __('Not configured') }}</x-ui.badge>@endif
-            </x-slot:actions>
-            @if ($fcm)
-                <dl class="mb-5 grid gap-3 rounded-xl border border-zinc-100 p-4 text-sm sm:grid-cols-2 dark:border-zinc-800">
-                    <div><dt class="text-xs text-zinc-500">{{ __('Firebase project') }}</dt><dd class="font-mono text-zinc-800 dark:text-zinc-200">{{ $fcm->detail('project_id') }}</dd></div>
-                    <div class="min-w-0"><dt class="text-xs text-zinc-500">{{ __('Service account') }}</dt><dd class="truncate font-mono text-zinc-800 dark:text-zinc-200">{{ $fcm->detail('client_email') }}</dd></div>
-                </dl>
-            @endif
+            </x-slot:status>
+            <x-slot:summary>
+                @if ($fcm)
+                    <x-settings.summary>
+                        <x-settings.value :label="__('Firebase project')" :value="$fcm->detail('project_id')" mono />
+                        <x-settings.value :label="__('Service account')" :value="$fcm->detail('client_email')" mono />
+                    </x-settings.summary>
+                @else
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Add the key of your Firebase project to send notifications to Android phones.') }}</p>
+                @endif
+            </x-slot:summary>
             <fieldset @disabled(! $canConfigure)>
                 <x-ui.file name="service_account" accept="application/json,.json" :label="$fcm ? __('Replace the service account (JSON)') : __('Service account (JSON)')" :placeholder="__('Choose the JSON file')"
                     :hint="__('Firebase console → Project settings → Service accounts → Generate new private key. Stored encrypted.')" />
             </fieldset>
-            @if ($canConfigure)
-                <x-slot:footer>
-                    @if ($fcm)
-                        <x-ui.button type="submit" form="remove-fcm" variant="ghost-danger" icon="trash" class="mr-auto">{{ __('Remove') }}</x-ui.button>
-                    @endif
-                    <x-ui.button>{{ __('Save') }}</x-ui.button>
-                </x-slot:footer>
+            @if ($fcm)
+                <x-slot:danger>
+                    <x-ui.button type="submit" form="remove-fcm" variant="ghost-danger" icon="trash" class="mr-auto">{{ __('Remove') }}</x-ui.button>
+                </x-slot:danger>
             @endif
-        </x-ui.card>
+        </x-settings.section>
     </form>
 
     {{-- Web --}}
     <form method="POST" action="{{ route('projects.push.update', [$project, 'webpush']) }}" x-data="{ custom: {{ $errors->hasAny(['public_key', 'private_key']) ? 'true' : 'false' }} }">
         @csrf
         @method('PUT')
-        <x-ui.card :title="__('Web · Push API')" :description="__('Notifications in Chrome, Edge, Firefox and Safari, with VAPID keys.')" icon="globe-web">
-            <x-slot:actions>
+        <x-settings.section :title="__('Web · Push API')" :description="__('Notifications in Chrome, Edge, Firefox and Safari, with VAPID keys.')" icon="globe-web"
+            :editable="$canConfigure" :empty="! $web" :fields="['subject', 'public_key', 'private_key']">
+            <x-slot:status>
                 @if ($web?->isUsable())<x-ui.badge color="green" dot>{{ __('Configured') }}</x-ui.badge>@else<x-ui.badge color="zinc">{{ __('Not configured') }}</x-ui.badge>@endif
-            </x-slot:actions>
+            </x-slot:status>
+            <x-slot:summary>
+                @if ($web)
+                    <x-settings.summary>
+                        <x-settings.value :label="__('Contact')" :value="$web->detail('subject')" />
+                        <x-settings.value :label="__('Public key (VAPID)')" :value="$web->detail('public_key')" mono wide />
+                    </x-settings.summary>
+                @else
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Set up web push to send notifications to the visitors of your website.') }}</p>
+                @endif
+            </x-slot:summary>
             <fieldset @disabled(! $canConfigure) class="space-y-5">
                 <x-ui.input name="subject" :label="__('Contact')" :value="old('subject', $web?->detail('subject') ?? 'mailto:'.auth()->user()->email)" required :hint="__('mailto: or https: address given to browser vendors in case of a problem.')" />
                 @if ($web)
@@ -94,15 +117,12 @@
                     <p class="text-xs text-zinc-500 sm:col-span-2">{{ __('Browsers subscribed with other keys must subscribe again: OneSignal does not export its web push keys.') }}</p>
                 </div>
             </fieldset>
-            @if ($canConfigure)
-                <x-slot:footer>
-                    @if ($web)
-                        <x-ui.button type="submit" form="remove-webpush" variant="ghost-danger" icon="trash" class="mr-auto">{{ __('Remove') }}</x-ui.button>
-                    @endif
-                    <x-ui.button>{{ __('Save') }}</x-ui.button>
-                </x-slot:footer>
+            @if ($web)
+                <x-slot:danger>
+                    <x-ui.button type="submit" form="remove-webpush" variant="ghost-danger" icon="trash" class="mr-auto">{{ __('Remove') }}</x-ui.button>
+                </x-slot:danger>
             @endif
-        </x-ui.card>
+        </x-settings.section>
     </form>
 
     @include('projects.settings.partials.email')
