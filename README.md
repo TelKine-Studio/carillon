@@ -5,80 +5,89 @@
   </picture>
 </p>
 
-<p align="center"><strong>Self-hosted, open-source push notifications — an alternative to OneSignal.</strong></p>
+<p align="center"><strong>Self-hosted, open-source messaging for your apps — an alternative to OneSignal.</strong></p>
 
-Push notifications are free at Apple (APNs) and Google (Firebase Cloud Messaging).
-Carillon lets you send them to all the apps of your team from your own server:
-no subscriber limits, no per-message bill, your data stays with you.
+<p align="center">
+  <a href="https://github.com/TelKine-Studio/carillon/actions/workflows/server.yml"><img src="https://github.com/TelKine-Studio/carillon/actions/workflows/server.yml/badge.svg" alt="Tests"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
+  <a href="docs/README.md"><img src="https://img.shields.io/badge/docs-read-orange" alt="Documentation"></a>
+</p>
 
-> 🚧 Work in progress. Available: projects and members, push keys per
-> project, the OneSignal-compatible REST API, the sending engine, the
-> dashboard, the Flutter SDK, delivery at local time, templates and
-> webhooks, the web SDK and the OneSignal import.
-
-## Features
-
-- **Projects**: one instance hosts all your apps, each with its own Apple,
-  Firebase and web push keys, API keys and members (owner, admin, editor,
-  viewer).
-- **Private by design**: no public sign-up, the administrator invites the
-  team; two-factor authentication, single sign-on (OpenID Connect) and an
-  audit log.
-- **Everything from the browser**: push keys, mail server and security are
-  configured in the interface, secrets are encrypted.
-- **One container**: a single Docker image (nginx, PHP-FPM, queue and
-  scheduler), SQLite or PostgreSQL, ready for Coolify.
-
-- **OneSignal-compatible API**: `POST /api/v1/notifications` with segments,
-  filters, external ids and device ids, localized contents, data, images,
-  buttons, scheduling, idempotency; users API to import your audience. See
-  [docs/api.md](docs/api.md).
-- **Sending engine**: Apple (HTTP/2, .p8 key), Firebase (HTTP v1) and web
-  push, in parallel batches of 500 devices, dead tokens disabled
-  automatically, statistics per platform (sent, failed, received, clicked).
-
-- **Dashboard**: message composer with live preview and audience estimate,
-  audience (people and devices, tags, test sends), segments with a filter
-  builder, statistics per message and per platform.
-- **Flutter SDK**: APNs on iOS (no Firebase there), FCM on Android, images,
-  buttons, clicks, users and tags, with the API of the OneSignal SDK. See
-  [sdk/carillon_flutter](sdk/carillon_flutter).
-
-- **Delivery at local time**: the same hour for everyone, in their time zone.
-- **Templates**: reusable contents, from the composer or with `template_id`.
-- **Webhooks**: signed events (message sent, received, clicked, new or
-  unsubscribed device) sent to your servers, with retries.
-
-- **Web SDK**: push notifications for websites, served by your instance.
-  See [sdk/web](sdk/web).
-
-- **Email channel**: newsletters and transactional emails to the same
-  audience, with personalization, open and click tracking, one-click
-  unsubscribe, bounces and complaints. Each instance chooses how emails
-  leave: SMTP, Resend, Amazon SES, Postmark, Mailgun, or direct delivery
-  from the server (DKIM included).
-- **Moving from OneSignal**: import the exported subscribers (they keep
-  receiving notifications), then follow
-  [docs/migrate-from-onesignal.md](docs/migrate-from-onesignal.md).
+Push notifications are free at Apple and Google. Carillon sends them — and
+emails, SMS and WhatsApp messages — to the users of all your apps from your
+own server: no subscriber limit, no bill per message, your data stays with
+you. It speaks the OneSignal API, so moving takes an afternoon.
 
 ## Install
 
-```bash
-docker run -d -p 8080:80 -v carillon-data:/data ghcr.io/telkine-studio/carillon:latest
-```
-
-Open the address in your browser: the setup creates the first administrator.
-
-With PostgreSQL (recommended for large audiences), use
-[docker-compose.postgres.yml](docker-compose.postgres.yml):
+On a server with Docker:
 
 ```bash
-POSTGRES_PASSWORD=change-me docker compose -f docker-compose.postgres.yml up -d
+curl -fsSL https://raw.githubusercontent.com/TelKine-Studio/carillon/main/install.sh | sh
 ```
 
-On Coolify, create a *Docker Compose* resource from this repository with
-`docker-compose.postgres.yml`, set `POSTGRES_PASSWORD`, and assign a domain
-to the `carillon` service (port 80).
+Open the address it prints: the setup creates the first administrator. Other
+ways (plain Docker, Coolify, PostgreSQL): [docs/installation.md](docs/installation.md).
+
+## What it does
+
+**Every channel, one audience**
+
+- Push to **iOS, Android, Huawei, Amazon Fire and the web**, with images,
+  buttons, deep links, sounds, badges, grouping and your own icon.
+- **Email** through SMTP, Resend, Amazon SES, Postmark, Mailgun or direct
+  delivery (DKIM), with a visual editor, tracking and one-click unsubscribe.
+- **SMS** with Twilio or the Orange SMS API, with the remaining balance in
+  sight; **WhatsApp** with the Cloud API of Meta and approved templates.
+- **In-app messages**: banners, pop-ups and full screens, with recipes and A/B
+  tests.
+
+**Sending well**
+
+- A composer with live preview, audience estimate and test sends; drafts,
+  templates, labels.
+- Delivery now, at a date, at the same local time for everyone or at the
+  **smart time** of each person.
+- **A/B tests**, a daily **frequency cap**, segments on tags, sessions,
+  events, money spent and clicks.
+- **Journeys**: automations triggered by a new device, inactivity, a tag or an
+  event, with waits, conditions, branches and sending hours.
+
+**Knowing what works**
+
+- Reports per message and per platform, from the delivery to the
+  **conversion** (events of your app attributed to the messages).
+- Statistics, **retention by cohort**, **who is online now**, a weekly email
+  summary.
+
+**Yours**
+
+- One instance for all your apps, each project with its own keys, API keys
+  and members; invitations only, 2FA, single sign-on, audit log.
+- Configured from the browser, secrets encrypted; one Docker image, SQLite or
+  PostgreSQL.
+- **OneSignal-compatible REST API** and SDKs with the OneSignal API; the
+  import and nightly sync of a OneSignal app keep the old app version
+  reachable during the move.
+
+A tour of every screen: [docs/features.md](docs/features.md).
+
+## SDKs
+
+| | |
+|---|---|
+| [Flutter](sdk/carillon_flutter) | iOS (APNs, no Firebase needed), Android (FCM), Huawei, Amazon; users, tags, events, in-app messages. |
+| [Web](sdk/web) | Web push for Chrome, Edge, Firefox, Safari; in-app messages. Served by your instance. |
+| [REST API](docs/api.md) | Any backend: notifications, users, templates, events, webhooks. |
+
+## Documentation
+
+[Installation](docs/installation.md) ·
+[Channels](docs/channels.md) ·
+[Features](docs/features.md) ·
+[API](docs/api.md) ·
+[Moving from OneSignal](docs/migrate-from-onesignal.md) ·
+[Operations](docs/operations.md)
 
 ## Development
 
@@ -89,6 +98,10 @@ cp .env.example .env && php artisan key:generate
 touch database/database.sqlite && php artisan migrate
 composer run dev
 ```
+
+Tests: `php artisan test` (SQLite) — the CI also runs them on PostgreSQL.
+Contributions are welcome: [CONTRIBUTING.md](CONTRIBUTING.md). Security
+issues: [SECURITY.md](SECURITY.md).
 
 ## License
 

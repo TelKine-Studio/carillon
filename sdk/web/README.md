@@ -44,6 +44,16 @@ await Carillon.logout();
 await Carillon.user.addTags({ plan: 'pro' });
 await Carillon.user.removeTag('plan');
 await Carillon.user.addEmail('ada@example.com'); // email channel (once subscribed)
+await Carillon.user.addSms('+2250700000000');     // SMS channel
+await Carillon.user.addWhatsApp('+2250700000000'); // WhatsApp, once the visitor agreed
+
+// Events: start journeys, show in-app messages, count as conversions.
+await Carillon.user.trackEvent('purchase', { value: 5000 });
+await Carillon.session.addOutcomeWithValue('purchase', 5000);
+
+// In-app messages designed in Carillon (banners, pop-ups).
+Carillon.inAppMessages.paused = true; // e.g. during a checkout
+Carillon.inAppMessages.addClickListener((messageId, button) => {});
 
 Carillon.notifications.addClickListener(({ notification, actionId }) => {
   // notification.data, notification.url…
@@ -66,5 +76,10 @@ serves `carillon.js`), `serviceWorkerPath` (`/carillon-sw.js`),
   (statistics and webhooks).
 - A click opens the link (or focuses an open page of the site) and reaches
   the click listeners, also when it opens a new tab.
+- Shows the in-app messages of the project (when the page opens or after an
+  event), with their delay and frequency, isolated from the styles of the
+  site.
+- Sends a sign of life every minute while the page is visible, for "online
+  now" in the dashboard.
 
 See [example](example) for a page using every feature.

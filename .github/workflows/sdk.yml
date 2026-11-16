@@ -1,0 +1,38 @@
+name: SDKs
+
+on:
+  push:
+    branches: [main]
+    paths: ['sdk/**', 'server/public/sdk/**', '.github/workflows/sdk.yml']
+  pull_request:
+    paths: ['sdk/**', 'server/public/sdk/**', '.github/workflows/sdk.yml']
+
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdk/carillon_flutter
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Format
+        run: dart format --output=none --set-exit-if-changed lib
+      - name: Analyze
+        run: flutter analyze
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax of the web SDK
+        run: |
+          node --check server/public/sdk/carillon.js
+          node --check server/public/sdk/carillon-sw.js

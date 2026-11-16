@@ -40,7 +40,7 @@ LABEL org.opencontainers.image.title="Carillon" \
 ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
 
 RUN apk add --no-cache nginx supervisor su-exec curl tini \
-    && install-php-extensions bcmath gmp intl opcache pcntl pdo_mysql pdo_pgsql zip \
+    && install-php-extensions bcmath gmp intl opcache pcntl pdo_mysql pdo_pgsql redis zip \
     && cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
 COPY docker/php.ini $PHP_INI_DIR/conf.d/zz-carillon.ini
