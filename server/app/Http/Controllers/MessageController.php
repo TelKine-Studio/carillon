@@ -38,9 +38,7 @@ class MessageController extends Controller
             ->with('author')
             ->when(in_array($status, Message::STATUSES, true), fn ($q) => $q->where('status', $status))
             ->when($search !== '', fn ($q) => $q->where(fn ($q) => $q
-                ->where('name', 'like', "%{$search}%")
-                ->orWhere('contents', 'like', "%{$search}%")
-                ->orWhere('headings', 'like', "%{$search}%")))
+                ->whereContains(['name', 'contents', 'headings'], $search)))
             ->latest()
             ->paginate(20)
             ->withQueryString();

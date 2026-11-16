@@ -10,6 +10,7 @@ use App\Models\Subscription;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -32,9 +33,10 @@ class SubscriberController extends Controller
             ->when($state === 'unsubscribed', fn (Builder $q) => $q->where('enabled', false))
             ->when($state === 'invalid', fn (Builder $q) => $q->whereNotNull('invalid_at'))
             ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $q) => $q
-                ->where('subscriptions.id', $search)
-                ->orWhereHas('subscriber', fn (Builder $s) => $s->where('external_id', 'like', "%{$search}%")->orWhere('tags', 'like', "%{$search}%"))
-                ->orWhere('device_model', 'like', "%{$search}%")))
+                // A device id is a UUID: PostgreSQL refuses to compare it to any other text.
+                ->when(Str::isUuid($search), fn (Builder $q) => $q->orWhere('subscriptions.id', $search))
+                ->orWhereHas('subscriber', fn (Builder $s) => $s->whereContains(['external_id', 'tags'], $search))
+                ->orWhereContains(['device_model', 'test_name'], $search)))
             ->latest('last_active_at')
             ->paginate(25)
             ->withQueryString();

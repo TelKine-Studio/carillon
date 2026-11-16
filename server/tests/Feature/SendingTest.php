@@ -431,4 +431,20 @@ class SendingTest extends TestCase
         $this->actingAs($owner)->delete(route('projects.test-devices.destroy', [$this->project, $phone]))->assertRedirect();
         $this->assertFalse(Subscription::find($phone)->is_test);
     }
+
+    public function test_searches_work_on_any_column_type_and_ignore_case(): void
+    {
+        $owner = $this->project->members()->first();
+        $id = $this->device('ios', 'my-phone', ['external_id' => 'LKAO-42', 'tags' => ['city' => 'Abidjan']]);
+        $this->api()->postJson('/api/v1/notifications', ['included_segments' => ['All'], 'headings' => ['en' => 'Soldes'], 'contents' => ['en' => 'Promo du jour']]);
+
+        // Not a UUID, part of an external id, a tag, any case.
+        foreach (['lkao', 'abidjan', $id] as $term) {
+            $this->actingAs($owner)->get(route('projects.subscribers.index', [$this->project, 'q' => $term]))->assertOk()->assertSee('LKAO-42');
+        }
+        $this->actingAs($owner)->get(route('projects.subscribers.index', [$this->project, 'q' => '100%_']))->assertOk()->assertDontSee('LKAO-42');
+        $this->actingAs($owner)->get(route('projects.messages.index', [$this->project, 'q' => 'PROMO']))->assertOk()->assertSee('Soldes');
+        $this->actingAs($owner)->get(route('admin.audit', ['q' => 'shop']))->assertOk();
+        $this->actingAs($owner)->get(route('admin.users.index', ['q' => 'ZZZ']))->assertOk();
+    }
 }
