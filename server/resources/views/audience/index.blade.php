@@ -13,7 +13,7 @@
     <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <x-ui.stat :label="__('Subscribed devices')" :value="$n($totals['subscribed'])" icon="smartphone" />
         <x-ui.stat :label="__('People')" :value="$n($totals['people'])" icon="users" />
-        <x-ui.stat :label="__('Identified')" :value="$n($totals['identified'])" icon="key" :hint="__('With an external id')" />
+        <x-ui.stat :label="__('Identified')" :value="$n($totals['identified'])" icon="key" :hint="$totals['duplicates'] ? trans_choice(':count with several devices on one platform|:count with several devices on one platform', $totals['duplicates'], ['count' => $n($totals['duplicates'])]) : __('With an external id')" />
         <x-ui.stat :label="__('Active this week')" :value="$n($totals['active'])" icon="clock" />
     </div>
 

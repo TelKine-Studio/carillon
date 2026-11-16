@@ -2105,5 +2105,6 @@
     "google-services.json (optional)": "google-services.json (facultatif)",
     "With it, the Carillon SDK sets Firebase up by itself: the apps need neither this file nor the Google services Gradle plugin.": "Avec lui, le SDK Carillon configure Firebase tout seul : les apps n’ont besoin ni de ce fichier ni du greffon Gradle Google services.",
     "This is not a google-services.json file of an Android app.": "Ce n’est pas un fichier google-services.json d’une app Android.",
-    "This file belongs to the Firebase project :other, not :project.": "Ce fichier appartient au projet Firebase :other, pas à :project."
+    "This file belongs to the Firebase project :other, not :project.": "Ce fichier appartient au projet Firebase :other, pas à :project.",
+    ":count with several devices on one platform|:count with several devices on one platform": ":count avec plusieurs appareils sur une plateforme|:count avec plusieurs appareils sur une plateforme"
 }

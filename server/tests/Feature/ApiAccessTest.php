@@ -54,7 +54,12 @@ class ApiAccessTest extends TestCase
         }
 
         $this->getJson("/api/v1/apps/{$this->project->app_id}/stats", ['Authorization' => 'Key '.$key])->assertOk()
-            ->assertJsonPath('devices', 4)->assertJsonPath('legacy', 3)->assertJsonPath('carillon_sdk', 1)->assertJsonPath('legacy_share', 75);
+            ->assertJsonPath('devices', 4)->assertJsonPath('legacy', 3)->assertJsonPath('carillon_sdk', 1)->assertJsonPath('legacy_share', 75)
+            ->assertJsonPath('duplicates', 0);
+
+        // A person with two reachable Android devices (old install left behind).
+        $subscriber->forceFill(['external_id' => 'u1'])->save();
+        $this->getJson("/api/v1/apps/{$this->project->app_id}/stats", ['Authorization' => 'Key '.$key])->assertJsonPath('duplicates', 1);
     }
 
     public function test_a_failing_sync_is_told_by_webhook_once(): void

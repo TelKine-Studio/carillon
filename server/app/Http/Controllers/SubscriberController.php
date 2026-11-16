@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\CreateMessage;
+use App\Audience\Duplicates;
 use App\Journeys\JourneyRunner;
 use App\Models\CustomEvent;
 use App\Models\Delivery;
@@ -84,6 +85,7 @@ class SubscriberController extends Controller
                 'devices' => (clone $base)->count(),
                 'people' => $project->subscribers()->count(),
                 'identified' => $project->subscribers()->whereNotNull('external_id')->count(),
+                'duplicates' => Duplicates::count($project),
                 'active' => (clone $base)->where('last_active_at', '>=', now()->subDays(7))->count(),
             ],
         ]);

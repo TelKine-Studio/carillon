@@ -215,7 +215,9 @@ settings).
 - `GET /api/v1/apps/{app_id}/stats` — reachable devices (`devices`,
   `platforms`), how many still run the OneSignal SDK (`legacy`,
   `legacy_share` in %, `carillon_sdk`), email, SMS and WhatsApp
-  subscriptions, people online now, state of the OneSignal sync. The figure to
+  subscriptions, people online now, `duplicates` (people reachable on several
+  devices of one platform: a rising figure means old installs pile up), state
+  of the OneSignal sync. The figure to
   watch before switching OneSignal off.
 - `DELETE /api/v1/notifications/{id}` — cancels a scheduled notification
   (or the time zones not reached yet of a local time delivery).

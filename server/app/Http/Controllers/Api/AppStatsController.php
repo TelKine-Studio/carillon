@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Audience\Duplicates;
 use App\Audience\Presence;
 use App\Http\Controllers\Controller;
 use App\Models\OneSignalSync;
@@ -41,6 +42,8 @@ class AppStatsController extends Controller
                 'whatsapp' => (clone $reachable)->where('type', 'whatsapp')->count(),
             ],
             'online' => Presence::now($project)['people'],
+            // People reachable on several devices of one platform: a rising figure means old installs pile up.
+            'duplicates' => Duplicates::count($project),
             'onesignal_sync' => $sync ? array_filter([
                 'last_synced_at' => $sync->last_synced_at?->toIso8601String(),
                 'last_error' => $sync->last_error,

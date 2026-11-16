@@ -139,8 +139,11 @@ class NotificationService: CarillonNotificationService {}
 ```
 
 The extension now follows the SDK: when you move `carillon_flutter` to a new
-revision, move the package to the same one (`CarillonNotificationService.version`
-and `Carillon.sdkVersion` let a test check that they match). Without Swift
+revision, move the package to the same one. To check it in CI, compare the
+revisions, not the versions (a version stays the same across commits): the
+`ref` of `carillon_flutter` in `pubspec.yaml` with the `revision` of
+`carillon` in `ios/Runner.xcworkspace/xcshareddata/swiftpm/Package.resolved`
+— two committed files, readable without network. Without Swift
 packages, copy
 [`ios/CarillonExtension/Sources/CarillonExtension/CarillonNotificationService.swift`](ios/CarillonExtension/Sources/CarillonExtension/CarillonNotificationService.swift)
 instead and rename its class `NotificationService`.
