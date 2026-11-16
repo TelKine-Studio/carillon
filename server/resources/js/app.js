@@ -271,13 +271,24 @@ Alpine.data('dropdownMenu', (floating = true) => ({
             Object.assign(menu.style, {
                 position: 'fixed',
                 marginTop: '0',
-                top: up ? 'auto' : `${box.bottom + 8}px`,
-                bottom: up ? `${window.innerHeight - box.top + 8}px` : 'auto',
-                left: alignRight ? 'auto' : `${box.left}px`,
-                right: alignRight ? `${window.innerWidth - box.right}px` : 'auto',
+                right: 'auto',
+                bottom: 'auto',
                 // A full-width menu keeps the width of its button.
                 width: menu.classList.contains('w-full') ? `${box.width}px` : '',
             });
+            const width = menu.offsetWidth;
+            const height = menu.offsetHeight;
+            const left = alignRight ? box.right - width : box.left;
+            const top = up ? box.top - 8 - height : box.bottom + 8;
+            // An ancestor with a transform or a backdrop filter (the blurred
+            // sidebar) moves "fixed" elements: a probe at 0,0 gives the offset.
+            const probe = document.createElement('div');
+            probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden';
+            menu.parentElement.appendChild(probe);
+            const origin = probe.getBoundingClientRect();
+            probe.remove();
+            menu.style.left = `${left - origin.left}px`;
+            menu.style.top = `${top - origin.top}px`;
         });
         const close = () => {
             this.open = false;
