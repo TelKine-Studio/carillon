@@ -52,6 +52,65 @@
                 </form>
             </x-ui.card>
 
+            <form method="POST" action="{{ route('projects.onesignal-sync.update', $project) }}">
+                @csrf
+                @method('PUT')
+                <x-settings.section :title="__('Automatic sync')" :description="__('While your app still runs the OneSignal SDK, new installs subscribe at OneSignal. Carillon fetches them every night with the OneSignal API.')" icon="refresh"
+                    :empty="! $sync" :fields="['onesignal_app_id', 'onesignal_api_key', 'onesignal_enabled']">
+                    @if ($sync)
+                        <x-slot:status>
+                            @if ($sync->isRunning())
+                                <x-ui.badge color="blue" dot>{{ __('In progress') }}</x-ui.badge>
+                            @elseif ($sync->last_error)
+                                <x-ui.badge color="red" dot>{{ __('Failed') }}</x-ui.badge>
+                            @elseif ($sync->enabled)
+                                <x-ui.badge color="green" dot>{{ __('Every night') }}</x-ui.badge>
+                            @else
+                                <x-ui.badge>{{ __('Paused') }}</x-ui.badge>
+                            @endif
+                        </x-slot:status>
+                    @endif
+                    <x-slot:summary>
+                        @if ($sync)
+                            <x-settings.summary>
+                                <x-settings.value :label="__('OneSignal App ID')" :value="$sync->app_id" mono />
+                                <x-settings.value :label="__('REST API key')" :value="__('Stored (encrypted)')" />
+                                <x-settings.value :label="__('Every night')" :on="$sync->enabled" />
+                                <x-settings.value :label="__('Last sync')" :value="$sync->last_synced_at?->diffForHumans()" :empty="__('Never')" />
+                            </x-settings.summary>
+                            @if ($sync->last_error)
+                                <p class="mt-4 flex items-start gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-800 dark:bg-red-500/10 dark:text-red-300"><x-ui.icon name="alert" class="mt-0.5 size-4 shrink-0" />{{ $sync->last_error }}</p>
+                            @endif
+                            <div class="mt-4 flex flex-wrap gap-2">
+                                <x-ui.button type="submit" form="onesignal-sync-run" variant="secondary" size="sm" icon="refresh" :disabled="$sync->isRunning()">{{ __('Sync now') }}</x-ui.button>
+                            </div>
+                        @else
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('No more manual exports: give Carillon the REST API key of your OneSignal app.') }}</p>
+                        @endif
+                    </x-slot:summary>
+                    <div class="space-y-5">
+                        <x-ui.input name="onesignal_app_id" :label="__('OneSignal App ID')" :value="old('onesignal_app_id', $sync?->app_id)" placeholder="e5b9d8a5-…" required autocomplete="off" />
+                        <x-ui.input name="onesignal_api_key" type="password" :label="__('REST API key')" autocomplete="new-password" :required="! $sync"
+                            :placeholder="$sync ? '••••••••' : 'os_v2_app_…'"
+                            :hint="$sync ? __('Leave empty to keep the current key.') : __('OneSignal → Settings → Keys & IDs. Stored encrypted.')" />
+                        <x-ui.toggle name="onesignal_enabled" :checked="$sync?->enabled ?? true" :label="__('Every night')" :description="__('Imports the subscribers at 3:30. Devices already known are updated, never duplicated.')" />
+                    </div>
+                    @if ($sync)
+                        <x-slot:danger>
+                            <x-ui.button type="submit" form="onesignal-sync-remove" variant="ghost-danger" icon="trash" class="mr-auto">{{ __('Remove') }}</x-ui.button>
+                        </x-slot:danger>
+                    @endif
+                </x-settings.section>
+            </form>
+            @if ($sync)
+                <form id="onesignal-sync-run" method="POST" action="{{ route('projects.onesignal-sync.run', $project) }}" class="hidden">@csrf</form>
+                <form id="onesignal-sync-remove" method="POST" action="{{ route('projects.onesignal-sync.destroy', $project) }}" class="hidden"
+                    data-confirm-title="{{ __('Remove the automatic sync?') }}" data-confirm="{{ __('The OneSignal key is deleted. Subscribers already imported stay.') }}" data-confirm-action="{{ __('Remove') }}">
+                    @csrf
+                    @method('DELETE')
+                </form>
+            @endif
+
             <x-ui.card :title="__('Imports')" icon="refresh" :padding="false">
                 <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
                     @forelse ($imports as $import)

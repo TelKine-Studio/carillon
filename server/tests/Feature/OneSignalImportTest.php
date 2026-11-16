@@ -3,11 +3,16 @@
 namespace Tests\Feature;
 
 use App\Enums\ProjectRole;
+use App\Jobs\SyncOneSignal;
 use App\Models\AudienceImport;
+use App\Models\OneSignalSync;
 use App\Models\Project;
+use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -119,5 +124,62 @@ class OneSignalImportTest extends TestCase
         $this->actingAs($this->owner)
             ->post(route('projects.imports.store', $this->project), ['file' => UploadedFile::fake()->create('photo.png', 10)])
             ->assertSessionHasErrors('file');
+    }
+
+    public function test_automatic_sync_fetches_the_export_through_the_onesignal_api(): void
+    {
+        $content = gzencode($this->csv([
+            ['id', 'identifier', 'session_count', 'language', 'timezone', 'game_version', 'device_os', 'device_type', 'device_model', 'tags', 'last_active', 'created_at', 'invalid_identifier', 'external_user_id', 'notification_types', 'test_type'],
+            ['p1', str_repeat('ab', 32), '4', 'fr', '0', '1.0.0', '18', '0', 'iPhone', '', '', '', 'f', 'user-7', '1', ''],
+            ['p2', 'fcm-token-new', '1', 'fr', '0', '1.0.0', '14', '1', 'Pixel', '', '', '', 'f', '', '1', ''],
+        ]));
+        $ready = false;
+        Http::fake([
+            'api.onesignal.com/players/csv_export*' => Http::response(['csv_file_url' => 'https://onesignal-exports.example.com/export.csv.gz']),
+            'onesignal-exports.example.com/*' => function () use (&$ready, $content) {
+                return $ready ? Http::response($content) : Http::response('not ready', 404);
+            },
+        ]);
+
+        $this->actingAs($this->owner)->put(route('projects.onesignal-sync.update', $this->project), [
+            'onesignal_app_id' => 'e5b9d8a5-e094-43c5-a62a-74929ae9349b',
+            'onesignal_api_key' => 'os_v2_app_secret',
+            'onesignal_enabled' => '1',
+        ])->assertSessionHasNoErrors();
+
+        // Export requested with the key, file not ready yet: still waiting.
+        Http::assertSent(fn (HttpRequest $request) => str_contains($request->url(), 'csv_export?app_id=e5b9d8a5')
+            && $request->header('Authorization') === ['Key os_v2_app_secret']
+            && in_array('external_user_id', $request['extra_fields'], true));
+        $sync = OneSignalSync::query()->firstOrFail();
+        $this->assertTrue($sync->isRunning());
+        $this->assertSame(0, Subscription::count());
+        $this->assertNotSame('os_v2_app_secret', \DB::table('onesignal_syncs')->value('api_key'));
+
+        // The file is ready at the next check: imported like a manual export.
+        $ready = true;
+        (new SyncOneSignal($sync->id))->handle();
+
+        $this->assertFalse($sync->fresh()->isRunning());
+        $this->assertNotNull($sync->fresh()->last_synced_at);
+        $this->assertSame(2, Subscription::count());
+        $this->assertSame('onesignal-sync', AudienceImport::query()->value('source'));
+        $this->assertSame('done', AudienceImport::query()->value('status'));
+        $this->actingAs($this->owner)->get(route('projects.imports.create', $this->project))->assertOk()->assertSee('e5b9d8a5-e094-43c5-a62a-74929ae9349b');
+    }
+
+    public function test_automatic_sync_reports_a_refused_key(): void
+    {
+        Http::fake(['api.onesignal.com/*' => Http::response(['errors' => ['Access denied. Please include an Authorization header.']], 403)]);
+
+        $this->actingAs($this->owner)->put(route('projects.onesignal-sync.update', $this->project), [
+            'onesignal_app_id' => 'e5b9d8a5', 'onesignal_api_key' => 'wrong', 'onesignal_enabled' => '1',
+        ]);
+
+        $sync = OneSignalSync::query()->firstOrFail();
+        $this->assertFalse($sync->isRunning());
+        $this->assertStringContainsString('403', $sync->last_error);
+        $this->assertStringContainsString('Access denied', $sync->last_error);
+        Http::assertSent(fn (HttpRequest $request) => $request->header('Authorization') === ['Basic wrong']);
     }
 }

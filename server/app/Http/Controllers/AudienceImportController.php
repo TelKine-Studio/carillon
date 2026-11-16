@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Jobs\ImportAudience;
 use App\Models\AudienceImport;
+use App\Models\OneSignalSync;
 use App\Models\Project;
 use App\Support\Audit;
 use Illuminate\Http\JsonResponse;
@@ -20,6 +21,7 @@ class AudienceImportController extends Controller
 
         return view('audience.import', [
             'project' => $project->load('credentials'),
+            'sync' => OneSignalSync::query()->where('project_id', $project->id)->first(),
             'imports' => AudienceImport::query()->where('project_id', $project->id)->with('user')->latest('id')->limit(10)->get(),
         ]);
     }

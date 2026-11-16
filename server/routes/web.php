@@ -14,6 +14,7 @@ use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\EmailSettingsController;
 use App\Http\Controllers\EmailTrackingController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\OneSignalSyncController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectMemberController;
@@ -85,6 +86,9 @@ Route::middleware('auth')->group(function () {
         Route::get('audience/import', [AudienceImportController::class, 'create'])->name('imports.create');
         Route::post('audience/import', [AudienceImportController::class, 'store'])->name('imports.store');
         Route::get('audience/import/{import}', [AudienceImportController::class, 'show'])->whereNumber('import')->name('imports.show');
+        Route::put('audience/sync', [OneSignalSyncController::class, 'update'])->name('onesignal-sync.update');
+        Route::post('audience/sync', [OneSignalSyncController::class, 'run'])->name('onesignal-sync.run');
+        Route::delete('audience/sync', [OneSignalSyncController::class, 'destroy'])->name('onesignal-sync.destroy');
         Route::get('audience/{subscriber}', [SubscriberController::class, 'show'])->name('subscribers.show');
         Route::put('audience/{subscriber}/tags', [SubscriberController::class, 'updateTags'])->name('subscribers.tags');
         Route::post('audience/{subscriber}/test', [SubscriberController::class, 'test'])->name('subscribers.test');
