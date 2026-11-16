@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Sdk;
 use App\Audience\Conversions;
 use App\Audience\Events;
 use App\Audience\Identity;
+use App\Audience\Presence;
 use App\Http\Controllers\Controller;
 use App\Journeys\JourneyRunner;
 use App\Models\Project;
@@ -106,6 +107,7 @@ class SubscriptionController extends Controller
         if ($request->boolean('session')) {
             $subscription->sessions++;
             $subscription->last_active_at = now();
+            $subscription->seen_at = now();
         }
         $subscription->save();
         $this->applyPerson($subscription->subscriber, $data);
@@ -318,6 +320,15 @@ class SubscriptionController extends Controller
             ->where('type', 'email')
             ->when($email, fn ($q) => $q->where('token_hash', hash('sha256', $email)))
             ->delete();
+
+        return response()->json(['success' => true]);
+    }
+
+    /** The app is open (sent every minute in the foreground): "online now". */
+    public function heartbeat(string $appId, string $id): JsonResponse
+    {
+        $subscription = $this->subscription($appId, $id);
+        Presence::seen($subscription);
 
         return response()->json(['success' => true]);
     }

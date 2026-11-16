@@ -34,7 +34,32 @@
     @php
         $n = fn ($v) => number_format((int) $v, 0, ',', ' ');
         $ctr = $stats['delivered'] > 0 ? number_format($stats['clicked'] / $stats['delivered'] * 100, 1, ',', ' ').' %' : '—';
+        $everSeen = $project->subscriptions()->whereNotNull('seen_at')->exists();
+        $presence = \App\Audience\Presence::now($project);
     @endphp
+    {{-- Online now: heartbeats of the Carillon SDK, refreshed every 10 seconds. --}}
+    <div class="card mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 p-5" x-data="{ live: @js($presence), timer: null,
+        async refresh() { try { const r = await fetch(@js(route('projects.live', $project)), { headers: { Accept: 'application/json' } }); if (r.ok) this.live = await r.json(); } catch {} },
+        init() { this.timer = setInterval(() => document.visibilityState === 'visible' && this.refresh(), 10000); },
+        destroy() { clearInterval(this.timer); } }">
+        <span class="relative flex size-3">
+            <span class="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-60" x-show="live.online > 0"></span>
+            <span class="relative inline-flex size-3 rounded-full" :class="live.online > 0 ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600'"></span>
+        </span>
+        <div>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Online now') }}</p>
+            <p class="text-2xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-white"><span x-text="live.people.toLocaleString('fr-FR')">{{ $n($presence['people']) }}</span> <span class="text-sm font-normal text-zinc-500">{{ __('people') }}</span></p>
+        </div>
+        <div class="flex flex-wrap gap-2 text-xs">
+            @foreach (['ios' => 'iOS', 'android' => 'Android', 'huawei' => 'Huawei', 'amazon' => 'Amazon', 'web' => 'Web'] as $key => $label)
+                <span x-show="live.platforms.{{ $key }}" x-cloak class="rounded-md bg-zinc-100 px-2 py-1 text-zinc-600 dark:bg-white/5 dark:text-zinc-300">{{ $label }} <strong class="font-semibold tabular-nums text-zinc-900 dark:text-white" x-text="live.platforms.{{ $key }}"></strong></span>
+            @endforeach
+        </div>
+        @unless ($everSeen)
+            <p class="w-full text-xs text-zinc-500 sm:ml-auto sm:w-auto">{{ __('Counted with the Carillon SDK (the app sends a sign of life every minute while it is open).') }}</p>
+        @endunless
+    </div>
+
     <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <x-ui.stat :label="__('Subscribed devices')" :value="$n($stats['devices'])" icon="smartphone" :href="route('projects.subscribers.index', $project)"
             :hint="collect(['ios' => 'iOS', 'android' => 'Android', 'huawei' => 'Huawei', 'amazon' => 'Amazon', 'web' => 'Web', 'email' => __('Email'), 'sms' => 'SMS', 'whatsapp' => 'WhatsApp'])->filter(fn ($l, $k) => $stats['platforms'][$k] ?? 0)->map(fn ($l, $k) => $l.' '.$n($stats['platforms'][$k]))->implode(' · ') ?: null" />

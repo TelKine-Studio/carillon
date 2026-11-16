@@ -1,5 +1,6 @@
 <?php
 
+use App\Audience\Presence;
 use App\Http\Controllers\AbTestController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\InvitationController;
@@ -30,6 +31,8 @@ use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\TestDeviceController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Middleware\RequireTwoFactor;
+use App\Models\Project;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 
 // Links inside the emails (signed, no account).
@@ -81,6 +84,11 @@ Route::middleware('auth')->group(function () {
         Route::delete('/', [ProjectController::class, 'destroy'])->name('destroy');
 
         Route::get('stats', StatsController::class)->name('stats');
+        Route::get('live', function (Project $project) {
+            Gate::authorize('view', $project);
+
+            return response()->json(Presence::now($project));
+        })->name('live');
         Route::get('in-app', [InAppMessageController::class, 'index'])->name('in-app.index');
         Route::get('in-app/create', [InAppMessageController::class, 'create'])->name('in-app.create');
         Route::post('in-app', [InAppMessageController::class, 'store'])->name('in-app.store');

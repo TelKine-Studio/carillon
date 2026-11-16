@@ -411,6 +411,16 @@
     document.body.appendChild(host);
   }
 
+  // "Online now" in Carillon: a sign of life every minute while the page is visible.
+  var heartbeatTimer = null;
+  function startHeartbeat() {
+    if (heartbeatTimer) return;
+    heartbeatTimer = setInterval(function () {
+      var id = store.get('subscription');
+      if (id && document.visibilityState === 'visible') api('POST', '/subscriptions/' + id + '/heartbeat', {}).catch(function () {});
+    }, 60000);
+  }
+
   function withSubscription(task) {
     return serial(function () {
       var id = store.get('subscription');
@@ -464,6 +474,7 @@
               };
             }).catch(function () {});
           }
+          startHeartbeat();
           return sync(true);
         });
     },

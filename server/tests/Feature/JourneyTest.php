@@ -275,4 +275,22 @@ class JourneyTest extends TestCase
         $this->assertSame([1, 0, 1, 1], [$message->shown, $message->clicked, $message->shown_b, $message->clicked_b]);
         $this->get(route('projects.in-app.index', $this->project))->assertOk()->assertSee('B 100,0 %', false);
     }
+
+    public function test_online_now(): void
+    {
+        $base = "/api/v1/sdk/apps/{$this->project->app_id}";
+        $ada = $this->device('ada');
+        $bob = $this->device('bob');
+        $this->postJson("$base/subscriptions/{$ada->id}/heartbeat")->assertOk();
+        $this->postJson("$base/subscriptions/{$bob->id}/heartbeat")->assertOk();
+        $this->actingAs($this->owner)->getJson(route('projects.live', $this->project))->assertOk()
+            ->assertJsonPath('online', 2)->assertJsonPath('people', 2)->assertJsonPath('platforms.android', 2);
+
+        // Three minutes without a sign of life: gone.
+        $this->travel(3)->minutes();
+        $this->postJson("$base/subscriptions/{$ada->id}/heartbeat")->assertOk();
+        $this->getJson(route('projects.live', $this->project))->assertJsonPath('online', 1);
+        $this->get(route('projects.show', $this->project))->assertOk()->assertSee('Online now');
+        $this->postJson("$base/subscriptions/00000000-0000-0000-0000-000000000000/heartbeat")->assertNotFound();
+    }
 }

@@ -2054,5 +2054,8 @@
     "A second text for half of the people: the list shows which one gets more clicks.": "Un second texte pour la moitié des personnes : la liste montre lequel obtient le plus de clics.",
     "Test a version B": "Tester une version B",
     "Title B": "Titre B",
-    "Text B": "Texte B"
+    "Text B": "Texte B",
+    "Online now": "En ligne maintenant",
+    "people": "personnes",
+    "Counted with the Carillon SDK (the app sends a sign of life every minute while it is open).": "Compté avec le SDK Carillon (l’app envoie un signal de présence chaque minute tant qu’elle est ouverte)."
 }

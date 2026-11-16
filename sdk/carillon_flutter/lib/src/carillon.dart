@@ -257,11 +257,30 @@ class _Engine with WidgetsBindingObserver {
 
     WidgetsBinding.instance.addObserver(this);
     unawaited(sync(session: true));
+    _startHeartbeat();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) unawaited(sync(session: true));
+    if (state == AppLifecycleState.resumed) {
+      unawaited(sync(session: true));
+      _startHeartbeat();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      _heartbeat?.cancel();
+      _heartbeat = null;
+    }
+  }
+
+  /// "Online now" in Carillon: a sign of life every minute in the foreground.
+  Timer? _heartbeat;
+
+  void _startHeartbeat() {
+    _heartbeat?.cancel();
+    _heartbeat = Timer.periodic(const Duration(seconds: 60), (_) {
+      final id = store.subscriptionId;
+      if (id != null) unawaited(_guard(() => api.heartbeat(id)));
+    });
   }
 
   Future<bool> requestPermission() async {

@@ -61,6 +61,9 @@ class CarillonApi {
     'properties': ?properties,
   });
 
+  Future<Map<String, dynamic>> heartbeat(String id) =>
+      _send('POST', '/subscriptions/$id/heartbeat', const {});
+
   Future<Map<String, dynamic>> inAppMessages(String id) =>
       _send('GET', '/subscriptions/$id/in-app-messages', const {});
 

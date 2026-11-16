@@ -48,6 +48,7 @@ class Subscription extends Model
             'enabled' => 'boolean',
             'invalid_at' => 'datetime',
             'last_active_at' => 'datetime',
+            'seen_at' => 'datetime',
             'sessions' => 'integer',
         ];
     }

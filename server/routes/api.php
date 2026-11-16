@@ -50,6 +50,7 @@ Route::prefix('v1')->group(function () {
         Route::put('subscriptions/{id}/tags', [SubscriptionController::class, 'tags']);
         Route::post('subscriptions/{id}/events', [SubscriptionController::class, 'event']);
         Route::post('subscriptions/{id}/custom-events', [SubscriptionController::class, 'customEvent']);
+        Route::post('subscriptions/{id}/heartbeat', [SubscriptionController::class, 'heartbeat']);
         Route::get('subscriptions/{id}/in-app-messages', [InAppController::class, 'index']);
         Route::post('in-app-messages/{messageId}/events', [InAppController::class, 'event']);
         Route::post('subscriptions/{id}/email', [SubscriptionController::class, 'addEmail']);
