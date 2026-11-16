@@ -1717,5 +1717,6 @@
     "Stop using for tests": "Ne plus utiliser pour les tests",
     "Created at": "Créé le",
     "SDK": "SDK",
-    "Push token": "Jeton push"
+    "Push token": "Jeton push",
+    ":count device of this message still runs the OneSignal SDK: it displays the notification, but its receptions and clicks are not reported to Carillon. They will be once the app is updated with the Carillon SDK.|:count devices of this message still run the OneSignal SDK: they display the notification, but their receptions and clicks are not reported to Carillon. They will be once the app is updated with the Carillon SDK.": ":count appareil de ce message utilise encore le SDK OneSignal : il affiche la notification, mais sa réception et ses clics ne remontent pas à Carillon. Ils remonteront une fois l’app mise à jour avec le SDK Carillon.|:count appareils de ce message utilisent encore le SDK OneSignal : ils affichent la notification, mais leurs réceptions et leurs clics ne remontent pas à Carillon. Ils remonteront une fois l’app mise à jour avec le SDK Carillon."
 }

@@ -88,6 +88,13 @@
         <x-ui.stat :label="__('Clicked')" :value="$n($message->clicked)" icon="external" :hint="__(':rate click rate', ['rate' => $pct($message->clicked, $message->successful)])" />
     </div>
 
+    @if ($legacy)
+        <div class="mt-6 flex items-start gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-200">
+            <x-ui.icon name="info" class="mt-0.5 size-4 shrink-0" />
+            <p>{{ trans_choice(':count device of this message still runs the OneSignal SDK: it displays the notification, but its receptions and clicks are not reported to Carillon. They will be once the app is updated with the Carillon SDK.|:count devices of this message still run the OneSignal SDK: they display the notification, but their receptions and clicks are not reported to Carillon. They will be once the app is updated with the Carillon SDK.', $legacy, ['count' => number_format($legacy, 0, ',', ' ')]) }}</p>
+        </div>
+    @endif
+
     <div class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
         <div class="min-w-0 space-y-6">
             {{-- Funnel --}}

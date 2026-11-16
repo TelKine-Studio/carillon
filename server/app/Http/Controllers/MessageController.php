@@ -8,6 +8,7 @@ use App\Audience\Audience;
 use App\Http\ComposerInput;
 use App\Models\Message;
 use App\Models\Project;
+use App\Models\Subscription;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -181,6 +182,8 @@ class MessageController extends Controller
             'project' => $project,
             'message' => $message,
             'clicks' => $this->clicksPerHour($message),
+            // Devices of the old app (OneSignal SDK): neither receptions nor clicks come back.
+            'legacy' => $message->deliveries()->whereHas('subscription', fn ($q) => $q->where('sdk', Subscription::ONESIGNAL_SDK))->count(),
             'errors_summary' => $message->deliveries()
                 ->whereNotNull('error')
                 ->select('error', DB::raw('count(*) as total'))
