@@ -45,9 +45,9 @@
         @if ($reachable)<x-ui.badge color="green" dot>{{ __('Subscribed') }}</x-ui.badge>@else<x-ui.badge>{{ __('Not reachable') }}</x-ui.badge>@endif
     </div>
 
-    <div x-data="{ tab: ['overview', 'devices', 'tags'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'overview' }" x-init="$watch('tab', t => history.replaceState(null, '', '#' + t))">
+    <div x-data="{ tab: ['overview', 'devices', 'tags', 'events'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'overview' }" x-init="$watch('tab', t => history.replaceState(null, '', '#' + t))">
         <nav class="mb-6 flex gap-6 overflow-x-auto border-b border-zinc-200 [scrollbar-width:none] dark:border-zinc-800">
-            @foreach (['overview' => [__('Overview'), null], 'devices' => [__('Devices'), $subscriber->subscriptions->count()], 'tags' => [__('Tags'), count($tags)]] as $key => [$label, $count])
+            @foreach (['overview' => [__('Overview'), null], 'devices' => [__('Devices'), $subscriber->subscriptions->count()], 'tags' => [__('Tags'), count($tags)], 'events' => [__('Event log'), $events->count()]] as $key => [$label, $count])
                 <button type="button" x-on:click="tab = '{{ $key }}'" class="-mb-px inline-flex shrink-0 items-center gap-1.5 border-b-2 px-0.5 pb-3 text-sm font-medium transition"
                     :class="tab === '{{ $key }}' ? 'border-brand-600 text-zinc-900 dark:text-white' : 'border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-white'">
                     {{ $label }}@if ($count !== null)<span class="rounded bg-zinc-100 px-1.5 text-xs tabular-nums text-zinc-600 dark:bg-white/10 dark:text-zinc-300">{{ $count }}</span>@endif
@@ -180,6 +180,28 @@
             @empty
                 <div class="card"><x-ui.empty icon="smartphone" :title="__('No device.')" /></div>
             @endforelse
+        </div>
+
+        {{-- Events --}}
+        <div x-show="tab === 'events'" x-cloak>
+            <x-ui.card :padding="false">
+                <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                    @forelse ($events as $event)
+                        <li class="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3 sm:px-6">
+                            <span class="inline-flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 dark:bg-white/5"><x-ui.icon name="activity" class="size-4" /></span>
+                            <span class="min-w-0 flex-1">
+                                <span class="block font-mono text-sm text-zinc-900 dark:text-white">{{ $event->name }}@if ($event->value !== null) <span class="font-sans font-semibold">· {{ number_format((float) $event->value, 0, ',', ' ') }}</span>@endif</span>
+                                @if ($event->message)
+                                    <a href="{{ route('projects.messages.show', [$project, $event->message_id]) }}" class="block truncate text-xs text-zinc-500 hover:underline">{{ $event->attribution === 'direct' ? __('After a click on :message', ['message' => $event->message->label()]) : __('After receiving :message', ['message' => $event->message->label()]) }}</a>
+                                @endif
+                            </span>
+                            <span class="text-xs text-zinc-500" title="{{ $event->occurred_at->isoFormat('LLL') }}">{{ $event->occurred_at->diffForHumans() }}</span>
+                        </li>
+                    @empty
+                        <li><x-ui.empty icon="activity" :title="__('No event yet')" :description="__('Events reported by your app (trackEvent) or your server appear here.')" /></li>
+                    @endforelse
+                </ul>
+            </x-ui.card>
         </div>
 
         {{-- Tags --}}

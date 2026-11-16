@@ -134,6 +134,31 @@
                 </x-ui.card>
             @endif
 
+            @if ($conversions->isNotEmpty())
+                <x-ui.card :title="__('Conversions')" :description="__('Events of the people in the :hours hours after this message: direct after a click, influenced after a reception.', ['hours' => \App\Audience\Conversions::WINDOW])" icon="sparkles" :padding="false">
+                    <table class="w-full text-sm">
+                        <thead class="text-xs text-zinc-500">
+                            <tr class="border-b border-zinc-100 dark:border-zinc-800">
+                                <th class="px-5 py-2.5 text-left font-medium sm:px-6">{{ __('Event') }}</th>
+                                <th class="px-3 py-2.5 text-right font-medium">{{ __('Direct') }}</th>
+                                <th class="px-3 py-2.5 text-right font-medium">{{ __('Influenced') }}</th>
+                                <th class="px-5 py-2.5 text-right font-medium sm:px-6">{{ __('Value') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                            @foreach ($conversions as $name => $rows)
+                                <tr>
+                                    <td class="px-5 py-3 font-mono text-xs text-zinc-900 sm:px-6 dark:text-zinc-100">{{ $name }}</td>
+                                    <td class="px-3 py-3 text-right tabular-nums text-zinc-900 dark:text-zinc-100">{{ $n($rows->firstWhere('attribution', 'direct')?->total ?? 0) }}</td>
+                                    <td class="px-3 py-3 text-right tabular-nums text-zinc-900 dark:text-zinc-100">{{ $n($rows->firstWhere('attribution', 'influenced')?->total ?? 0) }}</td>
+                                    <td class="px-5 py-3 text-right font-semibold tabular-nums text-zinc-900 sm:px-6 dark:text-white">{{ $rows->sum('amount') ? number_format((float) $rows->sum('amount'), 0, ',', ' ') : '—' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </x-ui.card>
+            @endif
+
             {{-- Per platform --}}
             @if ($message->platformStats->isNotEmpty())
                 <x-ui.card :title="__('By platform')" icon="smartphone" :padding="false">

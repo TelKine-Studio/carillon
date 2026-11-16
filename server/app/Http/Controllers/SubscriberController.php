@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\CreateMessage;
 use App\Journeys\JourneyRunner;
+use App\Models\CustomEvent;
 use App\Models\Delivery;
 use App\Models\Project;
 use App\Models\Subscriber;
@@ -100,6 +101,7 @@ class SubscriberController extends Controller
         return view('audience.show', [
             'project' => $project,
             'subscriber' => $subscriber,
+            'events' => CustomEvent::query()->with('message')->where('subscriber_id', $subscriber->id)->latest('occurred_at')->limit(50)->get(),
             'activity' => [
                 'sessions' => (int) $subscriber->subscriptions->sum('sessions'),
                 'received' => (clone $deliveries)->where('status', 'sent')->where('sent_at', '>=', now()->subDays(7))->count(),

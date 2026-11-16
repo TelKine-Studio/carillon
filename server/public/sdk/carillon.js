@@ -343,6 +343,18 @@
       },
     },
 
+    /** Outcomes, as OneSignal.Session: conversions attributed to notifications. */
+    session: {
+      addOutcome: function (name) {
+        return Carillon.user.trackEvent(name);
+      },
+      addOutcomeWithValue: function (name, value) {
+        return withSubscription(function (id) {
+          return api('POST', '/subscriptions/' + id + '/custom-events', { name: String(name), value: Number(value) });
+        });
+      },
+    },
+
     user: {
       get externalId() {
         return store.get('external_id');
@@ -379,6 +391,13 @@
       removeEmail: function (email) {
         return withSubscription(function (id) {
           return api('DELETE', '/subscriptions/' + id + '/email', { email: String(email).trim().toLowerCase() });
+        });
+      },
+
+      /** Reports something the visitor did (purchase…): starts journeys, counted as a conversion. */
+      trackEvent: function (name, properties) {
+        return withSubscription(function (id) {
+          return api('POST', '/subscriptions/' + id + '/custom-events', { name: String(name), properties: properties || undefined });
         });
       },
 

@@ -34,6 +34,17 @@ class CarillonApi {
   Future<Map<String, dynamic>> tags(String id, Map<String, dynamic> tags) =>
       _send('PUT', '/subscriptions/$id/tags', {'tags': tags});
 
+  Future<Map<String, dynamic>> customEvent(
+    String id,
+    String name, {
+    num? value,
+    Map<String, Object?>? properties,
+  }) => _send('POST', '/subscriptions/$id/custom-events', {
+    'name': name,
+    'value': ?value,
+    'properties': ?properties,
+  });
+
   Future<void> event(
     String id,
     String messageId,

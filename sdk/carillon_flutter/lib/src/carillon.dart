@@ -61,6 +61,7 @@ class Carillon {
 
   static final notifications = CarillonNotifications._();
   static final user = CarillonUser._();
+  static final session = CarillonSession._();
 }
 
 class CarillonNotifications {
@@ -118,7 +119,22 @@ class CarillonUser {
   Future<void> removeTags(List<String> keys) =>
       Carillon._ready.setTags({for (final key in keys) key: null});
 
+  /// Reports something the person did (purchase, top-up…): it can start a
+  /// journey and is attributed to the last notification (conversions).
+  Future<void> trackEvent(String name, [Map<String, Object?>? properties]) =>
+      Carillon._ready.customEvent(name, properties: properties);
+
   final pushSubscription = CarillonPushSubscription._();
+}
+
+/// Outcomes, as OneSignal.Session: conversions attributed to notifications.
+class CarillonSession {
+  CarillonSession._();
+
+  Future<void> addOutcome(String name) => Carillon._ready.customEvent(name);
+
+  Future<void> addOutcomeWithValue(String name, num value) =>
+      Carillon._ready.customEvent(name, value: value);
 }
 
 class CarillonPushSubscription {
@@ -235,6 +251,19 @@ class _Engine with WidgetsBindingObserver {
     }
     final address = email.trim().toLowerCase();
     add ? await api.addEmail(id, address) : await api.removeEmail(id, address);
+  }
+
+  Future<void> customEvent(
+    String name, {
+    num? value,
+    Map<String, Object?>? properties,
+  }) async {
+    await (_syncing ?? Future.value());
+    final id = store.subscriptionId;
+    if (id == null) return;
+    await _guard(
+      () => api.customEvent(id, name, value: value, properties: properties),
+    );
   }
 
   Future<void> setTags(Map<String, String?> tags) async {

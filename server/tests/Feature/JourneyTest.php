@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Enums\ProjectRole;
 use App\Journeys\JourneyRunner;
+use App\Models\ApiKey;
+use App\Models\CustomEvent;
 use App\Models\Journey;
 use App\Models\Message;
 use App\Models\Project;
@@ -120,5 +122,35 @@ class JourneyTest extends TestCase
         $this->actingAs($this->owner)->get(route('projects.journeys.create', [$this->project, 'recipe' => 'welcome']))->assertOk()->assertSee('journeyEditor', false);
         $this->actingAs($this->owner)->post(route('projects.journeys.store', $this->project), ['name' => 'Empty', 'trigger' => ['type' => 'new_device'], 'steps' => [['type' => 'push', 'body' => '']]])
             ->assertSessionHasErrors('steps.0.body');
+    }
+
+    public function test_custom_events_are_attributed_to_messages_and_start_journeys(): void
+    {
+        [, $key] = ApiKey::generate($this->project, 'Backend');
+        $device = $this->device('ada-phone', ['external_id' => 'ada']);
+        $journey = $this->project->journeys()->create(['name' => 'Thanks', 'status' => 'active', 'trigger' => ['type' => 'event', 'event' => 'recharge'], 'steps' => [['type' => 'push', 'body' => 'Merci pour la recharge']]]);
+
+        // A campaign reaches Ada; she tops up an hour later without clicking: influenced.
+        $messageId = $this->withHeader('Authorization', 'Key '.$key)->postJson('/api/v1/notifications', ['included_segments' => ['All'], 'contents' => ['en' => 'Bonus']])->json('id');
+        $this->travel(1)->hours();
+        $this->withHeader('Authorization', 'Key '.$key)->postJson("/api/v1/apps/{$this->project->app_id}/custom_events", [
+            'events' => [
+                ['name' => 'recharge', 'external_id' => 'ada', 'properties' => ['amount' => 1000]],
+                ['name' => 'recharge', 'external_id' => 'nobody'],
+            ],
+        ])->assertOk()->assertJsonPath('recorded', 1)->assertJsonPath('unknown_users', 1);
+
+        $event = CustomEvent::firstOrFail();
+        $this->assertSame([$messageId, 'influenced', '1000.00'], [$event->message_id, $event->attribution, $event->value]);
+        $this->assertSame(1, $journey->entries()->count());
+
+        // After a click, the next event is direct (from the SDK, with a value).
+        $this->postJson("/api/v1/sdk/apps/{$this->project->app_id}/subscriptions/{$device->id}/events", ['message_id' => $messageId, 'event' => 'clicked']);
+        $this->postJson("/api/v1/sdk/apps/{$this->project->app_id}/subscriptions/{$device->id}/custom-events", ['name' => 'purchase', 'value' => 2500])->assertOk();
+        $this->assertSame('direct', CustomEvent::where('name', 'purchase')->value('attribution'));
+
+        $this->actingAs($this->owner)->get(route('projects.messages.show', [$this->project, $messageId]))->assertOk()->assertSee('Conversions')->assertSee('recharge');
+        $this->actingAs($this->owner)->get(route('projects.stats', $this->project))->assertOk()->assertSee('purchase')->assertSee('2 500');
+        $this->actingAs($this->owner)->get(route('projects.subscribers.show', [$this->project, $device->subscriber_id]))->assertOk()->assertSee('recharge');
     }
 }

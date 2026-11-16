@@ -6,6 +6,7 @@ use App\Actions\CreateMessage;
 use App\Actions\RunAbTest;
 use App\Audience\Audience;
 use App\Http\ComposerInput;
+use App\Models\CustomEvent;
 use App\Models\Message;
 use App\Models\Project;
 use App\Models\Subscription;
@@ -185,6 +186,12 @@ class MessageController extends Controller
             'project' => $project,
             'message' => $message,
             'clicks' => $this->clicksPerHour($message),
+            'conversions' => CustomEvent::query()
+                ->where('message_id', $message->id)
+                ->selectRaw('name, attribution, count(*) as total, sum(value) as amount')
+                ->groupBy('name', 'attribution')
+                ->get()
+                ->groupBy('name'),
             // Devices of the old app (OneSignal SDK): neither receptions nor clicks come back.
             'legacy' => $message->deliveries()->whereHas('subscription', fn ($q) => $q->where('sdk', Subscription::ONESIGNAL_SDK))->count(),
             'errors_summary' => $message->deliveries()

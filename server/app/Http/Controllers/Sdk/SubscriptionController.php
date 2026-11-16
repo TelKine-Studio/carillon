@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Sdk;
 
+use App\Audience\Conversions;
 use App\Audience\Events;
 use App\Audience\Identity;
 use App\Http\Controllers\Controller;
@@ -141,6 +142,27 @@ class SubscriptionController extends Controller
     }
 
     /** Reception (shown on the device) or click of a notification. */
+    /** Custom event of the app (trackEvent, outcomes): attributed to the last message. */
+    public function customEvent(Request $request, string $appId, string $id): JsonResponse
+    {
+        $subscription = $this->subscription($appId, $id);
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:128'],
+            'value' => ['nullable', 'numeric'],
+            'properties' => ['nullable', 'array', 'max:50'],
+        ]);
+
+        app(Conversions::class)->record(
+            $subscription->project,
+            $subscription->subscriber,
+            $data['name'],
+            isset($data['value']) ? (float) $data['value'] : null,
+            $data['properties'] ?? [],
+        );
+
+        return response()->json(['success' => true]);
+    }
+
     public function event(Request $request, string $appId, string $id): JsonResponse
     {
         $subscription = $this->subscription($appId, $id);

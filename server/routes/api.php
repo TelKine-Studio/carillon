@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\CustomEventController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\UserController;
@@ -31,6 +32,7 @@ Route::prefix('v1')->group(function () {
         Route::get('apps/{app_id}/users/by/external_id/{externalId}', [UserController::class, 'show']);
         Route::patch('apps/{app_id}/users/by/external_id/{externalId}', [UserController::class, 'update']);
         Route::delete('apps/{app_id}/users/by/external_id/{externalId}', [UserController::class, 'destroy']);
+        Route::post('apps/{app_id}/custom_events', [CustomEventController::class, 'store']);
     });
 
     // Bounces and complaints from the email service of a project.
@@ -46,6 +48,7 @@ Route::prefix('v1')->group(function () {
         Route::post('subscriptions/{id}/logout', [SubscriptionController::class, 'logout']);
         Route::put('subscriptions/{id}/tags', [SubscriptionController::class, 'tags']);
         Route::post('subscriptions/{id}/events', [SubscriptionController::class, 'event']);
+        Route::post('subscriptions/{id}/custom-events', [SubscriptionController::class, 'customEvent']);
         Route::post('subscriptions/{id}/email', [SubscriptionController::class, 'addEmail']);
         Route::delete('subscriptions/{id}/email', [SubscriptionController::class, 'removeEmail']);
     });

@@ -1816,5 +1816,19 @@
     "Inactive for :count day|Inactive for :count days": "Inactif depuis :count jour|Inactif depuis :count jours",
     "Tag :key = :value": "Tag :key = :value",
     "Event :name": "Événement :name",
-    "Step :number": "Étape :number"
+    "Step :number": "Étape :number",
+    "Conversions": "Conversions",
+    "Events of the people in the :hours hours after this message: direct after a click, influenced after a reception.": "Événements des personnes dans les :hours heures suivant ce message : directs après un clic, influencés après une réception.",
+    "Event": "Événement",
+    "Direct": "Directs",
+    "Influenced": "Influencés",
+    "Events reported by your app or your server, and the part that follows a message.": "Événements signalés par votre app ou votre serveur, et la part qui suit un message.",
+    "No event in this period. Send them from your server (POST /api/v1/apps/{app_id}/custom_events) or the SDK (trackEvent).": "Aucun événement sur cette période. Envoyez-les depuis votre serveur (POST /api/v1/apps/{app_id}/custom_events) ou le SDK (trackEvent).",
+    "Total": "Total",
+    "After a message": "Après un message",
+    "Value after a message": "Valeur après un message",
+    "Event log": "Événements",
+    "After a click on :message": "Après un clic sur « :message »",
+    "After receiving :message": "Après avoir reçu « :message »",
+    "Events reported by your app (trackEvent) or your server appear here.": "Les événements signalés par votre app (trackEvent) ou votre serveur apparaissent ici."
 }

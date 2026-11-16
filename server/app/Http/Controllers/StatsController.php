@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CustomEvent;
 use App\Models\Project;
 use App\Models\Subscription;
 use Carbon\CarbonImmutable;
@@ -95,6 +96,14 @@ class StatsController extends Controller
                 ->where('successful', '>=', 10)
                 ->orderByRaw('clicked * 1.0 / successful desc')
                 ->limit(5)
+                ->get(),
+            'conversions' => CustomEvent::query()
+                ->where('project_id', $project->id)
+                ->where('occurred_at', '>=', $start)
+                ->selectRaw('name, count(*) as total, sum(case when message_id is not null then 1 else 0 end) as attributed, sum(value) as amount, sum(case when message_id is not null then value else 0 end) as attributed_amount')
+                ->groupBy('name')
+                ->orderByDesc('total')
+                ->limit(10)
                 ->get(),
             'legacy' => (clone $reachable)->where('sdk', Subscription::ONESIGNAL_SDK)->count(),
         ]);

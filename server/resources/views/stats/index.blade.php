@@ -87,6 +87,37 @@
         @endforeach
     </div>
 
+    <x-ui.card class="mt-6" :title="__('Conversions')" :description="__('Events reported by your app or your server, and the part that follows a message.')" icon="sparkles" :padding="false">
+        @if ($conversions->isEmpty())
+            <div class="px-5 pb-5 text-sm text-zinc-500 sm:px-6">
+                {{ __('No event in this period. Send them from your server (POST /api/v1/apps/{app_id}/custom_events) or the SDK (trackEvent).') }}
+            </div>
+        @else
+            <table class="w-full text-sm">
+                <thead class="text-xs text-zinc-500">
+                    <tr class="border-b border-zinc-100 dark:border-zinc-800">
+                        <th class="px-5 py-2.5 text-left font-medium sm:px-6">{{ __('Event') }}</th>
+                        <th class="px-3 py-2.5 text-right font-medium">{{ __('Total') }}</th>
+                        <th class="px-3 py-2.5 text-right font-medium">{{ __('After a message') }}</th>
+                        <th class="hidden px-3 py-2.5 text-right font-medium sm:table-cell">{{ __('Value') }}</th>
+                        <th class="px-5 py-2.5 text-right font-medium sm:px-6">{{ __('Value after a message') }}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                    @foreach ($conversions as $row)
+                        <tr>
+                            <td class="px-5 py-3 font-mono text-xs text-zinc-900 sm:px-6 dark:text-zinc-100">{{ $row->name }}</td>
+                            <td class="px-3 py-3 text-right tabular-nums">{{ $n($row->total) }}</td>
+                            <td class="px-3 py-3 text-right tabular-nums">{{ $n($row->attributed) }} <span class="text-xs text-zinc-400">{{ $pct($row->total ? $row->attributed / $row->total * 100 : null) }}</span></td>
+                            <td class="hidden px-3 py-3 text-right tabular-nums sm:table-cell">{{ $row->amount ? $n($row->amount) : '—' }}</td>
+                            <td class="px-5 py-3 text-right font-semibold tabular-nums text-zinc-900 sm:px-6 dark:text-white">{{ $row->attributed_amount ? $n($row->attributed_amount) : '—' }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+    </x-ui.card>
+
     <x-ui.card class="mt-6" :title="__('Best messages')" :description="__('Highest click rate in the period, among messages delivered to at least 10 devices.')" icon="sparkles" :padding="false">
         @if ($top->isEmpty())
             <p class="px-5 pb-5 text-sm text-zinc-500 sm:px-6">{{ __('Not enough messages in this period.') }}</p>

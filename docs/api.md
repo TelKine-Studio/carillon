@@ -150,6 +150,28 @@ settings).
   `{"properties": {"tags": {"plan": "silver", "old": null}}}` (`null` removes a tag)
 - `DELETE /api/v1/apps/{app_id}/users/by/external_id/{external_id}`
 
+## Custom events and conversions
+
+What people do after a message (purchase, top-up…), sent by your server in
+the format of OneSignal:
+
+```
+POST /api/v1/apps/{app_id}/custom_events
+{"events": [{"name": "recharge", "external_id": "user-42", "properties": {"amount": 1000}, "timestamp": "2026-11-16T12:00:00Z"}]}
+```
+
+- The person is found by `external_id`, or by `onesignal_id` / `subscription_id`
+  (the id of a device at OneSignal or in Carillon).
+- `value`, or a property `value`, `revenue`, `amount`, `price` or `total`,
+  is the value of the event (shown as revenue).
+- An event within 24 hours of a notification is attributed to it: **direct**
+  if the person clicked it, **influenced** if they received it. Message reports
+  and the statistics show these conversions.
+- Events also start the journeys triggered by them.
+
+From the apps: `Carillon.user.trackEvent(name, properties)` and
+`Carillon.session.addOutcome(name)` / `addOutcomeWithValue(name, value)`.
+
 ## SDK endpoints
 
 Called by the Carillon SDKs from the apps, with the App ID only (it is

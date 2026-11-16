@@ -55,6 +55,10 @@ Carillon.notifications.addForegroundWillDisplayListener((event) {
 
 await Carillon.user.pushSubscription.optOut(); // and optIn()
 Carillon.user.pushSubscription.id; // device id, to send a test from the dashboard
+
+// Events: start journeys and are counted as conversions of the last notification.
+await Carillon.user.trackEvent('purchase', {'value': 2500, 'product': 'forfait'});
+await Carillon.session.addOutcomeWithValue('recharge', 1000);
 ```
 
 The App ID is shown in *Project → Settings → General* of your Carillon
