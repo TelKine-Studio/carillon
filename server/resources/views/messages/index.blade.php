@@ -9,15 +9,25 @@
     </x-ui.page-header>
 
     <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <nav class="-mx-4 flex gap-1 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
-            @foreach ($tabs as $key => $label)
-                @php $count = $key === '' ? $counts->sum() : ($counts[$key] ?? 0); @endphp
-                <a href="{{ route('projects.messages.index', [$project, 'status' => $key ?: null, 'q' => $search ?: null]) }}"
-                    @class(['inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition', 'bg-white text-zinc-900 shadow-(--shadow-soft) ring-1 ring-zinc-200 dark:bg-zinc-900 dark:text-white dark:ring-zinc-800' => (string) $status === $key, 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white' => (string) $status !== $key])>
-                    {{ $label }}<span class="text-xs text-zinc-400 tabular-nums">{{ number_format($count, 0, ',', ' ') }}</span>
-                </a>
-            @endforeach
-        </nav>
+        <div class="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
+            <nav class="inline-flex gap-0.5 rounded-lg bg-zinc-200/60 p-1 dark:bg-white/[0.06]">
+                @foreach ($tabs as $key => $label)
+                    @php
+                        $count = $key === '' ? $counts->sum() : ($counts[$key] ?? 0);
+                        $current = (string) $status === $key;
+                    @endphp
+                    <a href="{{ route('projects.messages.index', [$project, 'status' => $key ?: null, 'q' => $search ?: null]) }}" @if ($current) aria-current="page" @endif
+                        @class(['inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium whitespace-nowrap transition',
+                            'bg-white text-zinc-900 shadow-sm shadow-zinc-950/10 dark:bg-zinc-800 dark:text-white dark:shadow-black/40' => $current,
+                            'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white' => ! $current])>
+                        {{ $label }}
+                        <span @class(['min-w-5 rounded px-1 text-center text-xs tabular-nums',
+                            'bg-zinc-100 text-zinc-600 dark:bg-white/10 dark:text-zinc-300' => $current,
+                            'text-zinc-400 dark:text-zinc-500' => ! $current])>{{ number_format($count, 0, ',', ' ') }}</span>
+                    </a>
+                @endforeach
+            </nav>
+        </div>
         <form method="GET" class="relative sm:w-72">
             @if ($status)<input type="hidden" name="status" value="{{ $status }}">@endif
             <x-ui.icon name="search" class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-zinc-400" />

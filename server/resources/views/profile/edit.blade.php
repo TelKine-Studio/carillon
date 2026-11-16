@@ -9,7 +9,7 @@
 
     <div class="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
         <nav class="hidden lg:block">
-            <ul class="sticky top-24 space-y-1 text-sm">
+            <ul class="sticky top-8 space-y-1 text-sm">
                 @foreach (['account' => ['user', __('Account')], 'security' => ['lock', __('Security')]] as $anchor => [$icon, $label])
                     <li><a href="#{{ $anchor }}" class="nav-link"><x-ui.icon :name="$icon" class="size-4" />{{ $label }}</a></li>
                 @endforeach

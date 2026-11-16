@@ -2,7 +2,7 @@
 {{-- Shared two-column layout of the settings pages. --}}
 <div class="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
     <nav class="hidden lg:block">
-        <ul class="sticky top-24 space-y-1">
+        <ul class="sticky top-8 space-y-1">
             @foreach ([
                 'general' => ['icon' => 'settings', 'label' => __('General'), 'text' => __('Name, URL, access')],
                 'security' => ['icon' => 'shield', 'label' => __('Security'), 'text' => __('2FA, single sign-on')],

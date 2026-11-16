@@ -22,7 +22,7 @@
 
     <div class="grid gap-8 xl:grid-cols-[260px_minmax(0,1fr)]">
         <nav class="hidden xl:block">
-            <ul class="sticky top-24 space-y-1">
+            <ul class="sticky top-8 space-y-1">
                 @foreach ($tabs as $key => $tab)
                     <li>
                         <a href="{{ route('projects.settings', [$project, $key]) }}" @class(['flex items-start gap-3 rounded-xl p-3 transition', 'bg-white shadow-(--shadow-soft) ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800' => $section === $key, 'hover:bg-zinc-100 dark:hover:bg-white/5' => $section !== $key])>

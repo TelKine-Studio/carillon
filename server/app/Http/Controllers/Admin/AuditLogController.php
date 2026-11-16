@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\Project;
+use App\Support\AuditEntry;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -21,15 +23,24 @@ class AuditLogController extends Controller
                 ->where('description', 'like', "%{$search}%")
                 ->orWhere('ip_address', 'like', "%{$search}%")
                 ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"))))
-            ->latest('id')
+            ->latest()->latest('id')
             ->paginate(50)
             ->withQueryString();
 
+        // Some entries name their project by app id: show its name instead.
+        $projects = Project::query()
+            ->whereIn('app_id', $logs->getCollection()->map(fn (AuditLog $log) => $log->metadata['project'] ?? null)->filter()->unique())
+            ->pluck('name', 'app_id')
+            ->all();
+
         return view('admin.audit', [
             'logs' => $logs,
+            'days' => $logs->getCollection()
+                ->map(fn (AuditLog $log) => new AuditEntry($log, $projects))
+                ->groupBy(fn (AuditEntry $entry) => $entry->log->created_at->toDateString()),
             'search' => $search,
             'action' => $action,
-            'groups' => ['' => __('All events'), 'auth' => __('Authentication'), 'user' => __('Users'), 'project' => __('Projects'), 'api_key' => __('API keys'), 'push' => __('Push keys'), 'settings' => __('Settings')],
+            'groups' => AuditEntry::groups(),
         ]);
     }
 }

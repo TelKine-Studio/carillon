@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Support\Settings;
+use App\Support\UserAgent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use PragmaRX\Google2FA\Google2FA;
@@ -82,8 +83,39 @@ class SecurityTest extends TestCase
 
         $this->assertEqualsCanonicalizing(['auth.login_failed', 'auth.login', 'project.created'], AuditLog::pluck('action')->all());
 
-        $this->actingAs($admin)->get('/admin/audit')->assertOk()->assertSee(__('Failed login'));
+        $this->actingAs($admin)->get('/admin/audit')->assertOk()
+            ->assertSee('Failed sign-in for', false)
+            ->assertSee('admin@example.com')
+            ->assertSee('created the project', false)
+            ->assertSee('Audited');
+        $this->actingAs($admin)->get('/admin/audit?action=project')->assertOk()->assertDontSee('Failed sign-in for', false);
         $this->actingAs(User::factory()->create())->get('/admin/audit')->assertForbidden();
+    }
+
+    public function test_the_visitor_address_is_read_from_cloudflare_only_when_it_comes_from_cloudflare(): void
+    {
+        User::factory()->create(['email' => 'ada@example.com']);
+
+        // Through Cloudflare: the edge server's address is replaced by the visitor's.
+        $this->withServerVariables(['REMOTE_ADDR' => '172.71.126.61'])
+            ->withHeader('CF-Connecting-IP', '41.202.10.20')
+            ->post('/login', ['email' => 'ada@example.com', 'password' => 'password']);
+        $this->assertSame('41.202.10.20', AuditLog::where('action', 'auth.login')->value('ip_address'));
+
+        // Straight to the server: the header is forged and ignored.
+        auth()->logout();
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.7'])
+            ->withHeader('CF-Connecting-IP', '1.2.3.4')
+            ->post('/login', ['email' => 'ada@example.com', 'password' => 'wrong']);
+        $this->assertSame('203.0.113.7', AuditLog::where('action', 'auth.login_failed')->value('ip_address'));
+    }
+
+    public function test_user_agents_are_described_in_plain_words(): void
+    {
+        $this->assertSame('Chrome on macOS', UserAgent::describe('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'));
+        $this->assertSame('Safari on iPhone', UserAgent::describe('Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1'));
+        $this->assertSame('API client (curl)', UserAgent::describe('curl/8.7.1'));
+        $this->assertNull(UserAgent::describe(''));
     }
 
     public function test_two_factor_can_be_required_for_admins(): void
