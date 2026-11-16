@@ -54,5 +54,7 @@ Route::prefix('v1')->group(function () {
         Route::post('in-app-messages/{messageId}/events', [InAppController::class, 'event']);
         Route::post('subscriptions/{id}/email', [SubscriptionController::class, 'addEmail']);
         Route::delete('subscriptions/{id}/email', [SubscriptionController::class, 'removeEmail']);
+        Route::post('subscriptions/{id}/sms', [SubscriptionController::class, 'addSms']);
+        Route::delete('subscriptions/{id}/sms', [SubscriptionController::class, 'removeSms']);
     });
 });

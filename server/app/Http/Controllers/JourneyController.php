@@ -203,12 +203,12 @@ class JourneyController extends Controller
             // A template of the other channel (the step type changed): write the content instead.
             if (! empty($sent['template_id'])) {
                 $template = $project->templates()->find($sent['template_id']);
-                if (! $template || ($template->option('target_channel') === 'email') !== ($sent['type'] === 'email')) {
+                if (! $template || ($template->option('target_channel') ?? 'push') !== $sent['type']) {
                     unset($sent['template_id']);
                     $steps[array_key_last($steps)] = $sent;
                 }
             }
-            if (in_array($sent['type'], ['push', 'email'], true) && empty($sent['template_id']) && empty($sent['body'])) {
+            if (in_array($sent['type'], ['push', 'email', 'sms'], true) && empty($sent['template_id']) && empty($sent['body'])) {
                 throw ValidationException::withMessages(["steps.{$index}.body" => __('Step :number: write the message or choose a template.', ['number' => $index + 1])]);
             }
             if ($sent['type'] === 'condition' && $sent['key'] === '') {

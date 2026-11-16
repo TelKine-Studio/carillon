@@ -677,6 +677,7 @@ Alpine.data('messageComposer', (config) => ({
     emailSubject: config.emailSubject ?? '',
     emailPreheader: config.emailPreheader ?? '',
     emailBody: config.emailBody ?? '',
+    smsBody: config.smsBody ?? '',
     advanced: false,
     estimate: { total: null, platforms: {}, error: null, loading: false },
     timer: null,
@@ -712,6 +713,22 @@ Alpine.data('messageComposer', (config) => ({
     },
 
     starterEmail: config.starterEmail ?? '',
+
+    /** Parts the SMS is split into: 160 GSM characters, else 70. */
+    get smsSegments() {
+        const text = this.smsBody;
+        if (!text) return 0;
+        const gsm = /^[@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&'()*+,\-./0-9:;<=>?¡A-ZÄÖÑÜ§¿a-zäöñüà^{}\\[~\]|€]*$/.test(text);
+        const length = [...text].length;
+        return gsm ? (length <= 160 ? 1 : Math.ceil(length / 153)) : length <= 70 ? 1 : Math.ceil(length / 67);
+    },
+
+    get smsPreview() {
+        return (this.smsBody || '…').replace(/\{\{\s*([a-z_]+)(?:\.([A-Za-z0-9_\-]+))?\s*(?:\|\s*default:\s*"([^"]*)")?\s*\}\}/g, (all, name, key, fallback) => {
+            if (name === 'tags' || name === 'tag') return fallback ?? (key === 'first_name' ? 'Ada' : '');
+            return { phone_number: '+2250700000000', external_id: 'user-42' }[name] ?? fallback ?? '';
+        });
+    },
 
     get unusedLanguages() {
         const used = this.texts.map((t) => t.language);

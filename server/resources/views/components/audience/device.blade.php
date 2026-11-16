@@ -4,6 +4,7 @@
         'ios' => ['apple', 'iOS'],
         'android' => ['android', 'Android'],
         'email' => ['mail', __('Email')],
+        'sms' => ['message', 'SMS'],
         default => ['globe-web', 'Web'],
     };
 @endphp

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Models\PushCredential;
+use App\Sms\Phone;
 use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,7 +17,7 @@ class PushCredentialController extends Controller
     public function update(Request $request, Project $project, string $provider): RedirectResponse
     {
         $this->authorize('configure', $project);
-        abort_unless(in_array($provider, ['apns', 'fcm', 'webpush'], true), 404);
+        abort_unless(in_array($provider, ['apns', 'fcm', 'webpush', 'sms'], true), 404);
 
         $existing = $project->credential($provider);
 
@@ -24,6 +25,7 @@ class PushCredentialController extends Controller
             'apns' => $this->apns($request, $existing),
             'fcm' => $this->fcm($request),
             'webpush' => $this->webPush($request, $existing),
+            'sms' => $this->sms($request, $existing),
         };
 
         PushCredential::query()->updateOrCreate(
@@ -36,6 +38,7 @@ class PushCredentialController extends Controller
             'apns' => __('Apple Push keys saved.'),
             'fcm' => __('Firebase keys saved.'),
             'webpush' => __('Web push keys saved.'),
+            'sms' => __('SMS settings saved.'),
         });
     }
 
@@ -116,6 +119,28 @@ class PushCredentialController extends Controller
     }
 
     /** @return array{0: array<string, string>, 1: string} */
+    /** Twilio: account SID, sender, auth token (kept when left empty). */
+    protected function sms(Request $request, ?PushCredential $existing): array
+    {
+        // "+225 07 00…" is accepted as typed.
+        if (($phone = Phone::normalize((string) $request->input('from'))) !== null) {
+            $request->merge(['from' => $phone]);
+        }
+        $data = $request->validate([
+            'account_sid' => ['required', 'string', 'regex:/^AC[0-9a-fA-F]{32}$/'],
+            'from' => ['required', 'string', 'max:64', 'regex:/^(\+[1-9]\d{6,14}|MG[0-9a-fA-F]{32}|[A-Za-z0-9 ]{1,11})$/'],
+            'auth_token' => [$existing ? 'nullable' : 'required', 'string', 'max:128'],
+        ], [
+            'account_sid.regex' => __('The Account SID starts with AC, followed by 32 characters.'),
+            'from.regex' => __('A number in the international format (+2250700000000), a Messaging Service SID (MG…) or a sender name of 11 characters at most.'),
+        ]);
+
+        return [
+            ['driver' => 'twilio', 'account_sid' => trim($data['account_sid']), 'from' => trim($data['from'])],
+            filled($data['auth_token'] ?? null) ? trim($data['auth_token']) : $existing->secret,
+        ];
+    }
+
     protected function webPush(Request $request, ?PushCredential $existing): array
     {
         $data = $request->validate([

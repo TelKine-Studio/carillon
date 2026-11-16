@@ -42,8 +42,17 @@ class Audience
             ->whereNull('subscriptions.invalid_at')
             ->whereNotNull('subscriptions.token');
 
-        $email = ($targeting['channel'] ?? 'push') === 'email';
-        $query->whereIn('subscriptions.type', $email ? ['email'] : Subscription::PUSH_TYPES);
+        $channel = $targeting['channel'] ?? 'push';
+        $email = $channel === 'email';
+        $query->whereIn('subscriptions.type', match ($channel) {
+            'email' => ['email'],
+            'sms' => ['sms'],
+            default => Subscription::PUSH_TYPES,
+        });
+
+        if ($channel === 'sms' && ($phones = $targeting['phones'] ?? null)) {
+            return $query->whereIn('subscriptions.token_hash', array_map(fn ($phone) => hash('sha256', $phone), $phones));
+        }
 
         if ($platforms = $targeting['platforms'] ?? null) {
             $query->whereIn('subscriptions.type', $platforms);

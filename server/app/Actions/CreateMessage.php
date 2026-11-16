@@ -9,6 +9,7 @@ use App\Models\Message;
 use App\Models\Project;
 use App\Models\User;
 use App\Push\LocalTime;
+use App\Sms\Phone;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
@@ -31,7 +32,7 @@ class CreateMessage
         'priority', 'ttl', 'collapse_id', 'web_push_topic', 'content_available', 'require_interaction',
         'delayed_option', 'delivery_time_of_day',
         'email_subject', 'email_body', 'email_preheader', 'email_from_name', 'email_from_address', 'email_reply_to_address', 'disable_email_click_tracking',
-        'email_design',
+        'email_design', 'sms_from', 'sms_media_urls',
     ];
 
     /** Recipients that can be listed explicitly in one call. */
@@ -86,7 +87,7 @@ class CreateMessage
 
         $message = new Message([
             'project_id' => $project->id,
-            'channel' => self::isEmail($input) ? 'email' : 'push',
+            'channel' => self::channel($input),
             'created_by' => $author?->id,
             'api_key_id' => $apiKey?->id,
             'template_id' => $template?->id,
@@ -154,7 +155,12 @@ class CreateMessage
             'include_external_user_ids' => ['nullable', 'array', 'max:'.self::MAX_IDS],
             'include_aliases' => ['nullable', 'array'],
             'include_aliases.external_id' => ['nullable', 'array', 'max:'.self::MAX_IDS],
-            'target_channel' => ['nullable', 'in:push,email'],
+            'target_channel' => ['nullable', 'in:push,email,sms'],
+            'include_phone_numbers' => ['nullable', 'array', 'max:'.self::MAX_IDS],
+            'include_phone_numbers.*' => ['string', 'max:32'],
+            'sms_from' => ['nullable', 'string', 'max:64'],
+            'sms_media_urls' => ['nullable', 'array', 'max:10'],
+            'sms_media_urls.*' => ['url:https'],
             'send_after' => ['nullable', 'string', 'max:100'],
             'delayed_option' => ['nullable', 'in:timezone,last-active,immediate'],
             'email_subject' => [self::isEmail($input) ? 'required' : 'nullable', function ($attribute, $value, $fail) {
@@ -178,7 +184,7 @@ class CreateMessage
             'email_subject.required' => 'Email messages need an email_subject.',
             'email_body.required' => 'Email messages need an email_body.',
             'contents.required' => 'Message Notifications must have English language content',
-            'target_channel.in' => 'target_channel is push or email.',
+            'target_channel.in' => 'target_channel is push, email or sms.',
         ])->after(function ($validator) use ($input) {
             if (($input['delayed_option'] ?? null) === 'timezone' && ! LocalTime::parse($input['delivery_time_of_day'] ?? null)) {
                 $validator->errors()->add('delivery_time_of_day', 'delivery_time_of_day must be a time of day like "9:00AM" when delayed_option is "timezone".');
@@ -201,9 +207,23 @@ class CreateMessage
         $filters = array_values($input['filters'] ?? []);
         // Addresses (OneSignal include_email_tokens): email channel only.
         $emails = array_values(array_unique(array_map(fn ($email) => mb_strtolower(trim((string) $email)), $input['include_email_tokens'] ?? [])));
+        // Numbers (OneSignal include_phone_numbers): SMS channel only.
+        $phones = array_values(array_unique(array_filter(array_map(fn ($phone) => Phone::normalize((string) $phone), $input['include_phone_numbers'] ?? []))));
 
-        if ($ids === [] && $externalIds === [] && $segments === [] && $filters === [] && $emails === []) {
+        if ($ids === [] && $externalIds === [] && $segments === [] && $filters === [] && $emails === [] && $phones === []) {
             throw ValidationException::withMessages(['targeting' => 'You must include which players, segments, or tags you wish to send this notification to.']);
+        }
+
+        if (self::channel($input) === 'sms') {
+            return array_filter([
+                'channel' => 'sms',
+                'subscription_ids' => $ids,
+                'external_ids' => $externalIds,
+                'phones' => $phones,
+                'segments' => $segments,
+                'excluded_segments' => array_values($input['excluded_segments'] ?? []),
+                'filters' => $filters,
+            ]);
         }
 
         if (self::isEmail($input)) {
@@ -230,6 +250,16 @@ class CreateMessage
             'filters' => $filters,
             'platforms' => $platforms,
         ]);
+    }
+
+    /** push, email or sms (OneSignal target_channel, else guessed from the fields). */
+    public static function channel(array $input): string
+    {
+        if (($input['target_channel'] ?? null) === 'sms' || (! isset($input['target_channel']) && filled($input['include_phone_numbers'] ?? null))) {
+            return 'sms';
+        }
+
+        return self::isEmail($input) ? 'email' : 'push';
     }
 
     /** An email (OneSignal: target_channel "email", or email fields without push contents). */

@@ -18,13 +18,13 @@ class Subscription extends Model
 {
     use HasUuids;
 
-    public const TYPES = ['ios', 'android', 'web', 'email'];
+    public const TYPES = ['ios', 'android', 'web', 'email', 'sms'];
 
-    /** Types reached by push notifications (the email channel is apart). */
+    /** Types reached by push notifications (the email and SMS channels are apart). */
     public const PUSH_TYPES = ['ios', 'android', 'web'];
 
     /** Provider handling each type of device. */
-    public const PROVIDERS = ['ios' => 'apns', 'android' => 'fcm', 'web' => 'webpush', 'email' => 'email'];
+    public const PROVIDERS = ['ios' => 'apns', 'android' => 'fcm', 'web' => 'webpush', 'email' => 'email', 'sms' => 'sms'];
 
     /** Marks a device imported from OneSignal that the Carillon SDK has not registered yet. */
     public const ONESIGNAL_SDK = 'onesignal-import';

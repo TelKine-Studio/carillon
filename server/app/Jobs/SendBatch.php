@@ -10,6 +10,7 @@ use App\Push\FcmSender;
 use App\Push\Result;
 use App\Push\Sender;
 use App\Push\WebPushSender;
+use App\Sms\SmsSender;
 use App\Webhooks\Webhooks;
 use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -66,6 +67,7 @@ class SendBatch implements ShouldQueue
             'android' => app(FcmSender::class),
             'web' => app(WebPushSender::class),
             'email' => app(EmailSender::class),
+            'sms' => app(SmsSender::class),
         };
     }
 

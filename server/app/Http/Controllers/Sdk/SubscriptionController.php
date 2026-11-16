@@ -10,6 +10,7 @@ use App\Journeys\JourneyRunner;
 use App\Models\Project;
 use App\Models\Subscriber;
 use App\Models\Subscription;
+use App\Sms\Phone;
 use App\Webhooks\Webhooks;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -238,6 +239,12 @@ class SubscriptionController extends Controller
 
             return $email;
         }
+        if ($type === 'sms') {
+            $phone = Phone::normalize($token);
+            abort_unless($phone, 422, 'Invalid phone number: use the international format (+2250700000000).');
+
+            return $phone;
+        }
         if ($type !== 'web') {
             return trim($token);
         }
@@ -303,6 +310,45 @@ class SubscriptionController extends Controller
             ->where('subscriber_id', $device->subscriber_id)
             ->where('type', 'email')
             ->when($email, fn ($q) => $q->where('token_hash', hash('sha256', $email)))
+            ->delete();
+
+        return response()->json(['success' => true]);
+    }
+
+    /** Adds a phone number to the person of this device (OneSignal addSms). */
+    public function addSms(Request $request, string $appId, string $id): JsonResponse
+    {
+        $device = $this->subscription($appId, $id);
+        $request->validate(['phone_number' => ['required', 'string', 'max:32']]);
+        $phone = Phone::normalize((string) $request->input('phone_number'));
+        abort_unless($phone, 422, 'Invalid phone number: use the international format (+2250700000000).');
+
+        $subscription = Subscription::query()->firstOrNew(['project_id' => $device->project_id, 'token_hash' => hash('sha256', $phone)]);
+        $created = ! $subscription->exists;
+        $subscription->fill(['subscriber_id' => $device->subscriber_id, 'type' => 'sms', 'token' => $phone, 'invalid_at' => null, 'sdk' => $device->sdk]);
+        if ($created) {
+            $subscription->enabled = true;
+        }
+        $subscription->save();
+
+        if ($created) {
+            Webhooks::dispatch($device->project_id, 'subscription.created', $this->webhookData($subscription->fresh('subscriber')));
+        }
+
+        return response()->json(['id' => $subscription->id, 'phone_number' => $phone, 'enabled' => $subscription->enabled], $created ? 201 : 200);
+    }
+
+    /** Removes a phone number of the person (OneSignal removeSms). */
+    public function removeSms(Request $request, string $appId, string $id): JsonResponse
+    {
+        $device = $this->subscription($appId, $id);
+        $phone = Phone::normalize((string) $request->input('phone_number'));
+
+        Subscription::query()
+            ->where('project_id', $device->project_id)
+            ->where('subscriber_id', $device->subscriber_id)
+            ->where('type', 'sms')
+            ->when($phone, fn ($q) => $q->where('token_hash', hash('sha256', $phone)))
             ->delete();
 
         return response()->json(['success' => true]);

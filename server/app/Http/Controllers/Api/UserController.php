@@ -8,6 +8,7 @@ use App\Journeys\JourneyRunner;
 use App\Models\Project;
 use App\Models\Subscriber;
 use App\Models\Subscription;
+use App\Sms\Phone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,7 @@ use Illuminate\Validation\ValidationException;
 class UserController extends Controller
 {
     /** OneSignal subscription types and ours. */
-    public const TYPES = ['iOSPush' => 'ios', 'AndroidPush' => 'android', 'ChromePush' => 'web', 'SafariPush' => 'web', 'FirefoxPush' => 'web', 'SafariLegacyPush' => 'web', 'Email' => 'email'];
+    public const TYPES = ['iOSPush' => 'ios', 'AndroidPush' => 'android', 'ChromePush' => 'web', 'SafariPush' => 'web', 'FirefoxPush' => 'web', 'SafariLegacyPush' => 'web', 'Email' => 'email', 'SMS' => 'sms'];
 
     /** Creates (or updates) a person with devices: used to import an audience. */
     public function store(Request $request, string $appId): JsonResponse
@@ -60,6 +61,10 @@ class UserController extends Controller
                 if ($type === 'email') {
                     $item['token'] = SubscriptionController::email($item['token'])
                         ?? throw ValidationException::withMessages(['subscriptions' => 'Invalid email address.']);
+                }
+                if ($type === 'sms') {
+                    $item['token'] = Phone::normalize($item['token'])
+                        ?? throw ValidationException::withMessages(['subscriptions' => 'Invalid phone number: use the international format (+2250700000000).']);
                 }
                 $subscription = Subscription::query()->firstOrNew(['project_id' => $project->id, 'token_hash' => hash('sha256', $item['token'])]);
                 $subscription->fill([
@@ -160,7 +165,7 @@ class UserController extends Controller
     /** @return array<string, mixed> */
     protected function present(Subscriber $subscriber): array
     {
-        $types = array_flip(['iOSPush' => 'ios', 'AndroidPush' => 'android', 'ChromePush' => 'web']);
+        $types = array_flip(['iOSPush' => 'ios', 'AndroidPush' => 'android', 'ChromePush' => 'web', 'Email' => 'email', 'SMS' => 'sms']);
 
         return [
             'identity' => array_filter(['onesignal_id' => $subscriber->id, 'external_id' => $subscriber->external_id]),

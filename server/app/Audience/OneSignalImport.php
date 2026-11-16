@@ -6,6 +6,7 @@ use App\Http\Controllers\Sdk\SubscriptionController;
 use App\Models\Project;
 use App\Models\Subscriber;
 use App\Models\Subscription;
+use App\Sms\Phone;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -20,7 +21,7 @@ use Throwable;
 class OneSignalImport
 {
     /** OneSignal device_type numbers. */
-    protected const DEVICE_TYPES = [0 => 'ios', 1 => 'android', 2 => 'amazon', 5 => 'web', 7 => 'web', 8 => 'web', 17 => 'web'];
+    protected const DEVICE_TYPES = [0 => 'ios', 1 => 'android', 2 => 'amazon', 5 => 'web', 7 => 'web', 8 => 'web', 17 => 'web', 11 => 'email', 14 => 'sms'];
 
     protected const SUBSCRIPTION_TYPES = ['iospush' => 'ios', 'androidpush' => 'android', 'huaweipush' => 'huawei', 'fireospush' => 'amazon', 'chromepush' => 'web', 'firefoxpush' => 'web', 'safaripush' => 'web', 'safarilegacypush' => 'web', 'email' => 'email', 'sms' => 'sms'];
 
@@ -119,7 +120,7 @@ class OneSignalImport
         if ($type === 'web') {
             return 'web';
         }
-        if (! in_array($type, ['ios', 'android', 'email'], true)) {
+        if (! in_array($type, ['ios', 'android', 'email', 'sms'], true)) {
             return 'unsupported';
         }
 
@@ -132,6 +133,12 @@ class OneSignalImport
         }
         if ($type === 'email') {
             $token = SubscriptionController::email($token);
+            if (! $token) {
+                return 'invalid_token';
+            }
+        }
+        if ($type === 'sms') {
+            $token = Phone::normalize($token);
             if (! $token) {
                 return 'invalid_token';
             }

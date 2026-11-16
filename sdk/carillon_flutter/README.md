@@ -43,6 +43,7 @@ await Carillon.logout();
 
 await Carillon.user.addTags({'plan': 'pro', 'level': 3});
 await Carillon.user.addEmail('ada@example.com'); // email channel
+await Carillon.user.addSms('+2250700000000'); // SMS channel (international format)
 await Carillon.user.removeTag('level');
 
 Carillon.notifications.addClickListener((event) {

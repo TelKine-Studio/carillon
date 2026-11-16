@@ -3,7 +3,7 @@
     $n = fn ($v) => number_format((int) $v, 0, ',', ' ');
     $pct = fn ($part, $total) => $total > 0 ? number_format($part / $total * 100, 1, ',', ' ').' %' : '—';
     $live = in_array($message->status, ['queued', 'sending'], true);
-    $platformNames = ['ios' => ['iOS', 'apple'], 'android' => ['Android', 'android'], 'web' => ['Web', 'globe-web'], 'email' => [__('Email'), 'mail']];
+    $platformNames = ['ios' => ['iOS', 'apple'], 'android' => ['Android', 'android'], 'web' => ['Web', 'globe-web'], 'email' => [__('Email'), 'mail'], 'sms' => ['SMS', 'message']];
     $isEmail = $message->channel === 'email';
     $preview = [
         'title' => \App\Models\Message::localized($message->headings, $lang),
@@ -212,7 +212,7 @@
             @endif
 
             @if ($errors_summary->isNotEmpty())
-                <x-ui.card :title="__('Errors')" :description="$isEmail ? __('Reasons given by the email service or the receiving servers.') : __('Reasons given by Apple, Google or the browsers.')" icon="alert" :padding="false">
+                <x-ui.card :title="__('Errors')" :description="$isEmail ? __('Reasons given by the email service or the receiving servers.') : ($message->channel === 'sms' ? __('Reasons given by Twilio or the carriers.') : __('Reasons given by Apple, Google or the browsers.'))" icon="alert" :padding="false">
                     <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
                         @foreach ($errors_summary as $row)
                             <li class="flex items-center justify-between gap-4 px-5 py-3 text-sm sm:px-6">
@@ -285,6 +285,12 @@
                 @endphp
                 <x-ui.card :title="__('Preview')" icon="mail" :padding="false">
                     <iframe title="{{ __('Preview') }}" class="mt-1 block h-[28rem] w-full rounded-b-2xl border-t border-zinc-100 bg-white dark:border-zinc-800" sandbox="" srcdoc="{{ $sample }}"></iframe>
+                </x-ui.card>
+            @elseif ($message->channel === 'sms')
+                <x-ui.card :title="__('Preview')" icon="message">
+                    <div class="rounded-2xl bg-zinc-100 p-4 dark:bg-white/5">
+                        <p class="max-w-[85%] rounded-2xl rounded-bl-md bg-white px-3.5 py-2.5 text-sm whitespace-pre-line text-zinc-900 shadow-(--shadow-soft) dark:bg-zinc-800 dark:text-zinc-100">{{ \App\Email\EmailBuilder::render((string) \App\Models\Message::localized($message->contents, $lang), ['phone_number' => '+2250700000000', 'external_id' => 'user-42', 'tags' => ['first_name' => 'Ada']], false) }}</p>
+                    </div>
                 </x-ui.card>
             @else
             <x-ui.card :title="__('Preview')" icon="smartphone">

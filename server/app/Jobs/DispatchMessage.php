@@ -49,9 +49,9 @@ class DispatchMessage implements ShouldQueue
         $cap = (int) $project->setting('frequency_cap');
         $capped = 0;
 
-        foreach ($message->channel === 'email' ? ['email'] : Subscription::PUSH_TYPES as $type) {
+        foreach (in_array($message->channel, ['email', 'sms'], true) ? [$message->channel] : Subscription::PUSH_TYPES as $type) {
             $query = $audience->query($project, $message->targeting)->where('subscriptions.type', $type);
-            if ($cap > 0 && ! $message->is_test && $type !== 'email') {
+            if ($cap > 0 && ! $message->is_test && in_array($type, Subscription::PUSH_TYPES, true)) {
                 $before = (clone $query)->count();
                 $query->whereNotIn('subscriptions.id', DB::table('deliveries')
                     ->select('subscription_id')

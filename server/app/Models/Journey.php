@@ -13,7 +13,7 @@ class Journey extends Model
 {
     public const TRIGGERS = ['new_device', 'inactive', 'tag', 'event'];
 
-    public const STEPS = ['wait', 'push', 'email', 'condition'];
+    public const STEPS = ['wait', 'push', 'email', 'sms', 'condition'];
 
     protected function casts(): array
     {

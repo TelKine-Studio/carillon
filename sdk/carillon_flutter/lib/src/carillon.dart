@@ -116,6 +116,13 @@ class CarillonUser {
   Future<void> removeEmail(String email) =>
       Carillon._ready.email(email, add: false);
 
+  /// Adds a phone number (international format, +2250700000000), for SMS.
+  Future<void> addSms(String phoneNumber) =>
+      Carillon._ready.sms(phoneNumber, add: true);
+
+  Future<void> removeSms(String phoneNumber) =>
+      Carillon._ready.sms(phoneNumber, add: false);
+
   Future<void> addTags(Map<String, Object> tags) => Carillon._ready.setTags(
     tags.map((key, value) => MapEntry(key, '$value')),
   );
@@ -280,6 +287,16 @@ class _Engine with WidgetsBindingObserver {
     }
     final address = email.trim().toLowerCase();
     add ? await api.addEmail(id, address) : await api.removeEmail(id, address);
+  }
+
+  Future<void> sms(String phoneNumber, {required bool add}) async {
+    await (_syncing ?? Future.value());
+    final id = store.subscriptionId;
+    if (id == null) {
+      throw StateError('Carillon: this device is not registered yet.');
+    }
+    final number = phoneNumber.trim();
+    add ? await api.addSms(id, number) : await api.removeSms(id, number);
   }
 
   Future<void> customEvent(

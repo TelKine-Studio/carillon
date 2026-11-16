@@ -29,7 +29,8 @@
         'data' => old('data', collect($source?->option('data', []))->map(fn ($v, $k) => ['key' => $k, 'value' => is_scalar($v) ? (string) $v : json_encode($v)])->values()->all()),
         'schedule' => old('schedule', 'now'),
         'ab' => (bool) old('ab_enabled'),
-        'channel' => old('channel', $source instanceof \App\Models\Message ? $source->channel : ($source?->option('target_channel') === 'email' ? 'email' : 'push')),
+        'channel' => old('channel', $source instanceof \App\Models\Message ? $source->channel : (in_array($source?->option('target_channel'), ['email', 'sms'], true) ? $source->option('target_channel') : 'push')),
+        'smsBody' => old('sms_body', ($source instanceof \App\Models\Message ? $source->channel === 'sms' : $source?->option('target_channel') === 'sms') ? (string) \App\Models\Message::localized($source->contents, 'en') : ''),
         'emailSubject' => old('email_subject', is_string($source?->option('email_subject')) ? $source->option('email_subject') : ''),
         'emailPreheader' => old('email_preheader', is_string($source?->option('email_preheader')) ? $source->option('email_preheader') : ''),
         'starterEmail' => view('email.starter')->render(),
@@ -107,8 +108,8 @@
                 <input type="hidden" name="channel" :value="channel">
             @else
                 <input type="hidden" name="channel" :value="channel">
-                <div class="grid grid-cols-2 gap-1 rounded-lg border border-zinc-200 bg-white p-1 text-sm shadow-(--shadow-soft) dark:border-zinc-800 dark:bg-zinc-900">
-                    @foreach (['push' => [__('Push notification'), 'smartphone'], 'email' => [__('Email'), 'mail']] as $key => [$label, $icon])
+                <div class="grid grid-cols-3 gap-1 rounded-lg border border-zinc-200 bg-white p-1 text-sm shadow-(--shadow-soft) dark:border-zinc-800 dark:bg-zinc-900">
+                    @foreach (['push' => [__('Push'), 'smartphone'], 'email' => [__('Email'), 'mail'], 'sms' => ['SMS', 'message']] as $key => [$label, $icon])
                         <button type="button" x-on:click="channel = '{{ $key }}'" class="flex items-center justify-center gap-2 rounded-md py-2 font-medium transition"
                             :class="channel === '{{ $key }}' ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'">
                             <x-ui.icon :name="$icon" class="size-4" />{{ $label }}
@@ -121,6 +122,12 @@
                         <span>{!! __('Emails are not set up for this project yet: choose how they are sent in :settings.', ['settings' => '<a class="font-medium underline" href="'.route('projects.settings', [$project, 'platforms']).'">'.e(__('Platforms')).'</a>']) !!}</span>
                     </div>
                 @endunless
+                @unless ($project->credential('sms')?->isUsable())
+                    <div x-show="channel === 'sms'" x-cloak class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
+                        <x-ui.icon name="alert" class="mt-0.5 size-4 shrink-0" />
+                        <span>{!! __('SMS are not set up for this project yet: connect a Twilio account in :settings.', ['settings' => '<a class="font-medium underline" href="'.route('projects.settings', [$project, 'platforms']).'">'.e(__('Platforms')).'</a>']) !!}</span>
+                    </div>
+                @endunless
             @endif
 
             {{-- Audience --}}
@@ -131,7 +138,7 @@
                         <label class="cursor-pointer">
                             <input type="radio" name="audience" value="{{ $key }}" x-model="audience" class="sr-only">
                             <span class="block rounded-md py-1.5 text-center font-medium transition" :class="audience === '{{ $key }}' ? 'bg-white text-zinc-900 shadow-(--shadow-soft) dark:bg-zinc-800 dark:text-white' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'"
-                                @if ($key === 'devices') x-text="channel === 'email' ? @js(__('Addresses')) : @js($label)" @endif>{{ $label }}</span>
+                                @if ($key === 'devices') x-text="channel === 'email' ? @js(__('Addresses')) : (channel === 'sms' ? @js(__('Numbers')) : @js($label))" @endif>{{ $label }}</span>
                         </label>
                     @endforeach
                 </div>
@@ -172,6 +179,10 @@
                 <div x-show="audience === 'devices' && channel === 'push'" x-cloak class="mt-5">
                     <x-ui.textarea name="subscription_ids" rows="3" :label="__('Device ids')" :value="$deviceIds"
                         :hint="__('Useful to test on your own devices: their id is shown in Audience.')" x-on:input.debounce.500ms="refresh()" />
+                </div>
+                <div x-show="audience === 'devices' && channel === 'sms'" x-cloak class="mt-5">
+                    <x-ui.textarea name="phone_numbers" rows="3" :label="__('Phone numbers')" :value="old('phone_numbers')" placeholder="+2250700000000"
+                        :hint="__('Numbers already in your audience, in the international format, one per line.')" x-on:input.debounce.500ms="refresh()" />
                 </div>
                 <div x-show="audience === 'devices' && channel === 'email'" x-cloak class="mt-5">
                     <x-ui.textarea name="email_addresses" rows="3" :label="__('Email addresses')" :value="old('email_addresses')" placeholder="ada@example.com"
@@ -305,6 +316,19 @@
                         </div>
                         <p class="text-xs text-zinc-500 dark:text-zinc-400">{!! __('Variables: :vars. An unsubscribe link is added at the bottom unless you place :unsubscribe yourself.', ['vars' => collect(['email', 'external_id', 'tags.first_name', 'tags.plan | default: "free"'])->map($variable)->implode(', '), 'unsubscribe' => $variable('unsubscribe_url')]) !!}</p>
                     </div>
+                </div>
+            </x-ui.card>
+
+            {{-- SMS --}}
+            <x-ui.card :title="__('SMS')" icon="message" x-show="channel === 'sms'" x-cloak>
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between gap-3">
+                        <label for="sms_body" class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Text') }}</label>
+                        <span class="text-xs tabular-nums" :class="smsSegments > 3 ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-400'"
+                            x-text="smsBody.length + ' · ' + (smsSegments <= 1 ? @js(__('1 SMS')) : @js(__(':count SMS')).replace(':count', smsSegments))"></span>
+                    </div>
+                    <textarea id="sms_body" name="sms_body" x-model="smsBody" rows="5" maxlength="1600" :required="channel === 'sms'" class="form-control resize-y" placeholder="{{ __('Hello').' '.$open.' tags.first_name | default: "'.__('there').'" '.$close.', …' }}"></textarea>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('160 characters per SMS, 70 with accents outside the GSM alphabet or emoji: each part is billed by Twilio.') }} {!! __('Variables: :vars.', ['vars' => collect(['phone_number', 'external_id', 'tags.first_name'])->map($variable)->implode(', ')]) !!}</p>
                 </div>
             </x-ui.card>
 
@@ -456,6 +480,12 @@
             <x-ui.card :title="__('Preview')" icon="smartphone" x-show="channel === 'push'">
                 <x-messages.preview :project="$project" />
             </x-ui.card>
+                <x-ui.card :title="__('Preview')" icon="message" x-show="channel === 'sms'" x-cloak>
+                    <div class="rounded-2xl bg-zinc-100 p-4 dark:bg-white/5">
+                        <p class="text-center text-[11px] text-zinc-400">{{ $project->credential('sms')?->detail('from') ?? 'SMS' }}</p>
+                        <p class="mt-2 max-w-[85%] rounded-2xl rounded-bl-md bg-white px-3.5 py-2.5 text-sm break-words whitespace-pre-line text-zinc-900 shadow-(--shadow-soft) dark:bg-zinc-800 dark:text-zinc-100" x-text="smsPreview"></p>
+                    </div>
+                </x-ui.card>
                 <x-ui.card :title="__('Preview')" icon="mail" x-show="channel === 'email'" x-cloak :padding="false">
                     <div class="border-y border-zinc-100 px-5 py-3 text-sm dark:border-zinc-800">
                         <p class="truncate font-semibold text-zinc-900 dark:text-white" x-text="emailSubject || @js(__('Subject'))"></p>
@@ -478,22 +508,22 @@
                     <x-ui.icon name="refresh" class="size-4 animate-spin text-zinc-400" x-show="estimate.loading" x-cloak />
                 </div>
                 <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500" x-show="estimate.total">
-                    @foreach (['ios' => 'iOS', 'android' => 'Android', 'web' => 'Web', 'email' => __('Email')] as $key => $label)
+                    @foreach (['ios' => 'iOS', 'android' => 'Android', 'web' => 'Web', 'email' => __('Email'), 'sms' => 'SMS'] as $key => $label)
                         <span x-show="estimate.platforms.{{ $key }}">{{ $label }} <strong class="font-semibold tabular-nums text-zinc-700 dark:text-zinc-300" x-text="format(estimate.platforms.{{ $key }})"></strong></span>
                     @endforeach
                 </div>
                 <p class="mt-3 text-xs text-amber-700 dark:text-amber-400" x-show="estimate.error" x-text="estimate.error" x-cloak></p>
-                <p class="mt-3 text-xs text-amber-700 dark:text-amber-400" x-show="estimate.total === 0 && !estimate.error" x-cloak x-text="channel === 'email' ? @js(__('No subscribed address matches this audience yet.')) : @js(__('No subscribed device matches this audience yet.'))">{{ __('No subscribed device matches this audience yet.') }}</p>
+                <p class="mt-3 text-xs text-amber-700 dark:text-amber-400" x-show="estimate.total === 0 && !estimate.error" x-cloak x-text="channel === 'sms' ? @js(__('No subscribed phone number matches this audience yet.')) : channel === 'email' ? @js(__('No subscribed address matches this audience yet.')) : @js(__('No subscribed device matches this audience yet.'))">{{ __('No subscribed device matches this audience yet.') }}</p>
 
                 <x-ui.button class="send-plane mt-5 w-full" size="lg" icon="send">
-                    <span x-text="ab && channel === 'push' ? @js(__('Start the A/B test')) : (schedule !== 'now' ? @js(__('Schedule the message')) : (channel === 'email' ? @js(__('Send the email')) : @js(__('Send the message'))))">{{ __('Send the message') }}</span>
+                    <span x-text="ab && channel === 'push' ? @js(__('Start the A/B test')) : (schedule !== 'now' ? @js(__('Schedule the message')) : (channel === 'email' ? @js(__('Send the email')) : (channel === 'sms' ? @js(__('Send the SMS')) : @js(__('Send the message')))))">{{ __('Send the message') }}</span>
                 </x-ui.button>
                 @isset($draft)
                     @if ($draft)<input type="hidden" name="draft_id" value="{{ $draft->id }}">@endif
                 @endisset
                 <x-ui.button type="submit" name="save_draft" value="1" variant="ghost" class="mt-2 w-full" icon="file">{{ __('Save as draft') }}</x-ui.button>
                 @php($testDevices = $project->subscriptions()->where('is_test', true)->where('enabled', true)->whereNull('invalid_at')->count())
-                <div class="mt-3 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+                <div x-show="channel !== 'sms'" class="mt-3 border-t border-zinc-100 pt-3 dark:border-zinc-800">
                     <x-ui.button type="button" variant="secondary" class="w-full" icon="smartphone" x-on:click="sendTest(@js(route('projects.messages.test', $project)))" ::disabled="test.sending">
                         <span x-text="test.sending ? @js(__('Sending…')) : @js($testDevices ? trans_choice('Send a test to my device|Send a test to my :count devices', $testDevices, ['count' => $testDevices]) : __('Send a test'))">{{ __('Send a test') }}</span>
                     </x-ui.button>

@@ -105,6 +105,31 @@ of the project (*Settings → Platforms → Email*):
 Addresses are added with the SDKs (`addEmail`), the users API
 (`{"type": "Email", "token": "ada@example.com"}`) or the OneSignal import.
 
+## Send an SMS
+
+SMS go through Twilio (*Settings → Platforms → SMS*), same endpoint:
+
+```json
+{
+  "app_id": "…",
+  "target_channel": "sms",
+  "included_segments": ["Subscribed Users"],
+  "contents": {"en": "Hi {{ tags.first_name | default: \"there\" }}, -20% today", "fr": "…"}
+}
+```
+
+- Audience: the same segments, filters and `include_aliases.external_id`
+  (their phone numbers), or `include_phone_numbers` (E.164: `+2250700000000`).
+- `sms_from` overrides the sender, `sms_media_urls` (https) sends an MMS where
+  the carrier supports it (US, Canada).
+- Personalization: `{{ phone_number }}`, `{{ external_id }}`, `{{ tags.key }}`.
+- 160 characters per part (70 with characters outside the GSM alphabet, such
+  as emoji); Twilio bills each part. A number Twilio reports as invalid or
+  unsubscribed (STOP) is no longer targeted.
+
+Numbers are added with the SDKs (`addSms`), the users API (subscription type
+`SMS`) or the OneSignal import.
+
 **Delivery**: each instance chooses how its emails leave, per project:
 SMTP (any server), Resend, Amazon SES, Postmark, Mailgun, or direct delivery
 from the server itself (MX lookup, DKIM signature, opportunistic TLS; needs

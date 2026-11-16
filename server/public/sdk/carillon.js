@@ -563,6 +563,19 @@
         });
       },
 
+      /** Adds a phone number (international format, +2250700000000), for SMS. */
+      addSms: function (phoneNumber) {
+        return withSubscription(function (id) {
+          return api('POST', '/subscriptions/' + id + '/sms', { phone_number: String(phoneNumber).trim() });
+        });
+      },
+
+      removeSms: function (phoneNumber) {
+        return withSubscription(function (id) {
+          return api('DELETE', '/subscriptions/' + id + '/sms', { phone_number: String(phoneNumber).trim() });
+        });
+      },
+
       /** Reports something the visitor did (purchase…): starts journeys, counted as a conversion. */
       trackEvent: function (name, properties) {
         return withSubscription(function (id) {

@@ -127,6 +127,42 @@
 
     @include('projects.settings.partials.email')
 
+    {{-- SMS --}}
+    @php $sms = $project->credential('sms'); @endphp
+    <form method="POST" action="{{ route('projects.push.update', [$project, 'sms']) }}">
+        @csrf
+        @method('PUT')
+        <x-settings.section :title="__('SMS · Twilio')" :description="__('Text messages to the phone numbers of your audience.')" icon="message"
+            :editable="$canConfigure" :empty="! $sms" :fields="['account_sid', 'from', 'auth_token']">
+            <x-slot:status>
+                @if ($sms?->isUsable())<x-ui.badge color="green" dot>{{ __('Configured') }}</x-ui.badge>@else<x-ui.badge color="zinc">{{ __('Not configured') }}</x-ui.badge>@endif
+            </x-slot:status>
+            <x-slot:summary>
+                @if ($sms)
+                    <x-settings.summary>
+                        <x-settings.value :label="__('Account SID')" :value="$sms->detail('account_sid')" mono />
+                        <x-settings.value :label="__('Sender')" :value="$sms->detail('from')" mono />
+                    </x-settings.summary>
+                    @if ($sms->last_error)
+                        <p class="mt-3 text-sm text-red-600 dark:text-red-400">{{ __('Last error: :error', ['error' => $sms->last_error]) }}</p>
+                    @endif
+                @else
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Connect a Twilio account to send SMS: the numbers come from the SDK (addSms), the API or the OneSignal import.') }}</p>
+                @endif
+            </x-slot:summary>
+            <fieldset @disabled(! $canConfigure) class="space-y-5">
+                <x-ui.input name="account_sid" :label="__('Account SID')" :value="old('account_sid', $sms?->detail('account_sid'))" required placeholder="AC…" :hint="__('On the home page of the Twilio console.')" />
+                <x-ui.input name="auth_token" type="password" :label="__('Auth token')" :hint="$sms ? __('Leave empty to keep the current one.') : __('Next to the Account SID, in the Twilio console.')" :required="! $sms" autocomplete="off" />
+                <x-ui.input name="from" :label="__('Sender')" :value="old('from', $sms?->detail('from'))" required placeholder="+2250700000000" :hint="__('A Twilio number, a Messaging Service SID (MG…) or a sender name where the country allows it.')" />
+            </fieldset>
+            @if ($sms)
+                <x-slot:danger>
+                    <x-ui.button type="submit" form="remove-sms" variant="ghost-danger" icon="trash" class="mr-auto">{{ __('Remove') }}</x-ui.button>
+                </x-slot:danger>
+            @endif
+        </x-settings.section>
+    </form>
+
     @if ($web?->isUsable())
         @php $origin = rtrim(url('/'), '/'); @endphp
         <x-ui.card :title="__('Add notifications to your website')" icon="code">
@@ -152,7 +188,7 @@
         </x-ui.card>
     @endif
 
-    @foreach (['apns', 'fcm', 'webpush', 'email'] as $provider)
+    @foreach (['apns', 'fcm', 'webpush', 'email', 'sms'] as $provider)
         <form id="remove-{{ $provider }}" method="POST" action="{{ route('projects.push.destroy', [$project, $provider]) }}" class="hidden"
             data-confirm-title="{{ __('Remove these keys?') }}" data-confirm="{{ __('Devices of this platform stop receiving notifications until you add keys again.') }}" data-confirm-action="{{ __('Remove') }}">
             @csrf

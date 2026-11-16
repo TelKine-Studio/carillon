@@ -3,7 +3,7 @@
     $trigger = old('trigger', $journey->trigger ?? ['type' => 'new_device']);
     $steps = old('steps', $journey->steps ?? []);
     $config = [
-        'labels' => ['push' => __('Send a notification'), 'email' => __('Send an email'), 'wait' => __('Wait'), 'condition' => __('Tag condition')],
+        'labels' => ['push' => __('Send a notification'), 'email' => __('Send an email'), 'sms' => __('Send an SMS'), 'wait' => __('Wait'), 'condition' => __('Tag condition')],
         'trigger' => ['type' => $trigger['type'] ?? 'new_device', 'days' => $trigger['days'] ?? 7, 'key' => $trigger['key'] ?? '', 'value' => $trigger['value'] ?? '', 'event' => $trigger['event'] ?? ''],
         'steps' => collect($steps)->map(fn ($s, $i) => [
             'uid' => $i + 1,
@@ -22,12 +22,14 @@
     ];
     // Written in two parts: Blade would read the braces as an echo.
     $tagExample = '{'.'{ tags.first_name | default: "…" }'.'}';
-    [$emailTemplates, $pushTemplates] = $templates->partition(fn ($t) => $t->option('target_channel') === 'email');
+    $emailTemplates = $templates->filter(fn ($t) => $t->option('target_channel') === 'email');
+    $pushTemplates = $templates->filter(fn ($t) => ! in_array($t->option('target_channel'), ['email', 'sms'], true));
     $templateOptions = ['' => __('Write the message here')] + $pushTemplates->mapWithKeys(fn ($t) => [$t->id => $t->name])->all();
     $emailTemplateOptions = ['' => __('Write the email here')] + $emailTemplates->mapWithKeys(fn ($t) => [$t->id => $t->name])->all();
     $kinds = [
         'push' => ['bell', __('Notification')],
         'email' => ['mail', __('Email')],
+        'sms' => ['message', 'SMS'],
         'wait' => ['clock', __('Wait')],
         'condition' => ['sliders', __('Condition')],
     ];
@@ -116,7 +118,7 @@
                                 </div>
 
                                 {{-- Notification / email --}}
-                                <div x-show="step.type === 'push' || step.type === 'email'" class="space-y-4">
+                                <div x-show="['push', 'email', 'sms'].includes(step.type)" class="space-y-4">
                                     @if ($pushTemplates->isNotEmpty())
                                         <div x-show="step.type === 'push'">
                                             <x-ui.select name="template-choice" :options="$templateOptions" x-bind:name="`steps[${index}][template_id]`" x-model="step.template_id" x-bind:disabled="step.type !== 'push'" :label="__('Content')" />

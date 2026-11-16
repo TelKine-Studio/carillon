@@ -94,6 +94,9 @@ final class ComposerInput
         if ($request->input('channel') === 'email') {
             $input = self::email($request, $input);
         }
+        if ($request->input('channel') === 'sms') {
+            $input = self::sms($request, $input);
+        }
 
         if ($request->input('schedule') === 'timezone') {
             $input['delayed_option'] = 'timezone';
@@ -131,6 +134,29 @@ final class ComposerInput
         }
 
         return $kept;
+    }
+
+    /**
+     * The SMS text replaces the push fields; "devices" become phone numbers.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
+    protected static function sms(Request $request, array $input): array
+    {
+        $kept = array_intersect_key($input, array_flip(['name', 'included_segments', 'excluded_segments', 'include_aliases', 'send_after', 'delayed_option', 'delivery_time_of_day']));
+        $kept['target_channel'] = 'sms';
+        $kept['contents'] = filled($request->input('sms_body')) ? ['en' => (string) $request->input('sms_body')] : null;
+
+        if ($request->input('audience') === 'devices') {
+            // Numbers may contain spaces: one per line or separated by commas.
+            $kept['include_phone_numbers'] = array_values(array_filter(array_map('trim', preg_split('/[\n,;]+/', (string) $request->input('phone_numbers')) ?: [])));
+        }
+        if (filled($request->input('sms_media_url'))) {
+            $kept['sms_media_urls'] = [trim((string) $request->input('sms_media_url'))];
+        }
+
+        return array_filter($kept, fn ($value) => $value !== null);
     }
 
     /** @return list<string> */

@@ -7,7 +7,7 @@
         default => ['zinc', __('Draft')],
     };
     $units = ['minutes' => [':count minute|:count minutes'], 'hours' => [':count hour|:count hours'], 'days' => [':count day|:count days']];
-    $icons = ['push' => 'bell', 'email' => 'mail', 'wait' => 'clock', 'condition' => 'sliders'];
+    $icons = ['push' => 'bell', 'email' => 'mail', 'sms' => 'message', 'wait' => 'clock', 'condition' => 'sliders'];
 @endphp
 <x-layouts.app :title="$journey->name.' · '.$project->name">
     <x-ui.page-header :title="$journey->name">
@@ -66,10 +66,11 @@
                                         @case('wait') {{ __('Wait :duration', ['duration' => trans_choice($units[$step['unit'] ?? 'hours'][0], $step['amount'] ?? 1, ['count' => $step['amount'] ?? 1])]) }} @break
                                         @case('condition') {{ __('Continue if :key :operator :value', ['key' => $step['key'], 'operator' => ($step['operator'] ?? 'is') === 'is' ? __('is') : __('is not'), 'value' => ($step['value'] ?? '') !== '' ? $step['value'] : __('set')]) }} @break
                                         @case('email') {{ __('Email') }} · {{ $step['subject'] ?? '' }} @break
+                                        @case('sms') SMS @break
                                         @default {{ __('Notification') }}@if (! empty($step['title'])) · {{ $step['title'] }}@endif
                                     @endswitch
                                 </p>
-                                @if (in_array($step['type'], ['push', 'email'], true))
+                                @if (in_array($step['type'], ['push', 'email', 'sms'], true))
                                     <p class="mt-0.5 line-clamp-2 text-sm text-zinc-500">{{ ! empty($step['template_id']) ? __('From a template') : strip_tags($step['body'] ?? '') }}</p>
                                     @php($stats = $sent[$index] ?? null)
                                     <p class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">

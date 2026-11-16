@@ -31,6 +31,12 @@ class CarillonApi {
   Future<Map<String, dynamic>> removeEmail(String id, String email) =>
       _send('DELETE', '/subscriptions/$id/email', {'email': email});
 
+  Future<Map<String, dynamic>> addSms(String id, String phoneNumber) =>
+      _send('POST', '/subscriptions/$id/sms', {'phone_number': phoneNumber});
+
+  Future<Map<String, dynamic>> removeSms(String id, String phoneNumber) =>
+      _send('DELETE', '/subscriptions/$id/sms', {'phone_number': phoneNumber});
+
   Future<Map<String, dynamic>> tags(String id, Map<String, dynamic> tags) =>
       _send('PUT', '/subscriptions/$id/tags', {'tags': tags});
 

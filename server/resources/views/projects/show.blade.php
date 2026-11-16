@@ -37,7 +37,7 @@
     @endphp
     <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <x-ui.stat :label="__('Subscribed devices')" :value="$n($stats['devices'])" icon="smartphone" :href="route('projects.subscribers.index', $project)"
-            :hint="collect(['ios' => 'iOS', 'android' => 'Android', 'web' => 'Web', 'email' => __('Email')])->filter(fn ($l, $k) => $stats['platforms'][$k] ?? 0)->map(fn ($l, $k) => $l.' '.$n($stats['platforms'][$k]))->implode(' · ') ?: null" />
+            :hint="collect(['ios' => 'iOS', 'android' => 'Android', 'web' => 'Web', 'email' => __('Email'), 'sms' => 'SMS'])->filter(fn ($l, $k) => $stats['platforms'][$k] ?? 0)->map(fn ($l, $k) => $l.' '.$n($stats['platforms'][$k]))->implode(' · ') ?: null" />
         <x-ui.stat :label="__('New devices')" :value="$n(array_sum($stats['new']))" icon="users" :hint="__('Last 30 days')" :series="$stats['new']" />
         <x-ui.stat :label="__('Messages')" :value="$n($stats['messages'])" icon="send" :hint="__(':count delivered notifications', ['count' => $n($stats['delivered'])])" :href="route('projects.messages.index', $project)" />
         <x-ui.stat :label="__('Click rate')" :value="$ctr" icon="external" :hint="__(':count clicks in 30 days', ['count' => $n($stats['clicked'])])" />

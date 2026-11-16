@@ -14,7 +14,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * - fcm: details {project_id, client_email}, secret = service account JSON;
  * - webpush: details {public_key, subject}, secret = VAPID private key;
  * - email: details {driver, from_address, ...} (see App\Email\Drivers),
- *   secret = password, API key or DKIM private key.
+ *   secret = password, API key or DKIM private key;
+ * - sms: details {driver: twilio, account_sid, from}, secret = auth token.
  */
 #[Fillable(['project_id', 'provider', 'details', 'secret', 'verified_at', 'last_error'])]
 #[Hidden(['secret'])]
@@ -55,6 +56,7 @@ class PushCredential extends Model
             'apns' => filled($this->detail('key_id')) && filled($this->detail('team_id')) && filled($this->detail('bundle_id')),
             'fcm' => filled($this->detail('project_id')),
             'webpush' => filled($this->detail('public_key')),
+            'sms' => filled($this->detail('account_sid')) && filled($this->detail('from')),
             'email' => Drivers::usable($this),
             default => false,
         };

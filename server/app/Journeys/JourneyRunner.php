@@ -174,7 +174,7 @@ class JourneyRunner
                     break;
                 }
 
-                if (in_array($step['type'], ['push', 'email'], true)) {
+                if (in_array($step['type'], ['push', 'email', 'sms'], true)) {
                     $sends[$entry->step][] = $entry->subscriber_id;
                 }
                 $entry->step++;
@@ -205,7 +205,7 @@ class JourneyRunner
             ->whereIn('subscriber_id', array_unique($subscribers))
             ->where('enabled', true)
             ->whereNull('invalid_at')
-            ->when($email, fn ($q) => $q->where('type', 'email'), fn ($q) => $q->whereIn('type', Subscription::PUSH_TYPES))
+            ->when(in_array($step['type'], ['email', 'sms'], true), fn ($q) => $q->where('type', $step['type']), fn ($q) => $q->whereIn('type', Subscription::PUSH_TYPES))
             ->pluck('id')
             ->all();
 
@@ -215,13 +215,15 @@ class JourneyRunner
 
         $content = filled($step['template_id'] ?? null)
             ? ['template_id' => $step['template_id']]
-            : ($email
+            : ($step['type'] === 'sms'
+                ? ['target_channel' => 'sms', 'contents' => ['en' => (string) ($step['body'] ?? '')]]
+                : ($email
                 ? ['target_channel' => 'email', 'email_subject' => $step['subject'] ?? '', 'email_body' => $step['body'] ?? '']
                 : array_filter([
                     'headings' => filled($step['title'] ?? null) ? ['en' => $step['title']] : null,
                     'contents' => ['en' => (string) ($step['body'] ?? '')],
                     'url' => $step['url'] ?? null,
-                ]));
+                ])));
 
         try {
             foreach (array_chunk($devices, CreateMessage::MAX_IDS) as $chunk) {
