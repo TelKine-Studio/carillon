@@ -11,6 +11,7 @@
   <a href="https://github.com/TelKine-Studio/carillon/actions/workflows/server.yml"><img src="https://github.com/TelKine-Studio/carillon/actions/workflows/server.yml/badge.svg" alt="Tests"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
   <a href="docs/README.md"><img src="https://img.shields.io/badge/docs-read-orange" alt="Documentation"></a>
+  <a href="https://telkine-studio.github.io/carillon/"><img src="https://img.shields.io/badge/website-visit-black" alt="Website"></a>
 </p>
 
 Push notifications are free at Apple and Google. Carillon sends them — and
