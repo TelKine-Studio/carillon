@@ -2,6 +2,7 @@
 
 - Live Activities (iOS): `CarillonLiveActivities.observe(YourAttributes.self)` sends Carillon the push-to-start token of the type (iOS 17.2+), the update token of each activity and its end; `Carillon.liveActivities` has the OneSignal calls for activities managed by hand. Calls made before the device is registered are sent once it is.
 - Live Activity tokens are sent natively on iOS once the device is known (the app launched in the background by iOS to give a token runs a few seconds only), with a background task; an iPhone without the notification permission is registered without APNs token to keep its Live Activity tokens.
+- A cold start counts its session even when the APNs token comes back after the first sync (the session, and the in-app messages "on opening", were lost); a known device keeps its stored token meanwhile.
 - In-app messages are fetched at each launch of the app, not only on a new session: an event right after a relaunch finds its message.
 - Standard Live Activity: Swift package product `CarillonLiveActivity` with `CarillonActivityAttributes` and a ready-made widget (`CarillonLiveActivityWidget`, lock screen and Dynamic Island), driven by the `live` object of the API, shown as a Live Update on Android too.
 - An in-app message triggered (opening of the app or event) while another one is on screen is shown after it (it was dropped).

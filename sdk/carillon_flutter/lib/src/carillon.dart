@@ -517,9 +517,15 @@ class _Engine with WidgetsBindingObserver {
   }
 
   /// Registers or updates this device (serialized: one call at a time).
+  /// A session asked by the launch (or the return to the foreground) and
+  /// not counted yet: kept until a sync goes through (on a cold start the
+  /// APNs token comes back after the first sync).
+  bool _sessionPending = false;
+
   Future<void> sync({bool session = false}) {
+    if (session) _sessionPending = true;
     return _syncing = (_syncing ?? Future.value())
-        .then((_) => _sync(session))
+        .then((_) => _sync(_sessionPending))
         .catchError((Object error) {
           report('register', error);
         });
@@ -546,7 +552,12 @@ class _Engine with WidgetsBindingObserver {
         })) {
       return;
     }
-    final token = externalToken ?? await platform.token();
+    // A known device keeps its token while the system has not given it
+    // again yet (cold start on iOS).
+    final token =
+        externalToken ??
+        await platform.token() ??
+        (store.subscriptionId != null ? store.token : null);
     final permission = await platform.permission();
     enabled = permission == 'granted' && !store.optedOut;
 
@@ -607,6 +618,7 @@ class _Engine with WidgetsBindingObserver {
 
     store.token = token;
     if (newSession) store.lastSession = now;
+    _sessionPending = false;
     await platform.share({
       'server': store.serverUrl,
       'app': appId,
