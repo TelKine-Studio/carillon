@@ -49,7 +49,11 @@ class OneSignalImport
             }
             $header = array_map(fn ($name) => strtolower(trim(preg_replace('/^\xEF\xBB\xBF/', '', (string) $name))), $header);
             if (! array_intersect($header, ['token', 'identifier', 'push_token'])) {
-                throw new \RuntimeException('This is not a OneSignal export: no "token" or "identifier" column.');
+                // The export of the dashboard (Users & subscriptions) lists the
+                // subscriptions without their push token: only the API gives it.
+                throw new \RuntimeException(array_intersect($header, ['subscription id', 'onesignal id', 'subscription_id', 'onesignal_id'])
+                    ? __('This export from the OneSignal dashboard has no push tokens. Use the automatic sync below: it gets them through the OneSignal API.')
+                    : __('This is not a OneSignal export: no "token" or "identifier" column.'));
             }
 
             $batch = [];

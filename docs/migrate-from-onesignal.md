@@ -17,8 +17,14 @@ in OneSignal (*Settings → Platforms*):
 
 ## 2. Import your audience
 
-In OneSignal, *Audience → Subscriptions → Export*: you receive a `.csv.gz`
-file. In Carillon, *Audience → Import from OneSignal*, send the file.
+In Carillon, *Audience → Import from OneSignal → Automatic sync*: paste the
+App ID and the REST API key of your OneSignal app (*Settings → Keys & IDs*).
+Carillon asks OneSignal for an export through its API, imports it, then does
+it again every night: new installs of the old app version keep arriving.
+
+The export of the OneSignal dashboard (*Users & subscriptions → Export*) does
+not contain the push tokens and cannot be used. A file exported with the API
+(`POST /players/csv_export`) can also be sent by hand on the same page.
 
 - iOS and Android devices work right away: their tokens are used with your
   own keys. People keep their external id and tags.

@@ -182,4 +182,17 @@ class OneSignalImportTest extends TestCase
         $this->assertStringContainsString('Access denied', $sync->last_error);
         Http::assertSent(fn (HttpRequest $request) => $request->header('Authorization') === ['Basic wrong']);
     }
+
+    public function test_a_dashboard_export_without_tokens_explains_what_to_do(): void
+    {
+        $content = $this->csv([
+            ['Channel', 'Status', 'Last session', 'Device', 'Subscription ID', 'OneSignal ID', 'App version', 'Timezone ID', 'Country', 'Language code', 'Tags'],
+            ['Push', 'Subscribed', '16/11/26, 11:35:56', 'Samsung Galaxy S9 (10)', 'b85c45ac', '6a3021f2', '28', 'Africa/Abidjan', 'CI', 'French', ''],
+        ]);
+
+        $this->actingAs($this->owner)->post(route('projects.imports.store', $this->project), ['file' => UploadedFile::fake()->createWithContent('subscriptions_export.csv', $content)]);
+
+        $this->assertSame('failed', AudienceImport::query()->value('status'));
+        $this->assertStringContainsString('no push tokens', AudienceImport::query()->value('error'));
+    }
 }

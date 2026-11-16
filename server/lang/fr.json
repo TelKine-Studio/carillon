@@ -1583,5 +1583,7 @@
     "Sync started: it takes a few minutes.": "Synchronisation lancée : elle prend quelques minutes.",
     "Automatic sync removed.": "Synchronisation automatique supprimée.",
     ":actor set up the OneSignal sync of the project :subject": ":actor a réglé la synchronisation OneSignal du projet :subject",
-    ":actor removed the OneSignal sync of the project :subject": ":actor a supprimé la synchronisation OneSignal du projet :subject"
+    ":actor removed the OneSignal sync of the project :subject": ":actor a supprimé la synchronisation OneSignal du projet :subject",
+    "This export from the OneSignal dashboard has no push tokens. Use the automatic sync below: it gets them through the OneSignal API.": "Cet export du tableau de bord OneSignal ne contient pas les jetons push. Utilisez la synchronisation automatique ci-dessous : elle les récupère via l’API de OneSignal.",
+    "The easiest is the :sync below: the export of the OneSignal dashboard no longer contains the push tokens. A file exported with the OneSignal API (:endpoint) also works here.": "Le plus simple est la :sync ci-dessous : l’export du tableau de bord OneSignal ne contient plus les jetons push. Un fichier exporté avec l’API de OneSignal (:endpoint) fonctionne aussi ici."
 }

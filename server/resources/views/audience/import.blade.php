@@ -25,7 +25,7 @@
                 <ol class="mb-6 space-y-4 text-sm text-zinc-600 dark:text-zinc-400">
                     <li class="flex gap-3">
                         <span class="grid size-6 shrink-0 place-items-center rounded-md bg-zinc-100 text-xs font-semibold text-zinc-700 dark:bg-white/5 dark:text-zinc-300">1</span>
-                        <span>{!! __('In OneSignal, open :path and export the subscriptions. You receive a :file file by email.', ['path' => '<strong class="font-medium text-zinc-900 dark:text-white">Audience → Subscriptions → Export</strong>', 'file' => '<code class="font-mono text-xs">.csv.gz</code>']) !!}</span>
+                        <span>{!! __('The easiest is the :sync below: the export of the OneSignal dashboard no longer contains the push tokens. A file exported with the OneSignal API (:endpoint) also works here.', ['sync' => '<strong class="font-medium text-zinc-900 dark:text-white">'.e(__('Automatic sync')).'</strong>', 'endpoint' => '<code class="font-mono text-xs">/players/csv_export</code>']) !!}</span>
                     </li>
                     <li class="flex gap-3">
                         <span class="grid size-6 shrink-0 place-items-center rounded-md bg-zinc-100 text-xs font-semibold text-zinc-700 dark:bg-white/5 dark:text-zinc-300">2</span>
