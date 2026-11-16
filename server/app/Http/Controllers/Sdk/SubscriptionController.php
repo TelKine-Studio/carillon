@@ -107,8 +107,10 @@ class SubscriptionController extends Controller
         if ($request->boolean('session')) {
             $subscription->sessions++;
             $subscription->last_active_at = now();
-            $subscription->seen_at = now();
         }
+        // The SDK syncs when the app starts or comes back to the foreground:
+        // "online now" right away, without waiting for the first heartbeat.
+        $subscription->seen_at = now();
         $subscription->save();
         $this->applyPerson($subscription->subscriber, $data);
 

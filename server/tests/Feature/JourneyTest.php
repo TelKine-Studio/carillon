@@ -292,5 +292,10 @@ class JourneyTest extends TestCase
         $this->getJson(route('projects.live', $this->project))->assertJsonPath('online', 1);
         $this->get(route('projects.show', $this->project))->assertOk()->assertSee('Online now');
         $this->postJson("$base/subscriptions/00000000-0000-0000-0000-000000000000/heartbeat")->assertNotFound();
+
+        // Back to the foreground (a sync, even within the same session): online at once.
+        $this->travel(5)->minutes();
+        $this->patchJson("$base/subscriptions/{$bob->id}", ['enabled' => true])->assertOk();
+        $this->getJson(route('projects.live', $this->project))->assertJsonPath('online', 1)->assertJsonPath('people', 1);
     }
 }
