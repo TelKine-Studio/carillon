@@ -126,6 +126,19 @@ In the app (the look of the activity belongs to it):
    update token of each activity on screen and its end. A device must be
    registered (notifications allowed) for its tokens to be kept.
 
+Good to know, measured on iOS 26:
+
+- The first activity started by push shows **"Allow Live Activities from
+  <app>?"** on the lock screen. Until the person taps *Allow*, iOS gives no
+  update token: the activity shows, but Carillon cannot update or end it
+  (the updates wait, `pending`). Once allowed, iOS hands the token to the
+  app in the background and the SDK sends it at once; later activities get
+  their token right away.
+- Live Activities need no notification permission: an iPhone that refused
+  notifications is registered anyway (without APNs token) to keep its
+  Live Activity tokens, and stays out of the audience of notifications.
+- Reinstalling the app ends its activities.
+
 From your server: start when it is worth it (for instance only when an
 order takes longer than usual), update rarely, end at the outcome. Carillon
 ends by itself an activity left open past `end_after`, and the end sent
