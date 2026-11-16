@@ -11,6 +11,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Webhook;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -66,5 +67,29 @@ class ApiAccessTest extends TestCase
         $sync->forceFill(['requested_at' => now()])->save(); // same error: no second call
         Http::assertSentCount(1);
         Http::assertSent(fn ($request) => $request['type'] === 'onesignal_sync.failed' && $request['data']['error'] === 'Invalid REST API key');
+    }
+
+    public function test_the_sdk_gets_the_firebase_options_of_its_android_app(): void
+    {
+        $owner = $this->project->members()->first();
+        $rsa = openssl_pkey_new(['private_key_bits' => 2048]);
+        openssl_pkey_export($rsa, $pem);
+        $account = json_encode(['type' => 'service_account', 'project_id' => 'shop-123', 'client_email' => 'a@shop-123.iam.gserviceaccount.com', 'private_key' => $pem]);
+        $services = fn (string $project) => json_encode(['project_info' => ['project_number' => '998877', 'project_id' => $project], 'client' => [
+            ['client_info' => ['mobilesdk_app_id' => '1:998877:android:abc', 'android_client_info' => ['package_name' => 'ci.marecharge.app']], 'api_key' => [['current_key' => 'AIzaPublic']]],
+        ]]);
+        $file = fn (string $name, string $content) => UploadedFile::fake()->createWithContent($name, $content);
+
+        $this->actingAs($owner)->put(route('projects.push.update', [$this->project, 'fcm']), ['service_account' => $file('sa.json', $account)])->assertSessionHasNoErrors();
+        // Later, the google-services.json alone (the service account is kept).
+        $this->put(route('projects.push.update', [$this->project, 'fcm']), ['google_services' => $file('google-services.json', $services('other-project'))])->assertSessionHasErrors('google_services');
+        $this->put(route('projects.push.update', [$this->project, 'fcm']), ['google_services' => $file('google-services.json', $services('shop-123'))])->assertSessionHasNoErrors();
+        $this->assertSame('a@shop-123.iam.gserviceaccount.com', $this->project->credential('fcm')->detail('client_email'));
+
+        $base = "/api/v1/sdk/apps/{$this->project->app_id}/config";
+        $this->getJson("$base?android_package=ci.marecharge.app")->assertOk()
+            ->assertJsonPath('firebase', ['project_id' => 'shop-123', 'sender_id' => '998877', 'app_id' => '1:998877:android:abc', 'api_key' => 'AIzaPublic']);
+        $this->getJson("$base?android_package=other.app")->assertOk()->assertJsonPath('firebase', null);
+        $this->get(route('projects.settings', [$this->project, 'platforms']))->assertOk()->assertSee('ci.marecharge.app');
     }
 }

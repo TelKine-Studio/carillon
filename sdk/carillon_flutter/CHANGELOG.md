@@ -1,5 +1,6 @@
 ## 0.2.0
 
+- Android without `google-services.json` nor the Google services Gradle plugin: the Firebase options of the package are served by Carillon (upload the file in the Android settings of the project), kept on the device and applied at every start of the process.
 - `initialize(onError:)` and `Carillon.lastError`: failures in the background are reported instead of being printed only in debug builds.
 - `pushSubscription.ready()` and `pushSubscription.idListenable` to wait for the registration of the device.
 - Calls made before `initialize()` finishes wait for it instead of throwing.

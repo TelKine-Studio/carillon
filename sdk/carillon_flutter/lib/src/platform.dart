@@ -13,6 +13,12 @@ abstract class PushPlatform {
   /// Push token, or null while it is not available.
   Future<String?> token();
 
+  /// Android without google-services.json: Firebase is set up with the
+  /// options served by Carillon. Returns whether Firebase is ready.
+  Future<bool> ensureFirebase(
+    Future<Map<String, dynamic>?> Function(String package) options,
+  ) async => true;
+
   /// New tokens (refreshed by the system).
   Stream<String> get tokens;
 

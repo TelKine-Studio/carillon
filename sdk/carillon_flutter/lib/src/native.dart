@@ -62,6 +62,22 @@ class NativePush extends PushPlatform {
   @override
   Future<String?> environment() => _channel.invokeMethod<String>('environment');
 
+  bool _firebaseReady = false;
+
+  @override
+  Future<bool> ensureFirebase(
+    Future<Map<String, dynamic>?> Function(String package) options,
+  ) async {
+    if (!Platform.isAndroid || _firebaseReady) return true;
+    // An app with google-services.json has its default Firebase app already.
+    final package = await _channel.invokeMethod<String>('firebasePackage');
+    if (package == null) return _firebaseReady = true;
+    final firebase = await options(package);
+    if (firebase == null) return false;
+    await _channel.invokeMethod('configureFirebase', firebase);
+    return _firebaseReady = true;
+  }
+
   @override
   Future<String?> token() async =>
       _token ?? await _channel.invokeMethod<String>('token');

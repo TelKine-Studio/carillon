@@ -51,8 +51,9 @@ Future<(InAppOutcome, Map<String, dynamic>?)> _showDialog(
   final result = await showGeneralDialog<Map<String, dynamic>>(
     context: navigator.context,
     barrierDismissible: !fullscreen,
-    barrierLabel: MaterialLocalizations.of(navigator.context)
-        .modalBarrierDismissLabel,
+    barrierLabel: MaterialLocalizations.of(
+      navigator.context,
+    ).modalBarrierDismissLabel,
     barrierColor: Colors.black54,
     transitionDuration: const Duration(milliseconds: 260),
     transitionBuilder: (context, animation, _, child) {

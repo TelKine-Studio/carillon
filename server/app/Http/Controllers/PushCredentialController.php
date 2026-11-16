@@ -28,7 +28,7 @@ class PushCredentialController extends Controller
 
         [$details, $secret] = match ($provider) {
             'apns' => $this->apns($request, $existing),
-            'fcm' => $this->fcm($request),
+            'fcm' => $this->fcm($request, $existing),
             'webpush' => $this->webPush($request, $existing),
             'sms' => $this->sms($request, $existing),
             'hms' => $this->clientCredentials($request, $existing, 'app_id', 'app_secret'),
@@ -135,21 +135,53 @@ class PushCredentialController extends Controller
     }
 
     /** @return array{0: array<string, string>, 1: string} */
-    protected function fcm(Request $request): array
+    /**
+     * Service account (to send) and, optionally, the google-services.json of
+     * the Android apps: the SDK then sets Firebase up by itself, the apps need
+     * neither the file nor the Gradle plugin.
+     */
+    protected function fcm(Request $request, ?PushCredential $existing): array
     {
-        $request->validate(['service_account' => ['required', 'file', 'max:64']]);
+        $request->validate([
+            'service_account' => [$existing ? 'nullable' : 'required', 'file', 'max:64'],
+            'google_services' => ['nullable', 'file', 'max:64'],
+        ]);
 
-        $raw = (string) file_get_contents($request->file('service_account')->getRealPath());
-        $account = json_decode($raw, true);
+        if ($request->hasFile('service_account')) {
+            $raw = (string) file_get_contents($request->file('service_account')->getRealPath());
+            $account = json_decode($raw, true);
 
-        if (! is_array($account) || ($account['type'] ?? null) !== 'service_account' || ! isset($account['project_id'], $account['client_email'], $account['private_key']) || ! openssl_pkey_get_private($account['private_key'])) {
-            throw ValidationException::withMessages(['service_account' => __('This is not a Firebase service account key (JSON file).')]);
+            if (! is_array($account) || ($account['type'] ?? null) !== 'service_account' || ! isset($account['project_id'], $account['client_email'], $account['private_key']) || ! openssl_pkey_get_private($account['private_key'])) {
+                throw ValidationException::withMessages(['service_account' => __('This is not a Firebase service account key (JSON file).')]);
+            }
+            $details = ['project_id' => $account['project_id'], 'client_email' => $account['client_email']];
+        } else {
+            [$details, $raw] = [array_intersect_key($existing->details ?? [], array_flip(['project_id', 'client_email'])), $existing->secret];
         }
 
-        return [[
-            'project_id' => $account['project_id'],
-            'client_email' => $account['client_email'],
-        ], $raw];
+        $details += array_intersect_key($existing?->details ?? [], array_flip(['android_apps', 'sender_id']));
+        if ($request->hasFile('google_services')) {
+            $config = json_decode((string) file_get_contents($request->file('google_services')->getRealPath()), true);
+            $apps = [];
+            foreach ((array) ($config['client'] ?? []) as $client) {
+                $package = $client['client_info']['android_client_info']['package_name'] ?? null;
+                $appId = $client['client_info']['mobilesdk_app_id'] ?? null;
+                $apiKey = $client['api_key'][0]['current_key'] ?? null;
+                if ($package && $appId && $apiKey) {
+                    $apps[$package] = ['app_id' => $appId, 'api_key' => $apiKey];
+                }
+            }
+            if ($apps === [] || ! isset($config['project_info']['project_number'])) {
+                throw ValidationException::withMessages(['google_services' => __('This is not a google-services.json file of an Android app.')]);
+            }
+            if (($config['project_info']['project_id'] ?? null) !== $details['project_id']) {
+                throw ValidationException::withMessages(['google_services' => __('This file belongs to the Firebase project :other, not :project.', ['other' => $config['project_info']['project_id'] ?? '?', 'project' => $details['project_id']])]);
+            }
+            $details['android_apps'] = $apps;
+            $details['sender_id'] = (string) $config['project_info']['project_number'];
+        }
+
+        return [$details, $raw];
     }
 
     /** @return array{0: array<string, string>, 1: string} */

@@ -136,11 +136,15 @@ production: the SDK detects it and tells the server.
 
 ## Android setup
 
-1. Add Firebase to the app (`google-services.json` in `android/app` and the
-   `com.google.gms.google-services` Gradle plugin), as for any FCM app.
-2. Upload the service account key of the Firebase project (*Project
-   settings → Service accounts → Generate new private key*) in *Project →
-   Settings → Platforms → Android (Firebase)*.
+1. In Carillon, *Project → Settings → Platforms → Android (Firebase)*:
+   upload the service account key of the Firebase project (*Project
+   settings → Service accounts → Generate new private key*), and the
+   `google-services.json` of the Android app.
+2. That's all: the SDK gets the Firebase options of its package from
+   Carillon and starts Firebase by itself, the app needs neither
+   `google-services.json` nor the `com.google.gms.google-services` Gradle
+   plugin. An app that already has them keeps working as before (its own
+   Firebase app is used).
 3. Optional: a monochrome status bar icon named `ic_stat_carillon` in
    `android/app/src/main/res/drawable*` (otherwise the app icon is used).
 

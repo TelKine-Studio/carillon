@@ -474,6 +474,22 @@ class _Engine with WidgetsBindingObserver {
   String? externalType;
 
   Future<void> _sync(bool session) async {
+    if (externalToken == null &&
+        !await platform.ensureFirebase((package) async {
+          final config = await api.config(androidPackage: package);
+          final firebase = config['firebase'];
+          if (firebase is Map) return Map<String, dynamic>.from(firebase);
+          report(
+            'firebase',
+            StateError(
+              'No Firebase for $package: add google-services.json to the app, '
+              'or upload it in Carillon (Settings → Platforms → Android).',
+            ),
+          );
+          return null;
+        })) {
+      return;
+    }
     final token = externalToken ?? await platform.token();
     final permission = await platform.permission();
     enabled = permission == 'granted' && !store.optedOut;

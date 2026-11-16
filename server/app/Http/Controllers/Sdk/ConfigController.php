@@ -5,22 +5,32 @@ namespace App\Http\Controllers\Sdk;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 
 /** Public settings of a project read by the SDKs (App ID only). */
 class ConfigController extends Controller
 {
-    public function show(string $appId): JsonResponse
+    public function show(Request $request, string $appId): JsonResponse
     {
         $project = $this->project($appId);
         $webPush = $project->credential('webpush');
+        $fcm = $project->credential('fcm');
+        // Firebase options of this Android app (public values of its google-services.json).
+        $android = $fcm?->detail('android_apps', [])[(string) $request->query('android_package')] ?? null;
 
         return response()->json([
             'app_id' => $project->app_id,
             'name' => $project->name,
             'icon' => $project->icon_path ? self::iconUrl($project) : null,
             'web' => $webPush?->isUsable() ? ['vapid_public_key' => $webPush->detail('public_key')] : null,
+            'firebase' => $android ? [
+                'project_id' => $fcm->detail('project_id'),
+                'sender_id' => $fcm->detail('sender_id'),
+                'app_id' => $android['app_id'],
+                'api_key' => $android['api_key'],
+            ] : null,
         ])->header('Cache-Control', 'public, max-age=300');
     }
 

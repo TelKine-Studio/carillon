@@ -59,6 +59,19 @@ class CarillonFlutterPlugin :
                 started = true
                 result.success(null)
             }
+            // Null when the default Firebase app exists (google-services.json),
+            // else the package name, to ask Carillon for its Firebase options.
+            // Null when the default Firebase app exists (google-services.json),
+            // else the package name, to ask Carillon for its Firebase options.
+            "firebasePackage" -> result.success(if (CarillonFirebase.hasDefaultApp(context)) null else context.packageName)
+            "configureFirebase" -> {
+                try {
+                    CarillonFirebase.configure(context, call.arguments as? Map<*, *> ?: emptyMap<String, Any?>())
+                    result.success(CarillonFirebase.hasDefaultApp(context))
+                } catch (error: Exception) {
+                    result.error("firebase", error.message, null)
+                }
+            }
             "token" -> FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
                 if (!task.isSuccessful) Log.w(TAG, "FCM token unavailable", task.exception)
                 result.success(if (task.isSuccessful) task.result else null)

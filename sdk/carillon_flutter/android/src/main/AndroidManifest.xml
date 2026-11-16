@@ -3,6 +3,12 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application>
+        <!-- Starts Firebase with the options served by Carillon (apps without google-services.json). -->
+        <provider
+            android:name="net.telkine.carillon_flutter.CarillonInitProvider"
+            android:authorities="${applicationId}.carillon-init"
+            android:exported="false"
+            android:initOrder="50" />
         <service
             android:name="net.telkine.carillon_flutter.CarillonMessagingService"
             android:exported="false">

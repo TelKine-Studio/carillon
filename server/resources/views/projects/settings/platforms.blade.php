@@ -65,7 +65,7 @@
         @csrf
         @method('PUT')
         <x-settings.section :title="__('Android · Firebase Cloud Messaging')" :description="__('The service account key of the Firebase project of your Android app.')" icon="android"
-            :editable="$canConfigure" :empty="! $fcm" :fields="['service_account']">
+            :editable="$canConfigure" :empty="! $fcm" :fields="['service_account', 'google_services']">
             <x-slot:status>
                 @if ($fcm?->isUsable())<x-ui.badge color="green" dot>{{ __('Configured') }}</x-ui.badge>@else<x-ui.badge color="zinc">{{ __('Not configured') }}</x-ui.badge>@endif
             </x-slot:status>
@@ -74,14 +74,17 @@
                     <x-settings.summary>
                         <x-settings.value :label="__('Firebase project')" :value="$fcm->detail('project_id')" mono />
                         <x-settings.value :label="__('Service account')" :value="$fcm->detail('client_email')" mono />
+                        <x-settings.value :label="__('Apps set up by the SDK')" :value="implode(', ', array_keys($fcm->detail('android_apps', [])))" :empty="__('None: the apps include google-services.json')" mono wide />
                     </x-settings.summary>
                 @else
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Add the key of your Firebase project to send notifications to Android phones.') }}</p>
                 @endif
             </x-slot:summary>
-            <fieldset @disabled(! $canConfigure)>
+            <fieldset @disabled(! $canConfigure) class="space-y-5">
                 <x-ui.file name="service_account" accept="application/json,.json" :label="$fcm ? __('Replace the service account (JSON)') : __('Service account (JSON)')" :placeholder="__('Choose the JSON file')"
                     :hint="__('Firebase console → Project settings → Service accounts → Generate new private key. Stored encrypted.')" />
+                <x-ui.file name="google_services" accept="application/json,.json" :label="__('google-services.json (optional)')" :placeholder="__('Choose the JSON file')"
+                    :hint="__('With it, the Carillon SDK sets Firebase up by itself: the apps need neither this file nor the Google services Gradle plugin.')" />
             </fieldset>
             @if ($fcm)
                 <x-slot:danger>

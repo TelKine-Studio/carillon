@@ -2099,5 +2099,11 @@
     "Sending only": "Envoi seulement",
     "Full access": "Accès complet",
     "Send notifications, read their statistics, report events. Recommended for an app backend.": "Envoyer des notifications, lire leurs statistiques, signaler des événements. Recommandé pour le backend d’une app.",
-    "Also read, change and delete the audience (users API), manage templates.": "Aussi lire, modifier et supprimer l’audience (API utilisateurs), gérer les modèles."
+    "Also read, change and delete the audience (users API), manage templates.": "Aussi lire, modifier et supprimer l’audience (API utilisateurs), gérer les modèles.",
+    "Apps set up by the SDK": "Apps configurées par le SDK",
+    "None: the apps include google-services.json": "Aucune : les apps embarquent google-services.json",
+    "google-services.json (optional)": "google-services.json (facultatif)",
+    "With it, the Carillon SDK sets Firebase up by itself: the apps need neither this file nor the Google services Gradle plugin.": "Avec lui, le SDK Carillon configure Firebase tout seul : les apps n’ont besoin ni de ce fichier ni du greffon Gradle Google services.",
+    "This is not a google-services.json file of an Android app.": "Ce n’est pas un fichier google-services.json d’une app Android.",
+    "This file belongs to the Firebase project :other, not :project.": "Ce fichier appartient au projet Firebase :other, pas à :project."
 }

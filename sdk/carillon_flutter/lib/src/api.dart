@@ -61,6 +61,14 @@ class CarillonApi {
     'properties': ?properties,
   });
 
+  /// Settings of the project for this app (Firebase options of an Android
+  /// package, web push key…).
+  Future<Map<String, dynamic>> config({String? androidPackage}) => _send(
+    'GET',
+    '/config${androidPackage == null ? '' : '?android_package=${Uri.encodeQueryComponent(androidPackage)}'}',
+    const {},
+  );
+
   Future<Map<String, dynamic>> heartbeat(String id) =>
       _send('POST', '/subscriptions/$id/heartbeat', const {});
 
@@ -101,7 +109,7 @@ class CarillonApi {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       })
-      ..body = jsonEncode(body);
+      ..body = method == 'GET' ? '' : jsonEncode(body);
 
     final response = await http.Response.fromStream(
       await _client.send(request).timeout(const Duration(seconds: 20)),
