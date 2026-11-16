@@ -9,7 +9,9 @@ use App\Models\Project;
 use App\Models\Subscriber;
 use App\Models\User;
 use App\Notifications\WeeklyReport;
+use App\Support\SystemHealth;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
@@ -46,5 +48,18 @@ class ReportsTest extends TestCase
         // The preference lives in the profile.
         $this->put(route('profile.update'), ['name' => 'Ada', 'email' => $owner->email])->assertRedirect();
         $this->assertFalse($owner->fresh()->weekly_report);
+    }
+
+    public function test_system_health_page(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $this->actingAs($admin)->get(route('admin.settings.edit', 'system'))->assertOk()->assertSee('Never seen')->assertSee('Needs attention');
+
+        Cache::put(SystemHealth::SCHEDULER_KEY, now()->getTimestamp());
+        $health = SystemHealth::check();
+        $this->assertTrue($health['checks']['scheduler']['ok']);
+        $this->assertTrue($health['checks']['database']['ok']);
+
+        $this->actingAs(User::factory()->create())->get(route('admin.settings.edit', 'system'))->assertForbidden();
     }
 }

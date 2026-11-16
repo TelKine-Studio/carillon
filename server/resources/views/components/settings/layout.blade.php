@@ -7,6 +7,7 @@
                 'general' => ['icon' => 'settings', 'label' => __('General'), 'text' => __('Name, URL, access')],
                 'security' => ['icon' => 'shield', 'label' => __('Security'), 'text' => __('2FA, single sign-on')],
                 'mail' => ['icon' => 'mail', 'label' => __('Email'), 'text' => __('Outgoing mail server')],
+                'system' => ['icon' => 'activity', 'label' => __('System'), 'text' => __('Health of the instance')],
             ] as $key => $tab)
                 <li>
                     <a href="{{ route('admin.settings.edit', $key) }}" @class(['flex items-start gap-3 rounded-xl p-3 transition', 'bg-white shadow-(--shadow-soft) ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800' => $section === $key, 'hover:bg-zinc-100 dark:hover:bg-white/5' => $section !== $key])>

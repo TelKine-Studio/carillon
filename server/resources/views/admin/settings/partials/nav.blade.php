@@ -3,6 +3,7 @@
         'general' => ['icon' => 'settings', 'label' => __('General'), 'text' => __('Name, URL, access')],
         'security' => ['icon' => 'shield', 'label' => __('Security'), 'text' => __('2FA, single sign-on')],
         'mail' => ['icon' => 'mail', 'label' => __('Email'), 'text' => __('Outgoing mail server')],
+        'system' => ['icon' => 'activity', 'label' => __('System'), 'text' => __('Health of the instance')],
     ];
 @endphp
 <x-ui.page-header :title="__('Settings')" :description="__('Everything is configured here: no configuration file to edit, no restart needed.')" />

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Middleware\SetLocale;
 use App\Support\Audit;
 use App\Support\Settings;
+use App\Support\SystemHealth;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -16,7 +17,7 @@ use Throwable;
 /** Instance settings: push keys are configured per project instead. */
 class SettingsController extends Controller
 {
-    public const SECTIONS = ['general', 'security', 'mail'];
+    public const SECTIONS = ['general', 'security', 'mail', 'system'];
 
     public function edit(Settings $settings, string $section = 'general'): View
     {
@@ -26,6 +27,7 @@ class SettingsController extends Controller
             'settings' => $settings,
             'section' => $section,
             'locales' => SetLocale::AVAILABLE,
+            'health' => $section === 'system' ? SystemHealth::check() : null,
         ]);
     }
 

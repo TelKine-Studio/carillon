@@ -3,10 +3,15 @@
 use App\Jobs\SyncOneSignal;
 use App\Journeys\JourneyRunner;
 use App\Models\OneSignalSync;
+use App\Support\SystemHealth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schedule;
 
 // Delete old delivery history and stale invitations.
 Schedule::command('model:prune')->daily()->withoutOverlapping();
+
+// Sign of life of the scheduler, shown in Settings → System.
+Schedule::call(fn () => Cache::put(SystemHealth::SCHEDULER_KEY, now()->getTimestamp(), now()->addHour()))->everyMinute()->name('scheduler-heartbeat');
 
 // Summary of the week, Monday morning.
 Schedule::command('carillon:weekly-reports')->weeklyOn(1, '07:00')->withoutOverlapping();
