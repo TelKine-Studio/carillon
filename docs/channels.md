@@ -128,12 +128,14 @@ In the app (the look of the activity belongs to it):
 
 Good to know, measured on iOS 27:
 
-- The first activity started by push shows **"Allow Live Activities from
-  <app>?"** on the lock screen. Until the person taps *Allow*, iOS gives no
-  update token: the activity shows, but Carillon cannot update or end it
-  (the updates wait, `pending`). Once allowed, iOS hands the token to the
-  app in the background and the SDK sends it at once; later activities get
-  their token right away.
+- iOS asks twice: the first activity started by push shows **"Allow Live
+  Activities from <app>?"** on the lock screen, the second **"Always
+  allow?"**. Until the person answers, iOS gives no update token: the
+  activity shows its first state, and Carillon cannot update or end it (the
+  updates wait, `pending`; only the stale date sent with the start acts,
+  which `end_after` sets by default). Once allowed, iOS hands the token to
+  the app in the background and the SDK sends it at once: a waiting end
+  reaches the screen within a second.
 - Live Activities need no notification permission: an iPhone that refused
   notifications is registered anyway (without APNs token) to keep its
   Live Activity tokens, and stays out of the audience of notifications.

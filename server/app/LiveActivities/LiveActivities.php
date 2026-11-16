@@ -67,6 +67,12 @@ class LiveActivities
         $state = $this->object($data['event_updates'] ?? []);
         $display = $this->display([], $data, start: true);
         $endAt = now()->addSeconds(min(self::MAX_DURATION, max(60, (int) ($data['end_after'] ?? self::MAX_DURATION))));
+        // Until the person allows Live Activities, iOS gives no update token:
+        // only the dates sent with the start act on the screen. Stale at the
+        // planned end at least, rather than looking in progress for 8 hours.
+        if (isset($data['end_after']) && ! isset($data['stale_date'])) {
+            $data['stale_date'] = $endAt->getTimestamp();
+        }
         $requests = ['ios' => [], 'android' => []];
         $activities = [];
         $skipped = 0;

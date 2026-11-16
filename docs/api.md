@@ -308,7 +308,9 @@ POST /api/v1/apps/{app_id}/activities/activity/{activity_type}
 - An `activity_id` starts once per device: calling start again (a retry of
   your backend) does nothing (`already`).
 - `end_after` (seconds, default 8 hours, Apple's limit): Carillon ends the
-  activity by then if nobody did. `stale_date` / `dismissal_date` are Unix
+  activity by then if nobody did, and it is stale from then on unless a
+  `stale_date` is given (until the person allows Live Activities, iOS gives
+  no update token and only the dates of the start act on the screen). `stale_date` / `dismissal_date` are Unix
   timestamps in seconds.
 
 **Update** or **end**, on every device showing the activity:

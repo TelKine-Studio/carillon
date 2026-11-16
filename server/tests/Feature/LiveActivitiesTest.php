@@ -352,4 +352,15 @@ class LiveActivitiesTest extends TestCase
     {
         $this->postJson("/api/v1/sdk/apps/{$this->project->app_id}/subscriptions", ['type' => 'android'])->assertStatus(400)->assertJson(['errors' => ['The token field is required.']]);
     }
+
+    public function test_end_after_makes_the_activity_stale_by_default(): void
+    {
+        $phone = $this->device('phone-token', 'user-1');
+        $this->sdk($phone, 'start-token', ['activity_type' => 'DeliveryAttributes', 'token' => 'start-token-1']);
+        $this->freezeTime();
+
+        $this->start(['end_after' => 600])->assertOk();
+
+        Http::assertSent(fn (HttpRequest $request) => ($request['aps']['event'] ?? null) === 'start' && $request['aps']['stale-date'] === now()->addSeconds(600)->getTimestamp());
+    }
 }
