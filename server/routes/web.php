@@ -144,6 +144,7 @@ Route::middleware('auth')->group(function () {
         Route::put('email-settings', [EmailSettingsController::class, 'update'])->name('email.update');
         Route::post('email-settings/test', [EmailSettingsController::class, 'test'])->name('email.test');
         Route::post('email-settings/port', [EmailSettingsController::class, 'checkPort'])->name('email.port');
+        Route::get('sms/balance', [PushCredentialController::class, 'smsBalance'])->name('sms.balance');
         Route::put('push/{provider}', [PushCredentialController::class, 'update'])->name('push.update');
         Route::post('push/webpush/generate', [PushCredentialController::class, 'generateWebPush'])->name('push.webpush.generate');
         Route::delete('push/{provider}', [PushCredentialController::class, 'destroy'])->name('push.destroy');

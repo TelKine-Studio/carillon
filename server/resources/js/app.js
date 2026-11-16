@@ -573,6 +573,26 @@ ${rows.join('\n')}
 </html>`;
 }
 
+/** Remaining SMS (Orange units, Twilio credit), loaded in the background. */
+Alpine.data('smsBalance', (url) => ({
+    balance: null,
+    loading: false,
+    init() {
+        this.load(false);
+    },
+    async load(fresh) {
+        this.loading = true;
+        try {
+            const response = await fetch(url + (fresh ? '?fresh=1' : ''), { headers: { Accept: 'application/json' } });
+            this.balance = response.ok ? await response.json() : null;
+        } catch {
+            this.balance = null;
+        } finally {
+            this.loading = false;
+        }
+    },
+}));
+
 Alpine.data('emailDesigner', (initial, labels) => ({
     mode: initial ? 'visual' : null,
     design: initial,

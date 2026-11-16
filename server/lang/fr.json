@@ -1950,5 +1950,13 @@
     "In the Amazon developer console: your app → Device Messaging → security profile.": "Dans la console développeur Amazon : votre app → Device Messaging → profil de sécurité.",
     "Saved (encrypted)": "Enregistré (chiffré)",
     "Huawei Push Kit keys saved.": "Clés Huawei Push Kit enregistrées.",
-    "Amazon Device Messaging keys saved.": "Clés Amazon Device Messaging enregistrées."
+    "Amazon Device Messaging keys saved.": "Clés Amazon Device Messaging enregistrées.",
+    ":count SMS left|:count SMS left": ":count SMS restant|:count SMS restants",
+    ":amount left": ":amount restants",
+    "Balance": "Solde",
+    "Loading…": "Chargement…",
+    "Unavailable: ": "Indisponible : ",
+    "Refresh": "Actualiser",
+    "until": "jusqu’au",
+    "Not enough for :count SMS": "Insuffisant pour :count SMS"
 }

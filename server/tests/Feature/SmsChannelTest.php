@@ -161,4 +161,29 @@ class SmsChannelTest extends TestCase
         Http::assertSentCount(3);
         $this->assertNotNull($this->project->subscriptions()->where('token_hash', hash('sha256', '+2250102030405'))->value('invalid_at'));
     }
+
+    public function test_the_balance_of_the_sms_account(): void
+    {
+        $this->actingAs($this->owner);
+        $this->getJson(route('projects.sms.balance', $this->project))->assertNotFound();
+
+        $credential = PushCredential::create(['project_id' => $this->project->id, 'provider' => 'sms', 'details' => ['driver' => 'orange', 'client_id' => 'c', 'sender_address' => '+2250000'], 'secret' => 's']);
+        Http::fake([
+            'api.orange.com/oauth/v3/token' => Http::response(['access_token' => 'tok']),
+            'api.orange.com/sms/admin/v1/contracts' => Http::sequence()
+                ->push(['partnerId' => 'p', 'contracts' => [['service' => 'SMS_OCB', 'serviceContracts' => [['country' => 'CIV', 'availableUnits' => 2340, 'expires' => '2027-01-31T00:00:00Z']]]]])
+                ->push([['country' => 'CIV', 'availableUnits' => 10, 'expirationDate' => '2027-02-01T00:00:00Z']]),
+            'api.twilio.com/*' => Http::response(['balance' => '12.40', 'currency' => 'USD']),
+        ]);
+
+        $this->getJson(route('projects.sms.balance', $this->project))->assertOk()
+            ->assertJsonPath('units', 2340)->assertJsonPath('contracts.0.country', 'CIV')->assertJsonPath('label', '2 340 SMS left');
+        // Cached, then refreshed on demand (the flat answer of newer versions).
+        $this->getJson(route('projects.sms.balance', $this->project))->assertJsonPath('units', 2340);
+        $this->getJson(route('projects.sms.balance', [$this->project, 'fresh' => 1]))->assertJsonPath('units', 10);
+
+        $credential->update(['details' => ['driver' => 'twilio', 'account_sid' => 'AC'.str_repeat('d', 32), 'from' => 'Shop']]);
+        $this->getJson(route('projects.sms.balance', $this->project))->assertOk()->assertJsonPath('amount', 12.4)->assertJsonPath('currency', 'USD');
+        $this->get(route('projects.settings', [$this->project, 'platforms']))->assertOk()->assertSee('smsBalance', false);
+    }
 }

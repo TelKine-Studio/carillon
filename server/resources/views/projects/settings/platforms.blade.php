@@ -197,6 +197,31 @@
                             <x-settings.value :label="__('Sender')" :value="$sms->detail('from')" mono />
                         @endif
                     </x-settings.summary>
+                    @if ($sms->isUsable())
+                        <div x-data="smsBalance(@js(route('projects.sms.balance', $project)))" class="mt-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+                            <div class="flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-xs text-zinc-500">{{ __('Balance') }}</p>
+                                    <p class="mt-0.5 text-lg font-semibold tabular-nums text-zinc-900 dark:text-white">
+                                        <span x-show="balance?.label" x-text="balance?.label"></span>
+                                        <span x-show="!balance && loading" class="text-sm font-normal text-zinc-400">{{ __('Loading…') }}</span>
+                                        <span x-show="balance?.error" x-cloak class="text-sm font-normal text-red-600 dark:text-red-400" x-text="@js(__('Unavailable: ')) + (balance?.error ?? '')"></span>
+                                    </p>
+                                </div>
+                                <x-ui.button type="button" variant="ghost" size="sm" icon="refresh" x-on:click="load(true)" ::disabled="loading">{{ __('Refresh') }}</x-ui.button>
+                            </div>
+                            <template x-if="balance?.contracts?.length > 1 || balance?.contracts?.[0]?.expires_label">
+                                <ul class="mt-3 space-y-1 border-t border-zinc-100 pt-3 text-sm dark:border-zinc-800">
+                                    <template x-for="contract in balance.contracts">
+                                        <li class="flex justify-between gap-3 text-zinc-600 dark:text-zinc-300">
+                                            <span x-text="contract.country ?? '—'"></span>
+                                            <span class="tabular-nums"><span x-text="contract.units.toLocaleString('fr-FR')"></span> SMS<span x-show="contract.expires_label" class="text-zinc-400"> · {{ __('until') }} <span x-text="contract.expires_label"></span></span></span>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </template>
+                        </div>
+                    @endif
                     @if ($sms->last_error)
                         <p class="mt-3 text-sm text-red-600 dark:text-red-400">{{ __('Last error: :error', ['error' => $sms->last_error]) }}</p>
                     @endif

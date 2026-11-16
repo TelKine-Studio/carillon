@@ -18,7 +18,7 @@
     $admin = [
         ['route' => 'admin.users.index', 'match' => 'admin.users.*', 'icon' => 'users', 'label' => __('Users'), 'count' => $nav['invitations'] ?: null],
         ['route' => 'admin.audit', 'match' => 'admin.audit', 'icon' => 'shield', 'label' => __('Audit log')],
-        ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => __('Settings')],
+        ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => __('Instance settings')],
     ];
 @endphp
 <div class="flex h-full flex-col">
@@ -78,7 +78,8 @@
             </div>
         @endif
 
-        @can('admin')
+        {{-- Inside a project, administration lives in the account menu (no second "Settings"). --}}
+        @if (! $current && auth()->user()->can('admin'))
             <div class="space-y-1">
                 <p class="eyebrow px-3 pb-1.5">{{ __('Administration') }}</p>
                 @foreach ($admin as $item)
@@ -91,7 +92,7 @@
                     </a>
                 @endforeach
             </div>
-        @endcan
+        @endif
     </nav>
 
     <div class="space-y-3 p-3">
@@ -112,6 +113,15 @@
             </x-slot:trigger>
 
             <x-ui.dropdown-item :href="route('profile.edit')" icon="user">{{ __('Profile') }}</x-ui.dropdown-item>
+            @can('admin')
+                <div class="my-1.5 h-px bg-zinc-100 dark:bg-zinc-800"></div>
+                <p class="px-2.5 pt-1 pb-1 text-xs font-medium text-zinc-500">{{ __('Administration') }}</p>
+                @foreach ($admin as $item)
+                    <x-ui.dropdown-item :href="route($item['route'])" :icon="$item['icon']">
+                        <span class="flex flex-1 items-center justify-between gap-2">{{ $item['label'] }}@if ($item['count'] ?? null)<span class="rounded-md bg-brand-100 px-1.5 py-0.5 text-[11px] font-semibold text-brand-700 tabular-nums dark:bg-brand-500/15 dark:text-brand-300">{{ $item['count'] }}</span>@endif</span>
+                    </x-ui.dropdown-item>
+                @endforeach
+            @endcan
             <div class="my-1.5 h-px bg-zinc-100 dark:bg-zinc-800"></div>
             <div class="px-2.5 py-1.5">
                 <p class="mb-2 text-xs font-medium text-zinc-500">{{ __('Theme') }}</p>

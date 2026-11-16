@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Models\PushCredential;
+use App\Sms\Balance;
 use App\Sms\Phone;
 use App\Support\Audit;
+use Carbon\CarbonImmutable;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -61,6 +64,29 @@ class PushCredentialController extends Controller
         Audit::log('push.updated', $project, ['provider' => 'webpush', 'generated' => true]);
 
         return back()->with('status', __('New web push keys generated.'));
+    }
+
+    /** What is left on the SMS account (Orange units, Twilio credit). */
+    public function smsBalance(Request $request, Project $project): JsonResponse
+    {
+        $this->authorize('view', $project);
+        $credential = $project->credential('sms');
+        abort_unless($credential?->isUsable(), 404);
+
+        $balance = Balance::get($credential, $request->boolean('fresh'));
+        $locale = app()->getLocale();
+
+        return response()->json([
+            ...$balance,
+            'label' => match (true) {
+                $balance['error'] !== null => null,
+                $balance['units'] !== null => trans_choice(':count SMS left|:count SMS left', $balance['units'], ['count' => number_format($balance['units'], 0, ',', ' ')]),
+                default => __(':amount left', ['amount' => (new \NumberFormatter($locale, \NumberFormatter::CURRENCY))->formatCurrency((float) $balance['amount'], $balance['currency'] ?: 'USD')]),
+            },
+            'contracts' => array_map(fn ($contract) => $contract + [
+                'expires_label' => $contract['expires'] ? rescue(fn () => CarbonImmutable::parse($contract['expires'])->locale($locale)->isoFormat('LL'), null, false) : null,
+            ], $balance['contracts']),
+        ]);
     }
 
     public function destroy(Project $project, string $provider): RedirectResponse

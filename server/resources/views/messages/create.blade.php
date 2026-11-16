@@ -328,6 +328,15 @@
                             x-text="smsBody.length + ' · ' + (smsSegments <= 1 ? @js(__('1 SMS')) : @js(__(':count SMS')).replace(':count', smsSegments))"></span>
                     </div>
                     <textarea id="sms_body" name="sms_body" x-model="smsBody" rows="5" maxlength="1600" :required="channel === 'sms'" class="form-control resize-y" placeholder="{{ __('Hello').' '.$open.' tags.first_name | default: "'.__('there').'" '.$close.', …' }}"></textarea>
+                    @if ($project->credential('sms')?->isUsable())
+                        <div x-data="smsBalance(@js(route('projects.sms.balance', $project)))" x-show="balance?.label" x-cloak class="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-zinc-50 px-3 py-2 text-xs dark:bg-white/5">
+                            <x-ui.icon name="message" class="size-3.5 text-zinc-400" />
+                            <span class="font-medium text-zinc-700 dark:text-zinc-200" x-text="balance?.label"></span>
+                            {{-- Orange counts units: warn when the audience needs more. --}}
+                            <span x-show="balance?.units !== null && estimate.total !== null && estimate.total * Math.max(1, smsSegments) > balance?.units" class="font-medium text-amber-700 dark:text-amber-400"
+                                x-text="@js(__('Not enough for :count SMS')).replace(':count', ((estimate.total ?? 0) * Math.max(1, smsSegments)).toLocaleString('fr-FR'))"></span>
+                        </div>
+                    @endif
                     <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('160 characters per SMS, 70 with accents outside the GSM alphabet or emoji: each part is billed by your provider.') }} {!! __('Variables: :vars.', ['vars' => collect(['phone_number', 'external_id', 'tags.first_name'])->map($variable)->implode(', ')]) !!}</p>
                 </div>
             </x-ui.card>
