@@ -615,7 +615,11 @@ class _Engine with WidgetsBindingObserver {
     _absorb(result);
     await _flushEvents();
     await _flushLiveActivities();
-    if (newSession) await _refreshInApp(showOnOpen: true);
+    // The list lives in memory: fetched at each start of the process too,
+    // for the messages triggered by events (app_open only on a new session).
+    if (newSession || !_inAppLoaded) {
+      await _refreshInApp(showOnOpen: newSession);
+    }
   }
 
   /// Fetches the in-app messages of this device, then shows the ones for
@@ -626,6 +630,7 @@ class _Engine with WidgetsBindingObserver {
     final result = await _guard(() => api.inAppMessages(id));
     final list = result?['in_app_messages'];
     if (list is! List) return;
+    _inAppLoaded = true;
     _inApp = [
       for (final item in list)
         InAppMessage(Map<String, dynamic>.from(item as Map)),
@@ -637,6 +642,12 @@ class _Engine with WidgetsBindingObserver {
   Future<void> _presentInApp(String trigger, {String? event}) async {
     final navigator = Carillon.navigatorKey.currentState;
     final id = store.subscriptionId;
+    // An event while another message is on screen (or waiting for its
+    // delay): shown after it, not lost.
+    if (_showingInApp && trigger == 'event' && event != null) {
+      if (!_queuedInAppEvents.contains(event)) _queuedInAppEvents.add(event);
+      return;
+    }
     if (navigator == null ||
         id == null ||
         _showingInApp ||
@@ -676,6 +687,7 @@ class _Engine with WidgetsBindingObserver {
       if (Carillon.inAppMessages.paused ||
           Carillon.navigatorKey.currentState == null) {
         _showingInApp = false;
+        _nextQueuedInApp();
         return;
       }
     }
@@ -724,7 +736,23 @@ class _Engine with WidgetsBindingObserver {
       }
     } finally {
       _showingInApp = false;
+      _nextQueuedInApp();
     }
+  }
+
+  bool _inAppLoaded = false;
+
+  /// Events that came while a message was shown.
+  final _queuedInAppEvents = <String>[];
+
+  void _nextQueuedInApp() {
+    if (_queuedInAppEvents.isEmpty) return;
+    final event = _queuedInAppEvents.removeAt(0);
+    // After the closing animation of the previous message.
+    Future<void>.delayed(
+      const Duration(milliseconds: 400),
+      () => _presentInApp('event', event: event),
+    );
   }
 
   Future<Map<String, dynamic>> _device() async {
