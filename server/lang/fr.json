@@ -1585,5 +1585,12 @@
     ":actor set up the OneSignal sync of the project :subject": ":actor a réglé la synchronisation OneSignal du projet :subject",
     ":actor removed the OneSignal sync of the project :subject": ":actor a supprimé la synchronisation OneSignal du projet :subject",
     "This export from the OneSignal dashboard has no push tokens. Use the automatic sync below: it gets them through the OneSignal API.": "Cet export du tableau de bord OneSignal ne contient pas les jetons push. Utilisez la synchronisation automatique ci-dessous : elle les récupère via l’API de OneSignal.",
-    "The easiest is the :sync below: the export of the OneSignal dashboard no longer contains the push tokens. A file exported with the OneSignal API (:endpoint) also works here.": "Le plus simple est la :sync ci-dessous : l’export du tableau de bord OneSignal ne contient plus les jetons push. Un fichier exporté avec l’API de OneSignal (:endpoint) fonctionne aussi ici."
+    "The easiest is the :sync below: the export of the OneSignal dashboard no longer contains the push tokens. A file exported with the OneSignal API (:endpoint) also works here.": "Le plus simple est la :sync ci-dessous : l’export du tableau de bord OneSignal ne contient plus les jetons push. Un fichier exporté avec l’API de OneSignal (:endpoint) fonctionne aussi ici.",
+    "web subscription (tied to the keys of OneSignal)|web subscriptions (tied to the keys of OneSignal)": "abonnement web (lié aux clés de OneSignal)|abonnements web (liés aux clés de OneSignal)",
+    "other channel (SMS, Amazon, Huawei)|other channels (SMS, Amazon, Huawei)": "autre canal (SMS, Amazon, Huawei)|autres canaux (SMS, Amazon, Huawei)",
+    "without push token|without push token": "sans jeton push|sans jeton push",
+    "unsubscribed or with an invalid token|unsubscribed or with an invalid token": "désabonné ou jeton invalide|désabonnés ou jetons invalides",
+    "Prefer not to give the key?": "Vous préférez ne pas donner la clé ?",
+    "Import a file instead": "Importer un fichier à la place",
+    "A CSV exported with the OneSignal API (/players/csv_export). The export of the OneSignal dashboard has no push tokens and cannot be used.": "Un CSV exporté avec l’API de OneSignal (/players/csv_export). L’export du tableau de bord OneSignal ne contient pas les jetons push et ne peut pas servir."
 }
