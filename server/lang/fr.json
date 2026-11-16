@@ -1535,5 +1535,6 @@
     ":actor saved the template :item in the project :subject": ":actor a enregistré le modèle :item dans le projet :subject",
     ":actor deleted the template :item from the project :subject": ":actor a supprimé le modèle :item du projet :subject",
     ":actor imported an audience into the project :subject": ":actor a importé une audience dans le projet :subject",
-    ":actor changed the instance settings": ":actor a modifié les paramètres de l’instance"
+    ":actor changed the instance settings": ":actor a modifié les paramètres de l’instance",
+    "OneSignal SDK (app not updated yet)": "SDK OneSignal (app pas encore mise à jour)"
 }

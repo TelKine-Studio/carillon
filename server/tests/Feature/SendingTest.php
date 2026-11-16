@@ -139,6 +139,59 @@ class SendingTest extends TestCase
             ->assertJsonPath('recipients', 2);
     }
 
+    public function test_devices_still_running_the_onesignal_sdk_receive_the_onesignal_format(): void
+    {
+        // Imported from OneSignal, app not updated yet.
+        $this->device('android', 'old-android');
+        $this->device('ios', 'old-ios');
+        Subscription::query()->update(['sdk' => Subscription::ONESIGNAL_SDK]);
+        // Already on the Carillon SDK.
+        $this->device('android', 'new-android', ['sdk' => 'carillon-flutter/1.0.0']);
+
+        $this->api()->postJson('/api/v1/notifications', [
+            'app_id' => $this->project->app_id,
+            'included_segments' => ['All'],
+            'headings' => ['en' => 'Bonus'],
+            'contents' => ['en' => 'Top up today'],
+            'data' => ['screen' => 'offers'],
+            'url' => 'marecharge://offers',
+            'big_picture' => 'https://cdn.example.com/bonus.png',
+            'buttons' => [['id' => 'go', 'text' => 'See']],
+        ])->assertOk()->assertJsonPath('recipients', 3);
+
+        $sent = fn (string $token) => Http::recorded(fn (HttpRequest $request) => str_ends_with($request->url(), '/3/device/'.$token)
+            || ($request['message']['token'] ?? null) === $token)->first()[0];
+
+        // Android, OneSignal SDK: its data keys, all strings.
+        $data = $sent('old-android')['message']['data'];
+        $this->assertSame('Top up today', $data['alert']);
+        $this->assertSame('Bonus', $data['title']);
+        $this->assertSame('https://cdn.example.com/bonus.png', $data['bicon']);
+        $custom = json_decode($data['custom'], true);
+        $this->assertNotEmpty($custom['i']);
+        $this->assertSame(['screen' => 'offers'], $custom['a']);
+        $this->assertSame('marecharge://offers', $custom['u']);
+        $this->assertSame([['i' => 'go', 'n' => 'See']], json_decode($data['o'], true));
+        $this->assertArrayNotHasKey('carillon', $data);
+        $this->assertContainsOnly('string', $data);
+
+        // iOS, OneSignal SDK: the alert, plus "custom", the image and the buttons.
+        $ios = $sent('old-ios');
+        $this->assertSame('Bonus', $ios['aps']['alert']['title']);
+        $this->assertSame(1, $ios['aps']['mutable-content']);
+        $this->assertSame(['screen' => 'offers'], $ios['custom']['a']);
+        $this->assertSame(['id' => 'https://cdn.example.com/bonus.png'], $ios['att']);
+        $this->assertSame([['i' => 'go', 'n' => 'See']], $ios['buttons']);
+        $this->assertArrayNotHasKey('carillon', $ios->data());
+
+        // Carillon SDK: its own format.
+        $this->assertArrayHasKey('carillon', $sent('new-android')['message']['data']);
+
+        // Once the updated app registers with the Carillon SDK, the device switches format.
+        $this->device('android', 'old-android', ['sdk' => 'carillon-flutter/1.0.0']);
+        $this->assertFalse(Subscription::where('token', 'old-android')->first()->usesOneSignalSdk());
+    }
+
     public function test_targeting_by_external_id_tags_segments_and_platform(): void
     {
         $gold = $this->device('ios', 'gold', ['external_id' => 'alice', 'tags' => ['plan' => 'gold', 'spent' => '120']]);

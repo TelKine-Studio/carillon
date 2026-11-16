@@ -42,7 +42,7 @@
                                 <p class="text-sm font-medium text-zinc-900 dark:text-white">{{ $subscription->type === 'email' ? $subscription->token : ($subscription->device_model ?: ucfirst($subscription->type)) }}
                                     @if ($subscription->environment === 'sandbox')<x-ui.badge color="violet" class="ml-1">{{ __('Development') }}</x-ui.badge>@endif
                                 </p>
-                                <p class="text-xs text-zinc-500">{{ collect([$subscription->device_os, $subscription->app_version ? 'v'.$subscription->app_version : null, $subscription->sdk, trans_choice(':count session|:count sessions', $subscription->sessions)])->filter()->implode(' · ') }}</p>
+                                <p class="text-xs text-zinc-500">{{ collect([$subscription->device_os, $subscription->app_version ? 'v'.$subscription->app_version : null, $subscription->usesOneSignalSdk() ? __('OneSignal SDK (app not updated yet)') : $subscription->sdk, trans_choice(':count session|:count sessions', $subscription->sessions)])->filter()->implode(' · ') }}</p>
                                 <p class="mt-1 font-mono text-[11px] text-zinc-400" x-data="copy(@js($subscription->id))"><button type="button" x-on:click="copy()" class="hover:text-zinc-700 dark:hover:text-zinc-200">{{ $subscription->id }}</button> <span x-show="copied" x-cloak class="text-emerald-600">✓</span></p>
                             </div>
                             <x-audience.state :subscription="$subscription" />

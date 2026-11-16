@@ -30,7 +30,9 @@ class FcmSender implements Sender
                     ->withToken($token)
                     ->acceptJson()
                     ->timeout(15)
-                    ->post($url, Payload::fcm($message, $subscription->subscriber?->language, (string) $subscription->token));
+                    ->post($url, $subscription->usesOneSignalSdk()
+                        ? Payload::oneSignalFcm($message, $subscription->subscriber?->language, (string) $subscription->token)
+                        : Payload::fcm($message, $subscription->subscriber?->language, (string) $subscription->token));
             }
         }, self::CONCURRENCY);
 

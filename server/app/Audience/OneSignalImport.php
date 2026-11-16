@@ -218,7 +218,7 @@ class OneSignalImport
             'app_version' => $device['app_version'] ?? $subscription->app_version,
             'device_model' => $device['device_model'] ?? $subscription->device_model,
             'device_os' => $device['device_os'] ?? $subscription->device_os,
-            'sdk' => $subscription->sdk ?? 'onesignal-import',
+            'sdk' => $subscription->sdk ?? Subscription::ONESIGNAL_SDK,
             'sessions' => max((int) $subscription->sessions, $device['sessions']),
             'last_active_at' => $device['last_active_at'] ?? $subscription->last_active_at,
         ])->save();

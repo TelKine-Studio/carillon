@@ -67,6 +67,89 @@ final class Payload
     }
 
     /**
+     * APNs body for an app still running the OneSignal SDK (devices imported
+     * from OneSignal, app not updated yet): the same "aps", plus the fields
+     * the OneSignal SDK and its notification extension read — data and URL
+     * for the click handler, image and buttons.
+     *
+     * @return array{0: array<string, mixed>, 1: array<string, string>}
+     */
+    public static function oneSignalApns(Message $message, ?string $language, string $bundleId): array
+    {
+        [$body, $headers] = self::apns($message, $language, $bundleId);
+        $common = $body['carillon'];
+        unset($body['carillon']);
+
+        return [array_filter([
+            ...$body,
+            'custom' => self::oneSignalCustom($message, $common),
+            'att' => isset($common['img']) ? ['id' => $common['img']] : null,
+            'buttons' => self::oneSignalButtons($common),
+        ], fn ($value) => $value !== null && $value !== []), $headers];
+    }
+
+    /**
+     * FCM message for an app still running the OneSignal SDK: its messaging
+     * service only displays data messages in the OneSignal format.
+     *
+     * @return array<string, mixed>
+     */
+    public static function oneSignalFcm(Message $message, ?string $language, string $token): array
+    {
+        $common = self::common($message, $language);
+        $buttons = self::oneSignalButtons($common);
+        $encode = fn ($value) => json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $ttl = $message->option('ttl');
+
+        // FCM data values must all be strings.
+        $data = array_map('strval', array_filter([
+            'alert' => $common['body'] ?? null,
+            'title' => $common['title'] ?? null,
+            'custom' => $encode(self::oneSignalCustom($message, $common)),
+            'bicon' => $common['img'] ?? null,
+            'licon' => $message->option('large_icon'),
+            'sicon' => $message->option('small_icon'),
+            'bgac' => $message->option('android_accent_color'),
+            'grp' => $message->option('android_group'),
+            'sound' => $message->option('android_sound'),
+            'vis' => $message->option('android_visibility'),
+            'pri' => $message->option('priority'),
+            'o' => $buttons ? $encode($buttons) : null,
+            'collapse_key' => $message->option('collapse_id'),
+        ], fn ($value) => $value !== null && $value !== ''));
+
+        return ['message' => array_filter([
+            'token' => $token,
+            'data' => $data,
+            'android' => array_filter([
+                'priority' => (int) $message->option('priority', 10) >= 10 ? 'HIGH' : 'NORMAL',
+                'ttl' => $ttl !== null ? ((int) $ttl).'s' : null,
+                'collapse_key' => $message->option('collapse_id'),
+            ]),
+        ])];
+    }
+
+    /** "custom" object of the OneSignal format: id, additional data, launch URL. */
+    protected static function oneSignalCustom(Message $message, array $common): array
+    {
+        return array_filter([
+            'i' => (string) $message->id,
+            'a' => $common['d'] ?? null,
+            'u' => $common['u'] ?? null,
+        ], fn ($value) => $value !== null && $value !== []);
+    }
+
+    /** Buttons in the short OneSignal form ({i, n, p}). */
+    protected static function oneSignalButtons(array $common): array
+    {
+        return array_values(array_map(fn (array $button) => array_filter([
+            'i' => $button['id'] ?? null,
+            'n' => $button['text'] ?? null,
+            'p' => $button['icon'] ?? null,
+        ]), (array) ($common['b'] ?? [])));
+    }
+
+    /**
      * FCM message (data only: the SDK builds the notification, with its
      * image, buttons and click tracking).
      *

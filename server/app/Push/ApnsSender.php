@@ -34,8 +34,11 @@ class ApnsSender implements Sender
         $responses = Http::pool(function (Pool $pool) use ($subscriptions, $message, $bundleId, $token, &$payloads) {
             foreach ($subscriptions as $subscription) {
                 $language = $subscription->subscriber?->language;
-                $payloads[$language] ??= Payload::apns($message, $language, $bundleId);
-                [$body, $headers] = $payloads[$language];
+                $legacy = $subscription->usesOneSignalSdk();
+                $payloads[$language][$legacy] ??= $legacy
+                    ? Payload::oneSignalApns($message, $language, $bundleId)
+                    : Payload::apns($message, $language, $bundleId);
+                [$body, $headers] = $payloads[$language][$legacy];
 
                 $pool->as($subscription->id)
                     ->withOptions(['version' => 2.0])

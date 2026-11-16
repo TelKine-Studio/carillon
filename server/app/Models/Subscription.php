@@ -25,6 +25,9 @@ class Subscription extends Model
     /** Provider handling each type of device. */
     public const PROVIDERS = ['ios' => 'apns', 'android' => 'fcm', 'web' => 'webpush', 'email' => 'email'];
 
+    /** Marks a device imported from OneSignal that the Carillon SDK has not registered yet. */
+    public const ONESIGNAL_SDK = 'onesignal-import';
+
     protected static function booted(): void
     {
         static::saving(function (Subscription $subscription) {
@@ -68,6 +71,15 @@ class Subscription extends Model
     public function scopeReachable(Builder $query): void
     {
         $query->where('enabled', true)->whereNull('invalid_at')->whereNotNull('token');
+    }
+
+    /**
+     * The app on this device still runs the OneSignal SDK (imported device,
+     * app not updated yet): it only displays OneSignal-formatted pushes.
+     */
+    public function usesOneSignalSdk(): bool
+    {
+        return $this->sdk === self::ONESIGNAL_SDK;
     }
 
     public function provider(): string

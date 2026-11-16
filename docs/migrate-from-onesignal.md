@@ -22,6 +22,13 @@ file. In Carillon, *Audience → Import from OneSignal*, send the file.
 
 - iOS and Android devices work right away: their tokens are used with your
   own keys. People keep their external id and tags.
+- Until a device runs the new version of your app, Carillon sends it the
+  OneSignal format: the OneSignal SDK still in the app displays the
+  notification (image and buttons included) and gives its data and URL to
+  your click handler. As soon as the updated app registers with the Carillon
+  SDK, the device switches to the Carillon format by itself. You can
+  therefore send from Carillon to everybody right after the import, without
+  waiting for updates. Opens are not counted for these devices.
 - Email addresses are imported too, with their state.
 - Web subscriptions are tied to the keys of OneSignal and cannot be moved:
   the web SDK subscribes your visitors again on their next visit.
@@ -59,7 +66,8 @@ Replace the OneSignal script and service worker with those of Carillon
 
 ## 4. Switch your server
 
-Once most of your users have the new app version:
+Thanks to the OneSignal format kept for old app versions, you can switch
+right after the import:
 
 - replace `https://onesignal.com/api/v1` (or `https://api.onesignal.com`) with
   `https://carillon.example.com/api/v1`;
