@@ -48,7 +48,9 @@ class Carillon {
   /// Starts the SDK: registers this device with the project of [appId]
   /// on the Carillon server at [serverUrl].
   ///
-  /// [openUrls]: tapping a notification with a link opens it.
+  /// [openUrls]: tapping a notification, or an in-app button, with a link
+  /// opens it. With false, the click listeners get the link and the app
+  /// routes it (an https link of your site to a screen of the app…).
   ///
   /// [onError]: called when something fails in the background (the device
   /// could not register, the server refused a call…), to report it to your
@@ -708,7 +710,8 @@ class _Engine with WidgetsBindingObserver {
         }
         final url = button['url'] as String?;
         final uri = url == null ? null : Uri.tryParse(url);
-        if (button['action'] == 'url' && uri != null) {
+        // openUrls: false, the app routes the link itself (click listener).
+        if (openUrls && button['action'] == 'url' && uri != null) {
           unawaited(
             launchUrl(
               uri,
