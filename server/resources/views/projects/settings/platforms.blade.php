@@ -128,32 +128,64 @@
     @include('projects.settings.partials.email')
 
     {{-- SMS --}}
-    @php $sms = $project->credential('sms'); @endphp
-    <form method="POST" action="{{ route('projects.push.update', [$project, 'sms']) }}">
+    @php
+        $sms = $project->credential('sms');
+        $smsDriver = old('driver', $sms?->detail('driver', 'twilio') ?? 'twilio');
+        $smsProviders = ['twilio' => 'Twilio', 'orange' => 'Orange'];
+        $same = fn ($driver) => $sms && $sms->detail('driver', 'twilio') === $driver;
+    @endphp
+    <form method="POST" action="{{ route('projects.push.update', [$project, 'sms']) }}" x-data="{ driver: @js($smsDriver) }">
         @csrf
         @method('PUT')
-        <x-settings.section :title="__('SMS · Twilio')" :description="__('Text messages to the phone numbers of your audience.')" icon="message"
-            :editable="$canConfigure" :empty="! $sms" :fields="['account_sid', 'from', 'auth_token']">
+        <x-settings.section :title="__('SMS')" :description="__('Text messages to the phone numbers of your audience, with Twilio or Orange.')" icon="message"
+            :editable="$canConfigure" :empty="! $sms" :fields="['driver', 'account_sid', 'from', 'auth_token', 'client_id', 'client_secret', 'sender_address', 'sender_name']">
             <x-slot:status>
-                @if ($sms?->isUsable())<x-ui.badge color="green" dot>{{ __('Configured') }}</x-ui.badge>@else<x-ui.badge color="zinc">{{ __('Not configured') }}</x-ui.badge>@endif
+                @if ($sms?->isUsable())<x-ui.badge color="green" dot>{{ $smsProviders[$sms->detail('driver', 'twilio')] ?? __('Configured') }}</x-ui.badge>@else<x-ui.badge color="zinc">{{ __('Not configured') }}</x-ui.badge>@endif
             </x-slot:status>
             <x-slot:summary>
                 @if ($sms)
                     <x-settings.summary>
-                        <x-settings.value :label="__('Account SID')" :value="$sms->detail('account_sid')" mono />
-                        <x-settings.value :label="__('Sender')" :value="$sms->detail('from')" mono />
+                        <x-settings.value :label="__('Provider')" :value="$smsProviders[$sms->detail('driver', 'twilio')] ?? $sms->detail('driver')" />
+                        @if ($sms->detail('driver') === 'orange')
+                            <x-settings.value :label="__('Client ID')" :value="$sms->detail('client_id')" mono />
+                            <x-settings.value :label="__('Sender')" :value="trim($sms->detail('sender_address').($sms->detail('sender_name') ? ' · '.$sms->detail('sender_name') : ''))" mono />
+                        @else
+                            <x-settings.value :label="__('Account SID')" :value="$sms->detail('account_sid')" mono />
+                            <x-settings.value :label="__('Sender')" :value="$sms->detail('from')" mono />
+                        @endif
                     </x-settings.summary>
                     @if ($sms->last_error)
                         <p class="mt-3 text-sm text-red-600 dark:text-red-400">{{ __('Last error: :error', ['error' => $sms->last_error]) }}</p>
                     @endif
                 @else
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Connect a Twilio account to send SMS: the numbers come from the SDK (addSms), the API or the OneSignal import.') }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Connect Twilio or Orange to send SMS: the numbers come from the SDK (addSms), the API or the OneSignal import.') }}</p>
                 @endif
             </x-slot:summary>
             <fieldset @disabled(! $canConfigure) class="space-y-5">
-                <x-ui.input name="account_sid" :label="__('Account SID')" :value="old('account_sid', $sms?->detail('account_sid'))" required placeholder="AC…" :hint="__('On the home page of the Twilio console.')" />
-                <x-ui.input name="auth_token" type="password" :label="__('Auth token')" :hint="$sms ? __('Leave empty to keep the current one.') : __('Next to the Account SID, in the Twilio console.')" :required="! $sms" autocomplete="off" />
-                <x-ui.input name="from" :label="__('Sender')" :value="old('from', $sms?->detail('from'))" required placeholder="+2250700000000" :hint="__('A Twilio number, a Messaging Service SID (MG…) or a sender name where the country allows it.')" />
+                <input type="hidden" name="driver" :value="driver">
+                <div class="grid grid-cols-2 gap-1 rounded-lg bg-zinc-100 p-1 text-sm dark:bg-white/5">
+                    @foreach ($smsProviders as $key => $label)
+                        <button type="button" x-on:click="driver = '{{ $key }}'" class="rounded-md py-1.5 font-medium transition"
+                            :class="driver === '{{ $key }}' ? 'bg-white text-zinc-900 shadow-(--shadow-soft) dark:bg-zinc-800 dark:text-white' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'">{{ $label }}</button>
+                    @endforeach
+                </div>
+                <template x-if="driver === 'twilio'">
+                    <div class="space-y-5">
+                        <x-ui.input name="account_sid" :label="__('Account SID')" :value="old('account_sid', $sms?->detail('account_sid'))" required placeholder="AC…" :hint="__('On the home page of the Twilio console.')" />
+                        <x-ui.input name="auth_token" type="password" :label="__('Auth token')" :hint="$same('twilio') ? __('Leave empty to keep the current one.') : __('Next to the Account SID, in the Twilio console.')" :required="! $same('twilio')" autocomplete="off" />
+                        <x-ui.input name="from" :label="__('Sender')" :value="old('from', $sms?->detail('from'))" required placeholder="+2250700000000" :hint="__('A Twilio number, a Messaging Service SID (MG…) or a sender name where the country allows it.')" />
+                    </div>
+                </template>
+                <template x-if="driver === 'orange'">
+                    <div class="space-y-5">
+                        <x-ui.input name="client_id" :label="__('Client ID')" :value="old('client_id', $sms?->detail('client_id'))" required :hint="__('In My Apps, on developer.orange.com, for your app with the SMS API.')" />
+                        <x-ui.input name="client_secret" type="password" :label="__('Client secret')" :hint="$same('orange') ? __('Leave empty to keep the current one.') : __('Next to the client ID, in My Apps.')" :required="! $same('orange')" autocomplete="off" />
+                        <div class="grid gap-5 sm:grid-cols-2">
+                            <x-ui.input name="sender_address" :label="__('Sender number')" :value="old('sender_address', $sms?->detail('sender_address'))" required placeholder="+2250000" :hint="__('The number of your Orange contract (country code followed by 0000).')" />
+                            <x-ui.input name="sender_name" :label="__('Sender name')" :value="old('sender_name', $sms?->detail('sender_name'))" maxlength="11" optional :hint="__('If Orange validated one for your contract.')" />
+                        </div>
+                    </div>
+                </template>
             </fieldset>
             @if ($sms)
                 <x-slot:danger>

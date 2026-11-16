@@ -125,7 +125,7 @@
                 @unless ($project->credential('sms')?->isUsable())
                     <div x-show="channel === 'sms'" x-cloak class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
                         <x-ui.icon name="alert" class="mt-0.5 size-4 shrink-0" />
-                        <span>{!! __('SMS are not set up for this project yet: connect a Twilio account in :settings.', ['settings' => '<a class="font-medium underline" href="'.route('projects.settings', [$project, 'platforms']).'">'.e(__('Platforms')).'</a>']) !!}</span>
+                        <span>{!! __('SMS are not set up for this project yet: connect Twilio or Orange in :settings.', ['settings' => '<a class="font-medium underline" href="'.route('projects.settings', [$project, 'platforms']).'">'.e(__('Platforms')).'</a>']) !!}</span>
                     </div>
                 @endunless
             @endif
@@ -328,7 +328,7 @@
                             x-text="smsBody.length + ' · ' + (smsSegments <= 1 ? @js(__('1 SMS')) : @js(__(':count SMS')).replace(':count', smsSegments))"></span>
                     </div>
                     <textarea id="sms_body" name="sms_body" x-model="smsBody" rows="5" maxlength="1600" :required="channel === 'sms'" class="form-control resize-y" placeholder="{{ __('Hello').' '.$open.' tags.first_name | default: "'.__('there').'" '.$close.', …' }}"></textarea>
-                    <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('160 characters per SMS, 70 with accents outside the GSM alphabet or emoji: each part is billed by Twilio.') }} {!! __('Variables: :vars.', ['vars' => collect(['phone_number', 'external_id', 'tags.first_name'])->map($variable)->implode(', ')]) !!}</p>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('160 characters per SMS, 70 with accents outside the GSM alphabet or emoji: each part is billed by your provider.') }} {!! __('Variables: :vars.', ['vars' => collect(['phone_number', 'external_id', 'tags.first_name'])->map($variable)->implode(', ')]) !!}</p>
                 </div>
             </x-ui.card>
 
@@ -482,7 +482,7 @@
             </x-ui.card>
                 <x-ui.card :title="__('Preview')" icon="message" x-show="channel === 'sms'" x-cloak>
                     <div class="rounded-2xl bg-zinc-100 p-4 dark:bg-white/5">
-                        <p class="text-center text-[11px] text-zinc-400">{{ $project->credential('sms')?->detail('from') ?? 'SMS' }}</p>
+                        <p class="text-center text-[11px] text-zinc-400">{{ $project->credential('sms')?->detail('from') ?? $project->credential('sms')?->detail('sender_name') ?? $project->credential('sms')?->detail('sender_address') ?? 'SMS' }}</p>
                         <p class="mt-2 max-w-[85%] rounded-2xl rounded-bl-md bg-white px-3.5 py-2.5 text-sm break-words whitespace-pre-line text-zinc-900 shadow-(--shadow-soft) dark:bg-zinc-800 dark:text-zinc-100" x-text="smsPreview"></p>
                     </div>
                 </x-ui.card>

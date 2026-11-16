@@ -14,9 +14,11 @@ use Illuminate\Support\Facades\Http;
 use Throwable;
 
 /**
- * Sends a message by SMS with Twilio (details {account_sid, from}, secret =
- * auth token). "from" is a number, an alphanumeric sender id or a Messaging
- * Service id (MG…).
+ * Sends a message by SMS, with the provider of the project:
+ * - twilio: details {account_sid, from}, secret = auth token; "from" is a
+ *   number, an alphanumeric sender id or a Messaging Service id (MG…);
+ * - orange: details {client_id, sender_address, sender_name?}, secret =
+ *   client secret (Orange SMS API, developer.orange.com).
  */
 class SmsSender implements Sender
 {
@@ -28,6 +30,10 @@ class SmsSender implements Sender
 
     public function send(PushCredential $credential, Message $message, Collection $subscriptions): array
     {
+        if ($credential->detail('driver') === 'orange') {
+            return app(OrangeSms::class)->send($credential, $message, $subscriptions);
+        }
+
         $sid = (string) $credential->detail('account_sid');
         $from = (string) ($message->option('sms_from') ?: $credential->detail('from'));
         $url = "https://api.twilio.com/2010-04-01/Accounts/{$sid}/Messages.json";

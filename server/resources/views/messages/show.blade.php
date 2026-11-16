@@ -212,7 +212,7 @@
             @endif
 
             @if ($errors_summary->isNotEmpty())
-                <x-ui.card :title="__('Errors')" :description="$isEmail ? __('Reasons given by the email service or the receiving servers.') : ($message->channel === 'sms' ? __('Reasons given by Twilio or the carriers.') : __('Reasons given by Apple, Google or the browsers.'))" icon="alert" :padding="false">
+                <x-ui.card :title="__('Errors')" :description="$isEmail ? __('Reasons given by the email service or the receiving servers.') : ($message->channel === 'sms' ? __('Reasons given by the SMS provider or the carriers.') : __('Reasons given by Apple, Google or the browsers.'))" icon="alert" :padding="false">
                     <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
                         @foreach ($errors_summary as $row)
                             <li class="flex items-center justify-between gap-4 px-5 py-3 text-sm sm:px-6">

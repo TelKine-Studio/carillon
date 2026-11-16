@@ -107,7 +107,8 @@ Addresses are added with the SDKs (`addEmail`), the users API
 
 ## Send an SMS
 
-SMS go through Twilio (*Settings → Platforms → SMS*), same endpoint:
+SMS go through Twilio or the Orange SMS API (*Settings → Platforms → SMS*),
+same endpoint:
 
 ```json
 {
@@ -124,8 +125,12 @@ SMS go through Twilio (*Settings → Platforms → SMS*), same endpoint:
   the carrier supports it (US, Canada).
 - Personalization: `{{ phone_number }}`, `{{ external_id }}`, `{{ tags.key }}`.
 - 160 characters per part (70 with characters outside the GSM alphabet, such
-  as emoji); Twilio bills each part. A number Twilio reports as invalid or
-  unsubscribed (STOP) is no longer targeted.
+  as emoji); the provider bills each part. A number reported as invalid
+  (Twilio: invalid or unsubscribed with STOP; Orange: SVC0004) is no longer
+  targeted.
+- Orange: the token (`/oauth/v3/token`, client credentials) is renewed
+  automatically; the sender is the number of the contract (`+2250000`), with
+  the sender name Orange validated, if any.
 
 Numbers are added with the SDKs (`addSms`), the users API (subscription type
 `SMS`) or the OneSignal import.

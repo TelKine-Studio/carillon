@@ -119,17 +119,39 @@ class PushCredentialController extends Controller
     }
 
     /** @return array{0: array<string, string>, 1: string} */
-    /** Twilio: account SID, sender, auth token (kept when left empty). */
+    /** Twilio or Orange; the secret is kept when left empty. */
     protected function sms(Request $request, ?PushCredential $existing): array
     {
+        $driver = $request->input('driver') === 'orange' ? 'orange' : 'twilio';
+        $keepSecret = $existing && $existing->detail('driver', 'twilio') === $driver;
+
         // "+225 07 00…" is accepted as typed.
-        if (($phone = Phone::normalize((string) $request->input('from'))) !== null) {
-            $request->merge(['from' => $phone]);
+        foreach (['from', 'sender_address'] as $field) {
+            if (($phone = Phone::normalize((string) $request->input($field))) !== null) {
+                $request->merge([$field => $phone]);
+            }
         }
+
+        if ($driver === 'orange') {
+            $data = $request->validate([
+                'client_id' => ['required', 'string', 'max:128'],
+                'client_secret' => [$keepSecret ? 'nullable' : 'required', 'string', 'max:256'],
+                'sender_address' => ['required', 'string', 'regex:/^\+[1-9]\d{3,14}$/'],
+                'sender_name' => ['nullable', 'string', 'max:11'],
+            ], [
+                'sender_address.regex' => __('The number of your Orange contract, in the international format (e.g. +2250000).'),
+            ]);
+
+            return [
+                array_filter(['driver' => 'orange', 'client_id' => trim($data['client_id']), 'sender_address' => $data['sender_address'], 'sender_name' => trim((string) ($data['sender_name'] ?? '')) ?: null]),
+                filled($data['client_secret'] ?? null) ? trim($data['client_secret']) : $existing->secret,
+            ];
+        }
+
         $data = $request->validate([
             'account_sid' => ['required', 'string', 'regex:/^AC[0-9a-fA-F]{32}$/'],
             'from' => ['required', 'string', 'max:64', 'regex:/^(\+[1-9]\d{6,14}|MG[0-9a-fA-F]{32}|[A-Za-z0-9 ]{1,11})$/'],
-            'auth_token' => [$existing ? 'nullable' : 'required', 'string', 'max:128'],
+            'auth_token' => [$keepSecret ? 'nullable' : 'required', 'string', 'max:128'],
         ], [
             'account_sid.regex' => __('The Account SID starts with AC, followed by 32 characters.'),
             'from.regex' => __('A number in the international format (+2250700000000), a Messaging Service SID (MG…) or a sender name of 11 characters at most.'),

@@ -94,7 +94,7 @@ class SmsChannelTest extends TestCase
         $this->post(route('projects.messages.store', $this->project), [
             'channel' => 'sms', 'audience' => 'devices', 'phone_numbers' => "+225 07 08 09 10 11\n", 'sms_body' => 'Promo', 'schedule' => 'now',
         ])->assertRedirect();
-        $last = $this->project->messages()->latest()->first();
+        $last = $this->project->messages()->whereKeyNot($id)->first();
         $this->assertSame(['sms', 1], [$last->channel, $last->recipients]);
         $this->get(route('projects.messages.show', [$this->project, $last]))->assertOk()->assertSee('Promo');
         $this->get(route('projects.messages.create', $this->project))->assertOk()->assertSee('sms_body', false);
@@ -115,5 +115,50 @@ class SmsChannelTest extends TestCase
         $message = $journey->messages()->first();
         $this->assertSame(['sms', 1], [$message->channel, $message->successful]);
         Http::assertSent(fn (Request $request) => $request['Body'] === 'Bienvenue pro');
+    }
+
+    public function test_sending_with_orange(): void
+    {
+        $this->actingAs($this->owner)->put(route('projects.push.update', [$this->project, 'sms']), [
+            'driver' => 'orange', 'client_id' => 'client-1', 'client_secret' => 'secret-1', 'sender_address' => '+225 0000', 'sender_name' => 'MaRecharge',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $credential = $this->project->credential('sms');
+        $this->assertSame(['orange', '+2250000', 'secret-1'], [$credential->detail('driver'), $credential->detail('sender_address'), $credential->secret]);
+        $this->assertTrue($credential->isUsable());
+        $this->get(route('projects.settings', [$this->project, 'platforms']))->assertOk()->assertSee('client-1');
+
+        // Switching provider asks for the new secret.
+        $this->put(route('projects.push.update', [$this->project, 'sms']), ['driver' => 'twilio', 'account_sid' => 'AC'.str_repeat('c', 32), 'from' => 'Shop'])->assertSessionHasErrors('auth_token');
+
+        $subscriber = Subscriber::create(['project_id' => $this->project->id, 'tags' => ['first_name' => 'Ada']]);
+        foreach (['+2250708091011', '+2250102030405'] as $phone) {
+            Subscription::create(['project_id' => $this->project->id, 'subscriber_id' => $subscriber->id, 'type' => 'sms', 'token' => $phone, 'enabled' => true]);
+        }
+
+        Http::fake([
+            'api.orange.com/oauth/v3/token' => Http::response(['token_type' => 'Bearer', 'access_token' => 'tok-1', 'expires_in' => 3600]),
+            'api.orange.com/smsmessaging/*' => function (Request $request) {
+                return $request['outboundSMSMessageRequest']['address'] === 'tel:+2250102030405'
+                    ? Http::response(['requestError' => ['serviceException' => ['messageId' => 'SVC0004', 'text' => 'No valid addresses provided in message part %1', 'variables' => 'address']]], 400)
+                    : Http::response(['outboundSMSMessageRequest' => []], 201);
+            },
+        ]);
+
+        [, $key] = ApiKey::generate($this->project, 'test');
+        $id = $this->postJson('/api/v1/notifications', [
+            'app_id' => $this->project->app_id, 'target_channel' => 'sms', 'included_segments' => ['Subscribed Users'], 'contents' => ['en' => 'Salut {{ tags.first_name }}'],
+        ], ['Authorization' => 'Key '.$key])->assertOk()->json('id');
+
+        $message = Message::find($id);
+        $this->assertSame([1, 1], [$message->successful, $message->failed]);
+        Http::assertSent(fn (Request $request) => $request->url() === 'https://api.orange.com/oauth/v3/token' && $request->hasHeader('Authorization', 'Basic '.base64_encode('client-1:secret-1')) && $request['grant_type'] === 'client_credentials');
+        Http::assertSent(fn (Request $request) => $request->url() === 'https://api.orange.com/smsmessaging/v1/outbound/tel%3A%2B2250000/requests'
+            && $request->hasHeader('Authorization', 'Bearer tok-1')
+            && $request['outboundSMSMessageRequest']['senderAddress'] === 'tel:+2250000'
+            && $request['outboundSMSMessageRequest']['senderName'] === 'MaRecharge'
+            && $request['outboundSMSMessageRequest']['outboundSMSTextMessage']['message'] === 'Salut Ada');
+        // One token for the whole message.
+        Http::assertSentCount(3);
+        $this->assertNotNull($this->project->subscriptions()->where('token_hash', hash('sha256', '+2250102030405'))->value('invalid_at'));
     }
 }
