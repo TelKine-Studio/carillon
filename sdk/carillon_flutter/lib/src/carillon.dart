@@ -644,8 +644,9 @@ class _Engine with WidgetsBindingObserver {
     final id = store.subscriptionId;
     // An event while another message is on screen (or waiting for its
     // delay): shown after it, not lost.
-    if (_showingInApp && trigger == 'event' && event != null) {
-      if (!_queuedInAppEvents.contains(event)) _queuedInAppEvents.add(event);
+    if (_showingInApp) {
+      final key = (trigger, event);
+      if (!_queuedInApp.contains(key)) _queuedInApp.add(key);
       return;
     }
     if (navigator == null ||
@@ -742,16 +743,17 @@ class _Engine with WidgetsBindingObserver {
 
   bool _inAppLoaded = false;
 
-  /// Events that came while a message was shown.
-  final _queuedInAppEvents = <String>[];
+  /// Triggers (opening of the app, events) that came while a message was
+  /// shown or waiting for its delay.
+  final _queuedInApp = <(String, String?)>[];
 
   void _nextQueuedInApp() {
-    if (_queuedInAppEvents.isEmpty) return;
-    final event = _queuedInAppEvents.removeAt(0);
+    if (_queuedInApp.isEmpty) return;
+    final (trigger, event) = _queuedInApp.removeAt(0);
     // After the closing animation of the previous message.
     Future<void>.delayed(
       const Duration(milliseconds: 400),
-      () => _presentInApp('event', event: event),
+      () => _presentInApp(trigger, event: event),
     );
   }
 
