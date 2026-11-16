@@ -73,6 +73,15 @@ and sent right away.
 (texts, link, image, buttons, options); the fields of the request override
 it. The message keeps the template for its statistics.
 
+## Smart send time
+
+`"delayed_option": "last-active"` (as in OneSignal) delivers the message to
+each person within 24 hours, at the hour they usually use the app: learned
+from their sessions, clicks, events and, for devices still on the OneSignal
+SDK, the activity of the nightly sync. People without history get the
+busiest hour of the project. `"delayed_option": "timezone"` with
+`"delivery_time_of_day": "9:00AM"` sends at the same local time for everyone.
+
 ## Send an email
 
 The same endpoint sends emails (OneSignal format), with the email settings

@@ -24,6 +24,7 @@ class Subscriber extends Model
             'tags' => 'array',
             'last_active_at' => 'datetime',
             'first_seen_at' => 'datetime',
+            'hour_counts' => 'array',
         ];
     }
 

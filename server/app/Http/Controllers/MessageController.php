@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Actions\CreateMessage;
 use App\Actions\RunAbTest;
+use App\Audience\Activity;
 use App\Audience\Audience;
 use App\Http\ComposerInput;
+use App\Jobs\DispatchMessage;
 use App\Models\CustomEvent;
 use App\Models\Message;
 use App\Models\Project;
@@ -14,6 +16,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -79,6 +82,7 @@ class MessageController extends Controller
             'segments' => $project->segments()->orderBy('name')->pluck('name'),
             'languages' => self::LANGUAGES,
             'platforms' => $this->platforms($project),
+            'busiestHour' => Cache::remember('busiest-hour:'.$project->id, 3600, fn () => Activity::bestHour(DispatchMessage::projectHours($project->id))),
         ]);
     }
 

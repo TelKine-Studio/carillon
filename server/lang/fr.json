@@ -1980,5 +1980,9 @@
     "Access token": "Jeton d’accès",
     "Permanent token of a system user with the whatsapp_business_messaging permission.": "Jeton permanent d’un utilisateur système avec l’autorisation whatsapp_business_messaging.",
     "WhatsApp settings saved.": "Réglages WhatsApp enregistrés.",
-    "Digits only, as shown in the WhatsApp Manager (API setup).": "Chiffres uniquement, comme dans le WhatsApp Manager (configuration de l’API)."
+    "Digits only, as shown in the WhatsApp Manager (API setup).": "Chiffres uniquement, comme dans le WhatsApp Manager (configuration de l’API).",
+    "Smart time": "Heure intelligente",
+    "Each person at the hour they usually use the app, within 24 hours.": "Chaque personne à l’heure où elle utilise habituellement l’app, dans les 24 h.",
+    "Learned from the sessions, clicks and events of each person. Without history, the busiest hour of your audience is used.": "Appris des sessions, clics et événements de chaque personne. Sans historique, l’heure la plus active de votre audience est utilisée.",
+    "Busiest hour:": "Heure la plus active :"
 }

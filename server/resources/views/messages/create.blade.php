@@ -505,7 +505,7 @@
             <x-ui.card :title="$templateMode ? __('Options') : __('Delivery')" icon="clock">
                 @unless ($templateMode)
                 <div class="grid gap-2">
-                    @foreach (['now' => [__('Send now'), __('Delivered within seconds.')], 'later' => [__('Schedule'), __('At a date and time of your choice.')], 'timezone' => [__('Local time'), __('At the same hour for everyone, in their time zone.')]] as $key => [$label, $text])
+                    @foreach (['now' => [__('Send now'), __('Delivered within seconds.')], 'later' => [__('Schedule'), __('At a date and time of your choice.')], 'timezone' => [__('Local time'), __('At the same hour for everyone, in their time zone.')], 'smart' => [__('Smart time'), __('Each person at the hour they usually use the app, within 24 hours.')]] as $key => [$label, $text])
                         <label class="flex cursor-pointer gap-3 rounded-lg border border-zinc-200 p-3.5 transition has-checked:border-brand-500 has-checked:bg-brand-50/50 dark:border-zinc-800 dark:has-checked:bg-brand-500/5">
                             <input type="radio" name="schedule" value="{{ $key }}" x-model="schedule" class="mt-0.5">
                             <span><span class="block text-sm font-semibold text-zinc-900 dark:text-white">{{ $label }}</span><span class="block text-sm text-zinc-500 dark:text-zinc-400">{{ $text }}</span></span>
@@ -514,6 +514,15 @@
                 </div>
                 <div x-show="schedule === 'later'" x-cloak class="mt-5">
                     <x-ui.input name="send_at" type="datetime-local" min="today" :label="__('Date and time')" :hint="__('In your time zone.')" />
+                </div>
+                <div x-show="schedule === 'smart'" x-cloak class="mt-4 flex items-start gap-2 rounded-lg bg-zinc-50 p-3 text-sm text-zinc-600 dark:bg-white/5 dark:text-zinc-300">
+                    <x-ui.icon name="sparkles" class="mt-0.5 size-4 shrink-0 text-brand-600" />
+                    <span>
+                        {{ __('Learned from the sessions, clicks and events of each person. Without history, the busiest hour of your audience is used.') }}
+                        @if (($busiestHour ?? null) !== null)
+                            <strong class="font-semibold text-zinc-900 dark:text-white">{{ __('Busiest hour:') }} <span x-text="new Date(@js(now()->utc()->setTime($busiestHour, 0)->toIso8601String())).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })"></span></strong>
+                        @endif
+                    </span>
                 </div>
                 <div x-show="schedule === 'timezone'" x-cloak class="mt-5 max-w-xs">
                     <x-ui.input name="delivery_time" type="time" :value="old('delivery_time', $source?->option('delivery_time_of_day') ?? '09:00')" :label="__('Time of day')" :hint="__('Each device receives it at this time in its own time zone, within the next 24 hours.')" />

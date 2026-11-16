@@ -80,6 +80,9 @@ class CreateMessage
         // sent right away).
         if (($options['delayed_option'] ?? null) === 'timezone') {
             $options['delivery_time_of_day'] = LocalTime::parse($options['delivery_time_of_day'])->format();
+        } elseif (($options['delayed_option'] ?? null) === 'last-active') {
+            // Smart send time: each person at their usual hour, within 24 hours.
+            unset($options['delivery_time_of_day']);
         } else {
             unset($options['delayed_option'], $options['delivery_time_of_day']);
         }

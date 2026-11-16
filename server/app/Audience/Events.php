@@ -35,6 +35,9 @@ class Events
         }
 
         DB::table('messages')->where('id', $messageId)->increment($event);
+        if ($event === 'clicked' && $subscription->subscriber_id) {
+            Activity::click($subscription->subscriber_id, $now);
+        }
         DB::table('message_platforms')->where('message_id', $messageId)->where('platform', $subscription->type)->increment($event);
 
         $type = $subscription->type === 'email' ? 'email.'.($event === 'received' ? 'opened' : 'clicked') : 'notification.'.$event;

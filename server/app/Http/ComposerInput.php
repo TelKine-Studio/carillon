@@ -109,6 +109,9 @@ final class ComposerInput
             $input = self::whatsApp($request, $input);
         }
 
+        if ($request->input('schedule') === 'smart') {
+            $input['delayed_option'] = 'last-active';
+        }
         if ($request->input('schedule') === 'timezone') {
             $input['delayed_option'] = 'timezone';
             $input['delivery_time_of_day'] = (string) $request->input('delivery_time');

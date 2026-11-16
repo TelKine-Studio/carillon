@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Audience\Activity;
 use App\Audience\Audience;
 use App\Models\Message;
 use App\Models\MessagePlatform;
@@ -43,6 +44,7 @@ class DispatchMessage implements ShouldQueue
         $jobs = [];
         $total = 0;
         $localTime = $message->option('delayed_option') === 'timezone' ? LocalTime::parse($message->option('delivery_time_of_day')) : null;
+        $smart = $message->option('delayed_option') === 'last-active';
 
         // Daily cap of the project: devices that already received that many
         // notifications in the last 24 hours are left out (tests are not capped).
@@ -81,6 +83,11 @@ class DispatchMessage implements ShouldQueue
 
             if ($localTime) {
                 $this->perTimezone($query, $type, $localTime, $jobs);
+
+                continue;
+            }
+            if ($smart) {
+                $this->perBestHour($query, $type, $project->id, $jobs);
 
                 continue;
             }
@@ -143,6 +150,72 @@ class DispatchMessage implements ShouldQueue
                 $flush($zone);
             }
         }
+    }
+
+    /**
+     * Smart send time: batches per hour of the day, each person at the hour
+     * they are usually active (else the usual hour of the project), within
+     * the next 24 hours.
+     *
+     * @param  list<SendBatch>  $jobs
+     */
+    protected function perBestHour(Builder $query, string $type, int $projectId, array &$jobs): void
+    {
+        $now = now()->utc();
+        $fallback = Activity::bestHour(self::projectHours($projectId));
+        $groups = [];
+
+        $flush = function (int $hour) use (&$groups, &$jobs, $now, $type) {
+            $job = new SendBatch($this->messageId, $type, $groups[$hour]);
+            if ($hour >= 0) {
+                $at = $now->copy()->setTime($hour, 0);
+                if ($at->lessThan($now->copy()->subMinutes(30))) {
+                    $at->addDay();
+                }
+                // Started less than half an hour ago: sent right away.
+                if ($at->greaterThan($now->copy()->addMinute())) {
+                    $job->delay($at);
+                }
+            }
+            $jobs[] = $job;
+            $groups[$hour] = [];
+        };
+
+        $query->select('subscriptions.id', 'subscribers.hour_counts')->chunkById(2000, function ($chunk) use (&$groups, $flush, $fallback) {
+            foreach ($chunk as $row) {
+                $hour = Activity::bestHour(json_decode((string) $row->hour_counts, true)) ?? $fallback ?? -1;
+                $groups[$hour][] = $row->id;
+                if (count($groups[$hour]) >= self::BATCH_SIZE) {
+                    $flush($hour);
+                }
+            }
+        }, 'subscriptions.id', 'id');
+
+        foreach (array_keys($groups) as $hour) {
+            if ($groups[$hour] !== []) {
+                $flush($hour);
+            }
+        }
+    }
+
+    /**
+     * Activity per hour of the whole project.
+     *
+     * @return array<int, int>
+     */
+    public static function projectHours(int $projectId): array
+    {
+        $total = [];
+        DB::table('subscribers')->where('project_id', $projectId)->whereNotNull('hour_counts')->select(['id', 'hour_counts'])->orderBy('id')
+            ->chunk(5000, function ($rows) use (&$total) {
+                foreach ($rows as $row) {
+                    foreach ((array) json_decode((string) $row->hour_counts, true) as $hour => $count) {
+                        $total[(int) $hour] = ($total[(int) $hour] ?? 0) + (int) $count;
+                    }
+                }
+            });
+
+        return $total;
     }
 
     public static function complete(string $messageId, ?string $error = null): void
