@@ -3,6 +3,8 @@
     [$icon, $label] = match ($subscription->type) {
         'ios' => ['apple', 'iOS'],
         'android' => ['android', 'Android'],
+        'huawei' => ['android', 'Huawei'],
+        'amazon' => ['android', 'Amazon'],
         'email' => ['mail', __('Email')],
         'sms' => ['message', 'SMS'],
         default => ['globe-web', 'Web'],

@@ -138,7 +138,7 @@ class Message extends Model
         }
 
         if (! empty($t['platforms'])) {
-            $label .= ' · '.implode(', ', array_map(fn ($p) => ['ios' => 'iOS', 'android' => 'Android', 'web' => 'Web'][$p] ?? $p, $t['platforms']));
+            $label .= ' · '.implode(', ', array_map(fn ($p) => ['ios' => 'iOS', 'android' => 'Android', 'huawei' => 'Huawei', 'amazon' => 'Amazon', 'web' => 'Web'][$p] ?? $p, $t['platforms']));
         }
 
         return $label;

@@ -21,7 +21,7 @@ use Throwable;
 class OneSignalImport
 {
     /** OneSignal device_type numbers. */
-    protected const DEVICE_TYPES = [0 => 'ios', 1 => 'android', 2 => 'amazon', 5 => 'web', 7 => 'web', 8 => 'web', 17 => 'web', 11 => 'email', 14 => 'sms'];
+    protected const DEVICE_TYPES = [0 => 'ios', 1 => 'android', 2 => 'amazon', 5 => 'web', 7 => 'web', 8 => 'web', 17 => 'web', 11 => 'email', 13 => 'huawei', 14 => 'sms'];
 
     protected const SUBSCRIPTION_TYPES = ['iospush' => 'ios', 'androidpush' => 'android', 'huaweipush' => 'huawei', 'fireospush' => 'amazon', 'chromepush' => 'web', 'firefoxpush' => 'web', 'safaripush' => 'web', 'safarilegacypush' => 'web', 'email' => 'email', 'sms' => 'sms'];
 
@@ -120,7 +120,7 @@ class OneSignalImport
         if ($type === 'web') {
             return 'web';
         }
-        if (! in_array($type, ['ios', 'android', 'email', 'sms'], true)) {
+        if (! in_array($type, ['ios', 'android', 'huawei', 'amazon', 'email', 'sms'], true)) {
             return 'unsupported';
         }
 

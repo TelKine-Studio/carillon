@@ -2,6 +2,13 @@
     $apns = $project->credential('apns');
     $fcm = $project->credential('fcm');
     $web = $project->credential('webpush');
+    $hms = $project->credential('hms');
+    $adm = $project->credential('adm');
+    // [provider, credential, title, description, id field, id label, secret field, secret label, help]
+    $stores = [
+        ['hms', $hms, __('Huawei · Push Kit'), __('Huawei phones without Google services (AppGallery).'), 'app_id', __('App ID'), 'app_secret', __('App secret'), __('In AppGallery Connect: Project settings → General information, for the app with Push Kit enabled.')],
+        ['adm', $adm, __('Amazon · Device Messaging'), __('Fire tablets and Fire TV (Amazon Appstore).'), 'client_id', __('Client ID'), 'client_secret', __('Client secret'), __('In the Amazon developer console: your app → Device Messaging → security profile.')],
+    ];
 @endphp
 <x-projects.settings :project="$project" :section="$section">
     {{-- Apple --}}
@@ -83,6 +90,42 @@
             @endif
         </x-settings.section>
     </form>
+
+    {{-- Huawei, Amazon --}}
+    @foreach ($stores as [$provider, $credential, $title, $description, $idField, $idLabel, $secretField, $secretLabel, $help])
+        <form method="POST" action="{{ route('projects.push.update', [$project, $provider]) }}">
+            @csrf
+            @method('PUT')
+            <x-settings.section :title="$title" :description="$description" icon="android"
+                :editable="$canConfigure" :empty="! $credential" :fields="[$idField, $secretField]">
+                <x-slot:status>
+                    @if ($credential?->isUsable())<x-ui.badge color="green" dot>{{ __('Configured') }}</x-ui.badge>@else<x-ui.badge color="zinc">{{ __('Not configured') }}</x-ui.badge>@endif
+                </x-slot:status>
+                <x-slot:summary>
+                    @if ($credential)
+                        <x-settings.summary>
+                            <x-settings.value :label="$idLabel" :value="$credential->detail($idField)" mono />
+                            <x-settings.value :label="$secretLabel" :value="__('Saved (encrypted)')" />
+                        </x-settings.summary>
+                        @if ($credential->last_error)
+                            <p class="mt-3 text-sm text-red-600 dark:text-red-400">{{ __('Last error: :error', ['error' => $credential->last_error]) }}</p>
+                        @endif
+                    @else
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $help }}</p>
+                    @endif
+                </x-slot:summary>
+                <fieldset @disabled(! $canConfigure) class="space-y-5">
+                    <x-ui.input :name="$idField" :label="$idLabel" :value="old($idField, $credential?->detail($idField))" required :hint="$help" />
+                    <x-ui.input :name="$secretField" type="password" :label="$secretLabel" :required="! $credential" autocomplete="off" :hint="$credential ? __('Leave empty to keep the current one.') : null" />
+                </fieldset>
+                @if ($credential)
+                    <x-slot:danger>
+                        <x-ui.button type="submit" form="remove-{{ $provider }}" variant="ghost-danger" icon="trash" class="mr-auto">{{ __('Remove') }}</x-ui.button>
+                    </x-slot:danger>
+                @endif
+            </x-settings.section>
+        </form>
+    @endforeach
 
     {{-- Web --}}
     <form method="POST" action="{{ route('projects.push.update', [$project, 'webpush']) }}" x-data="{ custom: {{ $errors->hasAny(['public_key', 'private_key']) ? 'true' : 'false' }} }">
@@ -220,7 +263,7 @@
         </x-ui.card>
     @endif
 
-    @foreach (['apns', 'fcm', 'webpush', 'email', 'sms'] as $provider)
+    @foreach (['apns', 'fcm', 'hms', 'adm', 'webpush', 'email', 'sms'] as $provider)
         <form id="remove-{{ $provider }}" method="POST" action="{{ route('projects.push.destroy', [$project, $provider]) }}" class="hidden"
             data-confirm-title="{{ __('Remove these keys?') }}" data-confirm="{{ __('Devices of this platform stop receiving notifications until you add keys again.') }}" data-confirm-action="{{ __('Remove') }}">
             @csrf

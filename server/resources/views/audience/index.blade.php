@@ -48,7 +48,7 @@
                 <input type="search" name="q" value="{{ $search }}" autocomplete="off" placeholder="{{ __('External id, tag value, id…') }}" class="form-control pl-9">
             </div>
             <div class="grid grid-cols-2 gap-3 sm:flex">
-                <x-ui.select name="platform" size="sm" class="sm:w-40" :value="$platform" :options="['' => __('All platforms'), 'ios' => 'iOS', 'android' => 'Android', 'web' => 'Web', 'email' => __('Email'), 'sms' => 'SMS']" />
+                <x-ui.select name="platform" size="sm" class="sm:w-40" :value="$platform" :options="['' => __('All platforms'), 'ios' => 'iOS', 'android' => 'Android', 'huawei' => 'Huawei', 'amazon' => 'Amazon', 'web' => 'Web', 'email' => __('Email'), 'sms' => 'SMS']" />
                 <x-ui.select name="state" size="sm" class="sm:w-44" :value="$state" :options="['' => __('All states'), 'subscribed' => __('Subscribed'), 'unsubscribed' => __('Unsubscribed'), 'invalid' => __('Unreachable')]" />
             </div>
         </form>
@@ -80,7 +80,7 @@
                     @foreach ($person->subscriptions as $device)
                         @php
                             $reachable = $device->enabled && ! $device->invalid_at;
-                            $icon = ['ios' => 'apple', 'android' => 'android', 'email' => 'mail', 'sms' => 'message'][$device->type] ?? 'globe-web';
+                            $icon = ['ios' => 'apple', 'android' => 'android', 'huawei' => 'android', 'amazon' => 'android', 'email' => 'mail', 'sms' => 'message'][$device->type] ?? 'globe-web';
                         @endphp
                         <span class="relative inline-flex size-7 items-center justify-center rounded-md bg-zinc-100 text-zinc-600 dark:bg-white/5 dark:text-zinc-300"
                             title="{{ ($device->device_model ?: ucfirst($device->type)).' · '.($device->invalid_at ? __('Unreachable') : ($device->enabled ? __('Subscribed') : __('Unsubscribed'))) }}">

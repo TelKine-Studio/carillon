@@ -4,7 +4,7 @@
     $reachable = $subscriber->subscriptions->contains(fn ($s) => $s->enabled && ! $s->invalid_at);
     $country = $subscriber->country ? (locale_get_display_region('-'.$subscriber->country, app()->getLocale()) ?: $subscriber->country) : null;
     $language = $subscriber->language ? (locale_get_display_language($subscriber->language, app()->getLocale()) ?: $subscriber->language) : null;
-    $deviceLabel = fn ($d) => in_array($d->type, ['email', 'sms'], true) ? $d->token : collect([['ios' => 'iOS', 'android' => 'Android', 'web' => 'Web'][$d->type] ?? $d->type, $d->device_model, $d->device_os ? '('.$d->device_os.')' : null])->filter()->implode(' · ');
+    $deviceLabel = fn ($d) => in_array($d->type, ['email', 'sms'], true) ? $d->token : collect([['ios' => 'iOS', 'android' => 'Android', 'huawei' => 'Huawei', 'amazon' => 'Amazon', 'web' => 'Web'][$d->type] ?? $d->type, $d->device_model, $d->device_os ? '('.$d->device_os.')' : null])->filter()->implode(' · ');
 @endphp
 <x-layouts.app :title="($subscriber->external_id ?? __('Anonymous')).' · '.$project->name">
     <x-ui.page-header :title="$subscriber->external_id ?? __('Anonymous person')">
@@ -75,7 +75,7 @@
                 <ul class="space-y-2 text-sm">
                     @forelse ($subscriber->subscriptions as $device)
                         <li class="flex items-center gap-2 text-zinc-700 dark:text-zinc-300">
-                            <x-ui.icon :name="['ios' => 'apple', 'android' => 'android', 'email' => 'mail', 'sms' => 'message'][$device->type] ?? 'globe-web'" class="size-4 shrink-0 text-zinc-400" />
+                            <x-ui.icon :name="['ios' => 'apple', 'android' => 'android', 'huawei' => 'android', 'amazon' => 'android', 'email' => 'mail', 'sms' => 'message'][$device->type] ?? 'globe-web'" class="size-4 shrink-0 text-zinc-400" />
                             <span class="min-w-0 truncate">{{ $deviceLabel($device) }}</span>
                             <span @class(['ml-auto size-2 shrink-0 rounded-full', 'bg-emerald-500' => $device->enabled && ! $device->invalid_at, 'bg-red-500' => (bool) $device->invalid_at, 'bg-zinc-300 dark:bg-zinc-600' => ! $device->enabled && ! $device->invalid_at])></span>
                         </li>

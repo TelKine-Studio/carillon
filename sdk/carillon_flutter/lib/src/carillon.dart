@@ -98,6 +98,18 @@ class CarillonNotifications {
 
   /// Removes the notifications of this app from the notification center.
   Future<void> clearAll() => Carillon._ready.platform.clearAll();
+
+  /// For Huawei phones without Google services (`service: 'huawei'`, token
+  /// of the huawei_push plugin) or Amazon Fire devices (`service: 'amazon'`,
+  /// ADM registration id): Carillon sends through Push Kit or ADM instead
+  /// of Firebase. Call it again when the token changes.
+  Future<void> setPushToken(String token, {required String service}) {
+    assert(service == 'huawei' || service == 'amazon', 'service is huawei or amazon');
+    final engine = Carillon._ready;
+    engine.externalToken = token.trim();
+    engine.externalType = service;
+    return engine.sync();
+  }
 }
 
 class CarillonUser {
@@ -336,8 +348,12 @@ class _Engine with WidgetsBindingObserver {
         });
   }
 
+  /// Token given by the app for Huawei or Amazon (see setPushToken).
+  String? externalToken;
+  String? externalType;
+
   Future<void> _sync(bool session) async {
-    final token = await platform.token();
+    final token = externalToken ?? await platform.token();
     final permission = await platform.permission();
     enabled = permission == 'granted' && !store.optedOut;
 
@@ -351,6 +367,7 @@ class _Engine with WidgetsBindingObserver {
 
     final body = <String, dynamic>{
       'token': token,
+      if (externalType != null) 'type': externalType,
       'enabled': enabled,
       'environment': await platform.environment(),
       ...await _device(),

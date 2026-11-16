@@ -17,7 +17,7 @@ class PushCredentialController extends Controller
     public function update(Request $request, Project $project, string $provider): RedirectResponse
     {
         $this->authorize('configure', $project);
-        abort_unless(in_array($provider, ['apns', 'fcm', 'webpush', 'sms'], true), 404);
+        abort_unless(in_array($provider, ['apns', 'fcm', 'hms', 'adm', 'webpush', 'sms'], true), 404);
 
         $existing = $project->credential($provider);
 
@@ -26,6 +26,8 @@ class PushCredentialController extends Controller
             'fcm' => $this->fcm($request),
             'webpush' => $this->webPush($request, $existing),
             'sms' => $this->sms($request, $existing),
+            'hms' => $this->clientCredentials($request, $existing, 'app_id', 'app_secret'),
+            'adm' => $this->clientCredentials($request, $existing, 'client_id', 'client_secret'),
         };
 
         PushCredential::query()->updateOrCreate(
@@ -39,6 +41,8 @@ class PushCredentialController extends Controller
             'fcm' => __('Firebase keys saved.'),
             'webpush' => __('Web push keys saved.'),
             'sms' => __('SMS settings saved.'),
+            'hms' => __('Huawei Push Kit keys saved.'),
+            'adm' => __('Amazon Device Messaging keys saved.'),
         });
     }
 
@@ -119,6 +123,17 @@ class PushCredentialController extends Controller
     }
 
     /** @return array{0: array<string, string>, 1: string} */
+    /** Huawei (app id + app secret) or Amazon (client id + secret); the secret is kept when left empty. */
+    protected function clientCredentials(Request $request, ?PushCredential $existing, string $idField, string $secretField): array
+    {
+        $data = $request->validate([
+            $idField => ['required', 'string', 'max:255'],
+            $secretField => [$existing ? 'nullable' : 'required', 'string', 'max:512'],
+        ]);
+
+        return [[$idField => trim($data[$idField])], filled($data[$secretField] ?? null) ? trim($data[$secretField]) : $existing->secret];
+    }
+
     /** Twilio or Orange; the secret is kept when left empty. */
     protected function sms(Request $request, ?PushCredential $existing): array
     {

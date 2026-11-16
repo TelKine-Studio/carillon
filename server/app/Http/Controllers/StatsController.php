@@ -87,7 +87,7 @@ class StatsController extends Controller
                 'devices' => $totals,
             ],
             'breakdowns' => [
-                'platform' => $this->breakdown((clone $reachable)->select('type as label'), fn ($type) => ['ios' => 'iOS', 'android' => 'Android', 'web' => __('Web')][$type] ?? $type),
+                'platform' => $this->breakdown((clone $reachable)->select('type as label'), fn ($type) => ['ios' => 'iOS', 'android' => 'Android', 'huawei' => 'Huawei', 'amazon' => 'Amazon', 'web' => __('Web')][$type] ?? $type),
                 'country' => $this->breakdown((clone $reachable)->join('subscribers', 'subscribers.id', '=', 'subscriptions.subscriber_id')->select('subscribers.country as label'), fn ($code) => $code ? (locale_get_display_region('-'.$code, app()->getLocale()) ?: $code) : null),
                 'language' => $this->breakdown((clone $reachable)->join('subscribers', 'subscribers.id', '=', 'subscriptions.subscriber_id')->select('subscribers.language as label'), fn ($code) => $code ? (locale_get_display_language($code, app()->getLocale()) ?: $code) : null),
                 'app_version' => $this->breakdown((clone $reachable)->select('app_version as label'), fn ($version) => $version),

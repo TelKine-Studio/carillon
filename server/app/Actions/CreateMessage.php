@@ -239,7 +239,7 @@ class CreateMessage
         }
 
         // Platform flags of OneSignal: only those set to true are kept.
-        $flags = ['ios' => $input['isIos'] ?? null, 'android' => $input['isAndroid'] ?? null, 'web' => $input['isAnyWeb'] ?? $input['isChromeWeb'] ?? null];
+        $flags = ['ios' => $input['isIos'] ?? null, 'android' => $input['isAndroid'] ?? null, 'huawei' => $input['isHuawei'] ?? null, 'amazon' => $input['isAdm'] ?? null, 'web' => $input['isAnyWeb'] ?? $input['isChromeWeb'] ?? null];
         $platforms = array_keys(array_filter($flags, fn ($value) => $value === true || $value === 'true' || $value === 1));
 
         return array_filter([

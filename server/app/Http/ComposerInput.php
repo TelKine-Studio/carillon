@@ -2,6 +2,7 @@
 
 namespace App\Http;
 
+use App\Models\Subscription;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -41,9 +42,11 @@ final class ComposerInput
         };
 
         $platforms = (array) $request->input('platforms', []);
-        if ($platforms !== [] && count($platforms) < 3) {
+        if ($platforms !== [] && count(array_intersect(Subscription::PUSH_TYPES, $platforms)) < count(Subscription::PUSH_TYPES)) {
             $input['isIos'] = in_array('ios', $platforms, true);
             $input['isAndroid'] = in_array('android', $platforms, true);
+            $input['isHuawei'] = in_array('huawei', $platforms, true);
+            $input['isAdm'] = in_array('amazon', $platforms, true);
             $input['isAnyWeb'] = in_array('web', $platforms, true);
         }
 

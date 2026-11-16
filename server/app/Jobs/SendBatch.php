@@ -5,8 +5,10 @@ namespace App\Jobs;
 use App\Email\EmailSender;
 use App\Models\Message;
 use App\Models\Subscription;
+use App\Push\AdmSender;
 use App\Push\ApnsSender;
 use App\Push\FcmSender;
+use App\Push\HmsSender;
 use App\Push\Result;
 use App\Push\Sender;
 use App\Push\WebPushSender;
@@ -65,6 +67,8 @@ class SendBatch implements ShouldQueue
         return match ($this->type) {
             'ios' => app(ApnsSender::class),
             'android' => app(FcmSender::class),
+            'huawei' => app(HmsSender::class),
+            'amazon' => app(AdmSender::class),
             'web' => app(WebPushSender::class),
             'email' => app(EmailSender::class),
             'sms' => app(SmsSender::class),

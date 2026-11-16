@@ -355,6 +355,10 @@ class MessageController extends Controller
             'ios' => ['label' => 'iOS', 'icon' => 'apple', 'ready' => (bool) $project->credential('apns')?->isUsable()],
             'android' => ['label' => 'Android', 'icon' => 'android', 'ready' => (bool) $project->credential('fcm')?->isUsable()],
             'web' => ['label' => 'Web', 'icon' => 'globe-web', 'ready' => (bool) $project->credential('webpush')?->isUsable()],
-        ];
+        ] + array_filter([
+            // Shown once set up, or when the audience has such devices.
+            'huawei' => ['label' => 'Huawei', 'icon' => 'android', 'ready' => (bool) $project->credential('hms')?->isUsable()],
+            'amazon' => ['label' => 'Amazon', 'icon' => 'android', 'ready' => (bool) $project->credential('adm')?->isUsable()],
+        ], fn ($platform, $type) => $platform['ready'] || $project->subscriptions()->where('type', $type)->exists(), ARRAY_FILTER_USE_BOTH);
     }
 }

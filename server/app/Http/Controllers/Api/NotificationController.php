@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 class NotificationController extends Controller
 {
     /** Platform names used by OneSignal in the statistics. */
-    public const PLATFORM_NAMES = ['ios' => 'ios', 'android' => 'android', 'web' => 'chrome_web_push'];
+    public const PLATFORM_NAMES = ['ios' => 'ios', 'android' => 'android', 'huawei' => 'huawei', 'amazon' => 'amazon', 'web' => 'chrome_web_push'];
 
     public function store(Request $request, CreateMessage $create): JsonResponse
     {

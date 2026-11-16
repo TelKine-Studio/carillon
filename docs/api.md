@@ -105,6 +105,15 @@ of the project (*Settings → Platforms → Email*):
 Addresses are added with the SDKs (`addEmail`), the users API
 (`{"type": "Email", "token": "ada@example.com"}`) or the OneSignal import.
 
+## Huawei and Amazon devices
+
+Huawei phones without Google services and Amazon Fire devices receive the
+same notifications, through Huawei Push Kit and Amazon Device Messaging
+(*Settings → Platforms*). The Flutter SDK registers them with
+`Carillon.notifications.setPushToken(token, service: 'huawei' | 'amazon')`
+(token of the `huawei_push` plugin or ADM registration id); the OneSignal
+import keeps them too. OneSignal flags `isHuawei` and `isAdm` select them.
+
 ## Send an SMS
 
 SMS go through Twilio or the Orange SMS API (*Settings → Platforms → SMS*),

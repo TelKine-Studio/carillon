@@ -3,7 +3,7 @@
     $n = fn ($v) => number_format((int) $v, 0, ',', ' ');
     $pct = fn ($part, $total) => $total > 0 ? number_format($part / $total * 100, 1, ',', ' ').' %' : '—';
     $live = in_array($message->status, ['queued', 'sending'], true);
-    $platformNames = ['ios' => ['iOS', 'apple'], 'android' => ['Android', 'android'], 'web' => ['Web', 'globe-web'], 'email' => [__('Email'), 'mail'], 'sms' => ['SMS', 'message']];
+    $platformNames = ['ios' => ['iOS', 'apple'], 'android' => ['Android', 'android'], 'huawei' => ['Huawei', 'android'], 'amazon' => ['Amazon', 'android'], 'web' => ['Web', 'globe-web'], 'email' => [__('Email'), 'mail'], 'sms' => ['SMS', 'message']];
     $isEmail = $message->channel === 'email';
     $preview = [
         'title' => \App\Models\Message::localized($message->headings, $lang),

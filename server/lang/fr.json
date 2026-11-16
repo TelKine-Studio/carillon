@@ -1940,5 +1940,15 @@
     "The number of your Orange contract (country code followed by 0000).": "Le numéro de votre contrat Orange (indicatif pays suivi de 0000).",
     "If Orange validated one for your contract.": "Si Orange en a validé un pour votre contrat.",
     "The number of your Orange contract, in the international format (e.g. +2250000).": "Le numéro de votre contrat Orange, au format international (ex. +2250000).",
-    "Retention by cohort": "Rétention par cohorte"
+    "Retention by cohort": "Rétention par cohorte",
+    "Huawei · Push Kit": "Huawei · Push Kit",
+    "Huawei phones without Google services (AppGallery).": "Les téléphones Huawei sans services Google (AppGallery).",
+    "App secret": "App secret",
+    "In AppGallery Connect: Project settings → General information, for the app with Push Kit enabled.": "Dans AppGallery Connect : Paramètres du projet → Informations générales, pour l’app où Push Kit est activé.",
+    "Amazon · Device Messaging": "Amazon · Device Messaging",
+    "Fire tablets and Fire TV (Amazon Appstore).": "Les tablettes Fire et Fire TV (Amazon Appstore).",
+    "In the Amazon developer console: your app → Device Messaging → security profile.": "Dans la console développeur Amazon : votre app → Device Messaging → profil de sécurité.",
+    "Saved (encrypted)": "Enregistré (chiffré)",
+    "Huawei Push Kit keys saved.": "Clés Huawei Push Kit enregistrées.",
+    "Amazon Device Messaging keys saved.": "Clés Amazon Device Messaging enregistrées."
 }

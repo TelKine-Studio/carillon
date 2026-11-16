@@ -87,8 +87,13 @@ class SubscriptionController extends Controller
             'token' => ['nullable', 'string', 'max:4000'],
             ...$this->deviceRules(),
             'session' => ['nullable', 'boolean'],
+            'type' => ['nullable', Rule::in(Subscription::PUSH_TYPES)],
         ]);
 
+        // A Huawei or Fire device switches to Push Kit or ADM (setPushToken).
+        if (filled($data['type'] ?? null) && in_array($subscription->type, Subscription::PUSH_TYPES, true)) {
+            $subscription->type = $data['type'];
+        }
         if (filled($data['token'] ?? null)) {
             $subscription->token = $this->normalizeToken($subscription->type, $data['token']);
             $subscription->invalid_at = null;

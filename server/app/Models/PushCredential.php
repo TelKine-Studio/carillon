@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * - apns: details {key_id, team_id, bundle_id}, secret = .p8 private key;
  * - fcm: details {project_id, client_email}, secret = service account JSON;
  * - webpush: details {public_key, subject}, secret = VAPID private key;
+ * - hms: details {app_id}, secret = app secret (Huawei Push Kit);
+ * - adm: details {client_id}, secret = client secret (Amazon Device Messaging);
  * - email: details {driver, from_address, ...} (see App\Email\Drivers),
  *   secret = password, API key or DKIM private key;
  * - sms: details {driver: twilio, account_sid, from}, secret = auth token,
@@ -57,6 +59,8 @@ class PushCredential extends Model
             'apns' => filled($this->detail('key_id')) && filled($this->detail('team_id')) && filled($this->detail('bundle_id')),
             'fcm' => filled($this->detail('project_id')),
             'webpush' => filled($this->detail('public_key')),
+            'hms' => filled($this->detail('app_id')),
+            'adm' => filled($this->detail('client_id')),
             'sms' => $this->detail('driver') === 'orange'
                 ? filled($this->detail('client_id')) && filled($this->detail('sender_address'))
                 : filled($this->detail('account_sid')) && filled($this->detail('from')),
