@@ -20,18 +20,22 @@
             <form method="POST" action="{{ route('profile.update') }}" id="account" class="scroll-mt-24">
                 @csrf
                 @method('PUT')
-                <x-settings.section :title="__('Account')" :description="__('Your name, email address and language.')" icon="user" :fields="['name', 'email', 'locale']">
+                <x-settings.section :title="__('Account')" :description="__('Your name, email address and language.')" icon="user" :fields="['name', 'email', 'locale', 'weekly_report']">
                     <x-slot:summary>
                         <x-settings.summary>
                             <x-settings.value :label="__('Full name')" :value="$user->name" />
                             <x-settings.value :label="__('Email')" :value="$user->email" />
                             <x-settings.value :label="__('Language')" :value="$user->locale ? ($locales[$user->locale] ?? $user->locale) : __('Instance default')" />
+                            <x-settings.value :label="__('Weekly report')" :on="(bool) $user->weekly_report" />
                         </x-settings.summary>
                     </x-slot:summary>
                     <div class="grid gap-5 sm:grid-cols-2">
                         <x-ui.input name="name" :label="__('Full name')" :value="$user->name" required />
                         <x-ui.input name="email" type="email" :label="__('Email')" :value="$user->email" required />
                         <x-ui.select name="locale" :label="__('Language')" :value="$user->locale" :options="['' => __('Instance default')] + $locales" />
+                        <div class="sm:col-span-2">
+                            <x-ui.toggle name="weekly_report" :checked="(bool) $user->weekly_report" :label="__('Weekly report')" :description="__('Every Monday morning, an email with the figures of the week of your projects.')" />
+                        </div>
                     </div>
                 </x-settings.section>
             </form>

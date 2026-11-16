@@ -2057,5 +2057,22 @@
     "Text B": "Texte B",
     "Online now": "En ligne maintenant",
     "people": "personnes",
-    "Counted with the Carillon SDK (the app sends a sign of life every minute while it is open).": "Compté avec le SDK Carillon (l’app envoie un signal de présence chaque minute tant qu’elle est ouverte)."
+    "Counted with the Carillon SDK (the app sends a sign of life every minute while it is open).": "Compté avec le SDK Carillon (l’app envoie un signal de présence chaque minute tant qu’elle est ouverte).",
+    "Converted": "Convertis",
+    "From the notification to the conversion": "De la notification à la conversion",
+    "Over the period: what the people did after receiving a message.": "Sur la période : ce que les personnes ont fait après avoir reçu un message.",
+    "of the delivered": "des délivrés",
+    "Receptions and clicks of devices still on the OneSignal SDK are not reported.": "Les réceptions et clics des appareils encore sous le SDK OneSignal ne remontent pas.",
+    "Your week on :app": "Votre semaine sur :app",
+    "Here is what happened in the last 7 days.": "Voici ce qui s’est passé ces 7 derniers jours.",
+    ":count messages sent": ":count messages envoyés",
+    ":count notifications delivered": ":count notifications délivrées",
+    ":count clicks (rate :rate)": ":count clics (taux :rate)",
+    ":count new devices": ":count nouveaux appareils",
+    ":count conversions after a message": ":count conversions après un message",
+    "Best message: “:name”, :rate of clicks.": "Meilleur message : « :name », :rate de clics.",
+    "Open the statistics": "Voir les statistiques",
+    "You can stop this summary in your profile.": "Vous pouvez arrêter ce résumé dans votre profil.",
+    "Weekly report": "Rapport hebdomadaire",
+    "Every Monday morning, an email with the figures of the week of your projects.": "Chaque lundi matin, un e-mail avec les chiffres de la semaine de vos projets."
 }

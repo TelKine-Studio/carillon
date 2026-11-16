@@ -107,6 +107,13 @@ class StatsController extends Controller
                 ->limit(10)
                 ->get(),
             'retention' => Retention::weekly($project),
+            // From the sending to the conversion, over the period.
+            'funnel' => [
+                'delivered' => $delivered,
+                'received' => (int) (clone $messages)->where('created_at', '>=', $start)->sum('received'),
+                'clicked' => $clicked,
+                'converted' => CustomEvent::query()->where('project_id', $project->id)->where('occurred_at', '>=', $start)->whereNotNull('message_id')->whereNotNull('subscriber_id')->distinct()->count('subscriber_id'),
+            ],
             'legacy' => (clone $reachable)->where('sdk', Subscription::ONESIGNAL_SDK)->count(),
         ]);
     }

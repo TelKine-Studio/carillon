@@ -131,11 +131,13 @@
                         [__('Delivered'), $message->successful, 'bg-brand-500'],
                         [$isEmail ? __('Opened') : __('Received'), $message->received, 'bg-brand-400'],
                         [__('Clicked'), $message->clicked, 'bg-emerald-500'],
-                    ] as [$label, $value, $color])
-                        <div class="grid grid-cols-[96px_minmax(0,1fr)_72px] items-center gap-3 text-sm">
+                        [__('Converted'), $converted, 'bg-emerald-700'],
+                    ] as $row => [$label, $value, $color])
+                        @continue($row === 4 && ! $converted)
+                        <div class="grid grid-cols-[96px_minmax(0,1fr)_120px] items-center gap-3 text-sm">
                             <span class="text-zinc-600 dark:text-zinc-400">{{ $label }}</span>
                             <span class="h-2 overflow-hidden rounded-sm bg-zinc-100 dark:bg-white/5"><span class="block h-full rounded-sm {{ $color }}" style="width: {{ round($value / $max * 100, 2) }}%"></span></span>
-                            <span class="text-right font-medium tabular-nums text-zinc-900 dark:text-white">{{ $n($value) }}</span>
+                            <span class="text-right font-medium tabular-nums text-zinc-900 dark:text-white">{{ $n($value) }}@if ($row > 1 && $message->successful)<span class="ml-1.5 text-xs font-normal text-zinc-400">{{ number_format($value / $message->successful * 100, 1, ',', ' ') }} %</span>@endif</span>
                         </div>
                     @endforeach
                 </div>

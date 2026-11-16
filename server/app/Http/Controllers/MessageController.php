@@ -226,6 +226,8 @@ class MessageController extends Controller
             'project' => $project,
             'message' => $message,
             'clicks' => $this->clicksPerHour($message),
+            // People with an event attributed to this message (direct or influenced).
+            'converted' => CustomEvent::query()->where('message_id', $message->id)->whereNotNull('subscriber_id')->distinct()->count('subscriber_id'),
             'conversions' => CustomEvent::query()
                 ->where('message_id', $message->id)
                 ->selectRaw('name, attribution, count(*) as total, sum(value) as amount')

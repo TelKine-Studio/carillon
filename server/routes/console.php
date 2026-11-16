@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Schedule;
 // Delete old delivery history and stale invitations.
 Schedule::command('model:prune')->daily()->withoutOverlapping();
 
+// Summary of the week, Monday morning.
+Schedule::command('carillon:weekly-reports')->weeklyOn(1, '07:00')->withoutOverlapping();
+
 // Messages scheduled with send_after.
 Schedule::command('carillon:dispatch-scheduled')->everyMinute()->withoutOverlapping();
 

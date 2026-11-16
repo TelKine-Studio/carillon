@@ -87,6 +87,24 @@
         @endforeach
     </div>
 
+    @if ($funnel['delivered'] > 0)
+        <x-ui.card class="mt-6" :title="__('From the notification to the conversion')" :description="__('Over the period: what the people did after receiving a message.')" icon="layers">
+            <div class="grid gap-3 sm:grid-cols-4">
+                @foreach ([[__('Delivered'), $funnel['delivered']], [__('Received'), $funnel['received']], [__('Clicked'), $funnel['clicked']], [__('Converted'), $funnel['converted']]] as $index => [$label, $value])
+                    <div class="relative overflow-hidden rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+                        <span class="absolute inset-x-0 bottom-0 bg-brand-500/10 dark:bg-brand-500/15" style="height: {{ max(4, round($value / $funnel['delivered'] * 100)) }}%"></span>
+                        <p class="relative text-xs text-zinc-500">{{ $label }}</p>
+                        <p class="relative mt-1 text-xl font-semibold tabular-nums text-zinc-900 dark:text-white">{{ $n($value) }}</p>
+                        @if ($index > 0)<p class="relative text-xs tabular-nums text-zinc-500">{{ $pct($value / $funnel['delivered'] * 100) }} {{ __('of the delivered') }}</p>@endif
+                    </div>
+                @endforeach
+            </div>
+            @if ($legacy)
+                <p class="mt-4 text-xs text-zinc-500">{{ __('Receptions and clicks of devices still on the OneSignal SDK are not reported.') }}</p>
+            @endif
+        </x-ui.card>
+    @endif
+
     <x-ui.card class="mt-6" :title="__('Retention by cohort')" :description="__('People grouped by the week they were first seen, and the share of them who used the app again in the following weeks.')" icon="activity" :padding="false">
         @if (collect($retention)->sum('size') === 0)
             <p class="px-5 pb-5 text-sm text-zinc-500 sm:px-6">{{ __('No new people in the last 8 weeks yet.') }}</p>

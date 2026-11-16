@@ -27,11 +27,11 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
-        $user->update($request->validate([
+        $user->update([...$request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users')->ignore($user)],
             'locale' => ['nullable', Rule::in(array_keys(SetLocale::AVAILABLE))],
-        ]));
+        ]), 'weekly_report' => $request->boolean('weekly_report')]);
 
         if ($user->locale && array_key_exists($user->locale, SetLocale::AVAILABLE)) {
             app()->setLocale($user->locale);
