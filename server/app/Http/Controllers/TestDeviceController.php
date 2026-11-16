@@ -22,7 +22,7 @@ class TestDeviceController extends Controller
         ]);
     }
 
-    /** Adds the device(s) of a device id or an external id. */
+    /** Adds the device(s) of a device id, a person id or an external id. */
     public function store(Request $request, Project $project): RedirectResponse
     {
         $this->authorize('send', $project);
@@ -35,7 +35,7 @@ class TestDeviceController extends Controller
         $devices = $project->subscriptions()
             ->whereIn('type', Subscription::PUSH_TYPES)
             ->where(fn ($query) => $query
-                ->when(Str::isUuid($identifier), fn ($q) => $q->whereKey($identifier))
+                ->when(Str::isUuid($identifier), fn ($q) => $q->whereKey($identifier)->orWhere('subscriber_id', $identifier))
                 ->orWhereHas('subscriber', fn ($q) => $q->where('external_id', $identifier)))
             ->get();
 
@@ -44,7 +44,7 @@ class TestDeviceController extends Controller
         }
 
         foreach ($devices as $device) {
-            $device->forceFill(['is_test' => true, 'test_name' => $data['test_name'] ?: ($device->test_name ?? $device->device_model)])->save();
+            $device->forceFill(['is_test' => true, 'test_name' => ($data['test_name'] ?? null) ?: ($device->test_name ?? $device->device_model)])->save();
         }
 
         return back()->with('status', trans_choice(':count test device added.|:count test devices added.', $devices->count(), ['count' => $devices->count()]));

@@ -130,6 +130,40 @@ Alpine.data('datePicker', (withTime = false, min = null) => ({
 // Drives components/ui/select.blade.php: a styled listbox in front of a
 // hidden native <select> (which still holds the value for forms, x-model
 // and onchange handlers).
+/* ---------------------------------------------------- Dropdown menus */
+
+// Menu of a ⋮ button: positioned against the viewport (fixed), below the
+// button or above it when there is no room, and closed on scroll.
+Alpine.data('dropdownMenu', (floating = true) => ({
+    open: false,
+    toggle() {
+        this.open = !this.open;
+        if (!this.open || !floating) return;
+        this.$nextTick(() => {
+            const menu = this.$refs.menu;
+            const box = this.$refs.trigger.getBoundingClientRect();
+            const below = window.innerHeight - box.bottom;
+            const up = below < menu.offsetHeight + 16 && box.top > menu.offsetHeight + 16;
+            const alignRight = menu.classList.contains('right-0');
+            Object.assign(menu.style, {
+                position: 'fixed',
+                marginTop: '0',
+                top: up ? 'auto' : `${box.bottom + 8}px`,
+                bottom: up ? `${window.innerHeight - box.top + 8}px` : 'auto',
+                left: alignRight ? 'auto' : `${box.left}px`,
+                right: alignRight ? `${window.innerWidth - box.right}px` : 'auto',
+                // A full-width menu keeps the width of its button.
+                width: menu.classList.contains('w-full') ? `${box.width}px` : '',
+            });
+        });
+        const close = () => {
+            this.open = false;
+            window.removeEventListener('scroll', close, true);
+        };
+        window.addEventListener('scroll', close, true);
+    },
+}));
+
 /* ---------------------------------------------------- Live lists */
 
 // A filtered, paginated list that updates without reloading the page: the

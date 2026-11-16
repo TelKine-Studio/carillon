@@ -447,4 +447,22 @@ class SendingTest extends TestCase
         $this->actingAs($owner)->get(route('admin.audit', ['q' => 'shop']))->assertOk();
         $this->actingAs($owner)->get(route('admin.users.index', ['q' => 'ZZZ']))->assertOk();
     }
+
+    public function test_the_audience_lists_people_or_devices_sorted_like_onesignal(): void
+    {
+        $owner = $this->project->members()->first();
+        $id = $this->device('ios', 'phone-a', ['external_id' => 'ada']);
+        $this->device('android', 'phone-b', ['external_id' => 'bob']);
+        $person = Subscription::find($id)->subscriber_id;
+
+        $this->actingAs($owner)->get(route('projects.subscribers.index', $this->project))
+            ->assertOk()->assertSee($person)->assertSee('ada')->assertSee('Channels');
+        $this->actingAs($owner)->get(route('projects.subscribers.index', [$this->project, 'sort' => 'first_active', 'dir' => 'asc']))->assertOk()->assertSeeInOrder(['ada', 'bob']);
+        $this->actingAs($owner)->get(route('projects.subscribers.index', [$this->project, 'view' => 'devices', 'q' => $person]))->assertOk()->assertSee('ada')->assertDontSee('bob');
+        $this->actingAs($owner)->get(route('projects.subscribers.show', [$this->project, $person]))->assertOk()->assertSee('Push token')->assertSee('phone-a');
+
+        // "Add as test devices" from the menu of a person.
+        $this->actingAs($owner)->post(route('projects.test-devices.store', $this->project), ['identifier' => $person])->assertSessionHasNoErrors();
+        $this->assertTrue(Subscription::find($id)->is_test);
+    }
 }
