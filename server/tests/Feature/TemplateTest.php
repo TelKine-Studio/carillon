@@ -230,4 +230,16 @@ class TemplateTest extends TestCase
         $this->assertStringContainsString('/api/v1/sdk/apps/'.$this->project->app_id.'/icon', Payload::largeIcon($other));
         $this->get(route('projects.messages.create', $this->project))->assertOk()->assertSee('name="icon"', false);
     }
+
+    public function test_pages_contain_no_uncompiled_blade_directives(): void
+    {
+        // @js() inside a component attribute is not compiled: Alpine then fails on it.
+        $this->actingAs($this->owner);
+        foreach ([route('projects.messages.create', $this->project), route('projects.settings', [$this->project, 'webhooks'])] as $url) {
+            $response = $this->get($url);
+            if ($response->isOk()) {
+                $this->assertStringNotContainsString('@js(', $response->getContent(), $url);
+            }
+        }
+    }
 }

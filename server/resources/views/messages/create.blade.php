@@ -606,7 +606,7 @@
                 <x-ui.button type="submit" name="save_draft" value="1" variant="ghost" class="mt-2 w-full" icon="file">{{ __('Save as draft') }}</x-ui.button>
                 @php($testDevices = $project->subscriptions()->where('is_test', true)->where('enabled', true)->whereNull('invalid_at')->count())
                 <div x-show="! ['sms', 'whatsapp'].includes(channel)" class="mt-3 border-t border-zinc-100 pt-3 dark:border-zinc-800">
-                    <x-ui.button type="button" variant="secondary" class="w-full" icon="smartphone" x-on:click="sendTest(@js(route('projects.messages.test', $project)))" ::disabled="test.sending">
+                    <x-ui.button type="button" variant="secondary" class="w-full" icon="smartphone" x-on:click="sendTest({{ \Illuminate\Support\Js::from(route('projects.messages.test', $project)) }})" ::disabled="test.sending">
                         <span x-text="test.sending ? @js(__('Sending…')) : @js($testDevices ? trans_choice('Send a test to my device|Send a test to my :count devices', $testDevices, ['count' => $testDevices]) : __('Send a test'))">{{ __('Send a test') }}</span>
                     </x-ui.button>
                     <p class="mt-2 text-xs" x-show="test.result" x-cloak :class="test.ok ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'">
