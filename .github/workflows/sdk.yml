@@ -24,6 +24,10 @@ jobs:
         run: dart format --output=none --set-exit-if-changed lib
       - name: Analyze
         run: flutter analyze --no-fatal-infos
+      - name: Analyze with the lowest allowed dependencies
+        run: flutter pub downgrade && flutter analyze --no-fatal-infos
+      - name: Ready for pub.dev
+        run: flutter pub publish --dry-run
 
   web:
     runs-on: ubuntu-latest

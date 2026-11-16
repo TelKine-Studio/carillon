@@ -20,9 +20,10 @@ import 'store.dart';
 class Carillon {
   Carillon._();
 
-  static const sdkVersion = 'carillon-flutter/0.1.0';
+  static const sdkVersion = 'carillon-flutter/0.2.0';
 
   static _Engine? _engine;
+  static final _started = Completer<_Engine>();
 
   static _Engine get _ready {
     final engine = _engine;
@@ -32,14 +33,31 @@ class Carillon {
     return engine;
   }
 
+  /// The engine once [initialize] ran: calls made before wait for it
+  /// instead of failing (e.g. login right after the app starts).
+  static Future<_Engine> get _whenReady =>
+      _engine != null ? Future.value(_engine) : _started.future;
+
+  static Future<T> _whenReadyCall<T>(Future<T> Function(_Engine) call) =>
+      _whenReady.then(call);
+
+  /// The last error of the SDK (registration refused, server unreachable…),
+  /// or null. Errors are also given to the onError of [initialize].
+  static final lastError = ValueNotifier<CarillonError?>(null);
+
   /// Starts the SDK: registers this device with the project of [appId]
   /// on the Carillon server at [serverUrl].
   ///
   /// [openUrls]: tapping a notification with a link opens it.
+  ///
+  /// [onError]: called when something fails in the background (the device
+  /// could not register, the server refused a call…), to report it to your
+  /// own monitoring: without it, a release build fails silently.
   static Future<void> initialize(
     String appId, {
     required String serverUrl,
     bool openUrls = true,
+    void Function(CarillonError error)? onError,
   }) async {
     if (_engine != null) return;
     WidgetsFlutterBinding.ensureInitialized();
@@ -49,16 +67,19 @@ class Carillon {
       serverUrl,
       await CarillonStore.open(),
       openUrls: openUrls,
+      onError: onError,
     );
     _engine = engine;
+    if (!_started.isCompleted) _started.complete(engine);
     await engine.start();
   }
 
   /// Links this device to a person of your app (their id in your system).
-  static Future<void> login(String externalId) => _ready.login(externalId);
+  static Future<void> login(String externalId) =>
+      _whenReady.then((engine) => engine.login(externalId));
 
   /// Detaches this device from the person (e.g. on sign out).
-  static Future<void> logout() => _ready.logout();
+  static Future<void> logout() => _whenReady.then((engine) => engine.logout());
 
   static final notifications = CarillonNotifications._();
   static final user = CarillonUser._();
@@ -78,7 +99,8 @@ class CarillonNotifications {
       await Carillon._ready.platform.permission() == 'granted';
 
   /// Asks the user (once: the system remembers the answer).
-  Future<bool> requestPermission() => Carillon._ready.requestPermission();
+  Future<bool> requestPermission() =>
+      Carillon._whenReady.then((engine) => engine.requestPermission());
 
   void addClickListener(void Function(CarillonClickEvent event) listener) =>
       Carillon._ready.addClickListener(listener);
@@ -126,38 +148,44 @@ class CarillonUser {
 
   /// Adds an email address to this person, for the email channel.
   Future<void> addEmail(String email) =>
-      Carillon._ready.email(email, add: true);
+      Carillon._whenReadyCall((engine) => engine.email(email, add: true));
 
   Future<void> removeEmail(String email) =>
-      Carillon._ready.email(email, add: false);
+      Carillon._whenReadyCall((engine) => engine.email(email, add: false));
 
   /// Adds a phone number (international format, +2250700000000), for SMS.
   Future<void> addSms(String phoneNumber) =>
-      Carillon._ready.sms(phoneNumber, add: true);
+      Carillon._whenReadyCall((engine) => engine.sms(phoneNumber, add: true));
 
   Future<void> removeSms(String phoneNumber) =>
-      Carillon._ready.sms(phoneNumber, add: false);
+      Carillon._whenReadyCall((engine) => engine.sms(phoneNumber, add: false));
 
   /// Adds a WhatsApp number, once the person agreed to receive messages there.
-  Future<void> addWhatsApp(String phoneNumber) =>
-      Carillon._ready.sms(phoneNumber, add: true, whatsApp: true);
+  Future<void> addWhatsApp(String phoneNumber) => Carillon._whenReadyCall(
+    (engine) => engine.sms(phoneNumber, add: true, whatsApp: true),
+  );
 
-  Future<void> removeWhatsApp(String phoneNumber) =>
-      Carillon._ready.sms(phoneNumber, add: false, whatsApp: true);
+  Future<void> removeWhatsApp(String phoneNumber) => Carillon._whenReadyCall(
+    (engine) => engine.sms(phoneNumber, add: false, whatsApp: true),
+  );
 
-  Future<void> addTags(Map<String, Object> tags) => Carillon._ready.setTags(
-    tags.map((key, value) => MapEntry(key, '$value')),
+  Future<void> addTags(Map<String, Object> tags) => Carillon._whenReadyCall(
+    (engine) =>
+        engine.setTags(tags.map((key, value) => MapEntry(key, '$value'))),
   );
 
   Future<void> removeTag(String key) => removeTags([key]);
 
-  Future<void> removeTags(List<String> keys) =>
-      Carillon._ready.setTags({for (final key in keys) key: null});
+  Future<void> removeTags(List<String> keys) => Carillon._whenReadyCall(
+    (engine) => engine.setTags({for (final key in keys) key: null}),
+  );
 
   /// Reports something the person did (purchase, top-up…): it can start a
   /// journey and is attributed to the last notification (conversions).
   Future<void> trackEvent(String name, [Map<String, Object?>? properties]) =>
-      Carillon._ready.customEvent(name, properties: properties);
+      Carillon._whenReadyCall(
+        (engine) => engine.customEvent(name, properties: properties),
+      );
 
   final pushSubscription = CarillonPushSubscription._();
 }
@@ -186,17 +214,45 @@ class CarillonInAppMessages {
 class CarillonSession {
   CarillonSession._();
 
-  Future<void> addOutcome(String name) => Carillon._ready.customEvent(name);
+  Future<void> addOutcome(String name) =>
+      Carillon._whenReadyCall((engine) => engine.customEvent(name));
 
   Future<void> addOutcomeWithValue(String name, num value) =>
-      Carillon._ready.customEvent(name, value: value);
+      Carillon._whenReadyCall(
+        (engine) => engine.customEvent(name, value: value),
+      );
 }
 
 class CarillonPushSubscription {
   CarillonPushSubscription._();
 
-  /// Id of this device on the server (to target it, e.g. for tests).
+  /// Id of this device on the server (to target it, e.g. for tests), null
+  /// until the device is registered.
   String? get id => Carillon._ready.store.subscriptionId;
+
+  /// The id, as it changes: null, then the id once registered.
+  ValueListenable<String?> get idListenable => Carillon._ready.subscriptionId;
+
+  /// Completes with the id once the device is registered (at once if it
+  /// is), or with null after [timeout].
+  Future<String?> ready({
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
+    final engine = await Carillon._whenReady;
+    if (engine.subscriptionId.value != null) return engine.subscriptionId.value;
+    final completer = Completer<String?>();
+    void listener() {
+      final id = engine.subscriptionId.value;
+      if (id != null && !completer.isCompleted) completer.complete(id);
+    }
+
+    engine.subscriptionId.addListener(listener);
+    try {
+      return await completer.future.timeout(timeout, onTimeout: () => null);
+    } finally {
+      engine.subscriptionId.removeListener(listener);
+    }
+  }
 
   String? get token => Carillon._ready.store.token;
 
@@ -204,18 +260,41 @@ class CarillonPushSubscription {
   bool get optedIn => Carillon._ready.enabled;
 
   /// Stops notifications for this device without removing the permission.
-  Future<void> optOut() => Carillon._ready.setOptedOut(true);
+  Future<void> optOut() =>
+      Carillon._whenReadyCall((engine) => engine.setOptedOut(true));
 
-  Future<void> optIn() => Carillon._ready.setOptedOut(false);
+  Future<void> optIn() =>
+      Carillon._whenReadyCall((engine) => engine.setOptedOut(false));
 }
 
 class _Engine with WidgetsBindingObserver {
-  _Engine(this.appId, String serverUrl, this.store, {required this.openUrls})
-    : api = CarillonApi(serverUrl, appId),
-      platform = NativePush() {
+  _Engine(
+    this.appId,
+    String serverUrl,
+    this.store, {
+    required this.openUrls,
+    this.onError,
+  }) : api = CarillonApi(serverUrl, appId),
+       platform = NativePush() {
     store
       ..appId = appId
       ..serverUrl = serverUrl;
+    subscriptionId.value = store.subscriptionId;
+  }
+
+  final void Function(CarillonError error)? onError;
+
+  /// Id of this device on the server, null until it is registered.
+  final subscriptionId = ValueNotifier<String?>(null);
+
+  /// Errors are kept (Carillon.lastError) and given to the app.
+  void report(String operation, Object error) {
+    debugPrint('[carillon] $operation: $error');
+    final failure = CarillonError(operation, error);
+    Carillon.lastError.value = failure;
+    try {
+      onError?.call(failure);
+    } catch (_) {}
   }
 
   final String appId;
@@ -307,7 +386,10 @@ class _Engine with WidgetsBindingObserver {
     store.externalId = externalId;
     final id = store.subscriptionId;
     if (id == null) return sync();
-    final result = await _guard(() => api.login(id, externalId));
+    final result = await _guard(
+      () => api.login(id, externalId),
+      operation: 'login',
+    );
     _absorb(result);
   }
 
@@ -315,7 +397,7 @@ class _Engine with WidgetsBindingObserver {
     store.externalId = null;
     final id = store.subscriptionId;
     if (id == null) return;
-    final result = await _guard(() => api.logout(id));
+    final result = await _guard(() => api.logout(id), operation: 'logout');
     _absorb(result);
   }
 
@@ -374,7 +456,7 @@ class _Engine with WidgetsBindingObserver {
 
     final id = store.subscriptionId;
     if (id == null) return;
-    final result = await _guard(() => api.tags(id, tags));
+    final result = await _guard(() => api.tags(id, tags), operation: 'tags');
     _absorb(result);
   }
 
@@ -383,7 +465,7 @@ class _Engine with WidgetsBindingObserver {
     return _syncing = (_syncing ?? Future.value())
         .then((_) => _sync(session))
         .catchError((Object error) {
-          debugPrint('[carillon] $error');
+          report('register', error);
         });
   }
 
@@ -424,6 +506,7 @@ class _Engine with WidgetsBindingObserver {
       } on CarillonException catch (error) {
         if (!error.isGone) rethrow;
         store.subscriptionId = null;
+        subscriptionId.value = null;
       }
     }
 
@@ -435,6 +518,8 @@ class _Engine with WidgetsBindingObserver {
         if (store.tags.isNotEmpty) 'tags': store.tags,
       });
       store.subscriptionId = result['id'] as String?;
+      subscriptionId.value = store.subscriptionId;
+      if (store.subscriptionId != null) Carillon.lastError.value = null;
       if (newSession && store.subscriptionId != null) {
         await api.update(store.subscriptionId!, {'session': true});
       }
@@ -578,7 +663,9 @@ class _Engine with WidgetsBindingObserver {
 
     String? timezone;
     try {
-      timezone = (await FlutterTimezone.getLocalTimezone()).identifier;
+      // flutter_timezone 5 returns a TimezoneInfo, earlier versions a String.
+      final dynamic zone = await FlutterTimezone.getLocalTimezone();
+      timezone = zone is String ? zone : zone.identifier as String?;
     } catch (_) {}
 
     String? version;
@@ -663,12 +750,13 @@ class _Engine with WidgetsBindingObserver {
   }
 
   Future<Map<String, dynamic>?> _guard(
-    Future<Map<String, dynamic>> Function() call,
-  ) async {
+    Future<Map<String, dynamic>> Function() call, {
+    String operation = 'request',
+  }) async {
     try {
       return await call();
     } catch (error) {
-      debugPrint('[carillon] $error');
+      report(operation, error);
       return null;
     }
   }

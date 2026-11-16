@@ -30,9 +30,21 @@ import 'package:carillon_flutter/carillon_flutter.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Carillon.initialize('YOUR-APP-ID', serverUrl: 'https://carillon.example.com');
+  await Carillon.initialize(
+    'YOUR-APP-ID',
+    serverUrl: 'https://carillon.example.com',
+    // Background failures (registration refused, server unreachable…):
+    // report them to your own monitoring, release builds print nothing.
+    onError: (error) => myMonitoring.report(error.operation, error.error),
+  );
   runApp(const MyApp());
 }
+
+// Calls made before initialize() finishes wait for it (no error).
+// The id of the device on the server, once registered:
+final id = await Carillon.user.pushSubscription.ready(); // null after 30 s
+Carillon.user.pushSubscription.idListenable; // ValueListenable<String?>
+Carillon.lastError; // ValueNotifier<CarillonError?>, cleared once registered
 
 // When it makes sense in your app (the system asks only once).
 await Carillon.notifications.requestPermission();

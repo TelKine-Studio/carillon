@@ -90,3 +90,19 @@ class CarillonForegroundEvent {
   /// Hides this notification (the app shows its own UI instead).
   void preventDefault() => _display = false;
 }
+
+/// Something that failed in the background of the SDK.
+class CarillonError {
+  CarillonError(this.operation, this.error) : at = DateTime.now();
+
+  /// What the SDK was doing: "register", "login", "tags", "event"…
+  final String operation;
+
+  /// The exception (a CarillonException for an answer of the server).
+  final Object error;
+
+  final DateTime at;
+
+  @override
+  String toString() => 'Carillon $operation failed: $error';
+}
