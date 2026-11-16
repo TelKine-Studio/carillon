@@ -31,6 +31,12 @@ class LiveActivities
     /** Apple ends an activity after 8 hours anyway. */
     public const MAX_DURATION = 8 * 3600;
 
+    /** Ends sent at most per activity (Apple may accept one that never arrives). */
+    public const MAX_ENDS = 3;
+
+    /** Minutes between two ends while the app did not confirm. */
+    public const END_RETRY = 5;
+
     /** Updates sent per activity: past that, a loop in a backend is suspected. */
     public const MAX_UPDATES = 500;
 
@@ -253,8 +259,14 @@ class LiveActivities
     /** The activity left the screen (ended by the app or dismissed by the person). */
     public function exit(Subscription $device, string $activityId): void
     {
-        LiveActivity::query()->where('subscription_id', $device->id)->where('activity_id', $activityId)->open()
-            ->update(['status' => 'ended', 'ended_at' => now(), 'update_token' => null, 'pending' => null, 'updated_at' => now()]);
+        // Also the confirmation of an end sent by Carillon: no more retries.
+        LiveActivity::query()->where('subscription_id', $device->id)->where('activity_id', $activityId)
+            ->get()->each(fn (LiveActivity $activity) => $activity->forceFill([
+                'status' => $activity->isOpen() ? 'ended' : $activity->status,
+                'ended_at' => $activity->ended_at ?? now(),
+                'update_token' => null,
+                'pending' => null,
+            ])->save());
     }
 
     /**
@@ -278,6 +290,20 @@ class LiveActivities
 
                 $this->send($activities->first()->subscription->project, $reachable, 'end', ['dismissal_date' => now()->getTimestamp()]);
                 $count += $reachable->count();
+            });
+
+        // Ends not confirmed by the app: sent again (iOS ignores an end for
+        // an activity already gone).
+        LiveActivity::query()->with('subscription.subscriber', 'subscription.project.credentials')
+            ->where('status', 'ended')->whereNotNull('update_token')->whereNull('pending')
+            ->whereBetween('ends', [1, self::MAX_ENDS - 1])
+            ->where('updated_last_at', '<=', now()->subMinutes(self::END_RETRY))
+            ->where('ended_at', '>=', now()->subHours(8))
+            ->limit(500)->get()
+            ->groupBy('project_id')
+            ->each(function (Collection $activities) use (&$count) {
+                $this->send($activities->first()->subscription->project, $activities, 'end', ['dismissal_date' => now()->getTimestamp()]);
+                $count += $activities->count();
             });
 
         return $count;
@@ -329,8 +355,10 @@ class LiveActivities
             $activity = $byId[$id];
 
             if ($result->status === 'sent') {
+                // The token is kept after an end: sent again until the app
+                // confirms (exit), Apple accepting an end that never arrives.
                 $activity->forceFill($event === 'end'
-                    ? ['status' => 'ended', 'ended_at' => $activity->ended_at ?? now(), 'update_token' => null, 'pending' => null]
+                    ? ['status' => 'ended', 'ended_at' => $activity->ended_at ?? now(), 'pending' => null, 'ends' => $activity->ends + 1, 'updated_last_at' => now()]
                     : ['updates' => $activity->updates + 1, 'updated_last_at' => now()])->save();
             } elseif ($result->invalid) {
                 // The activity (or the app) is gone from the device.

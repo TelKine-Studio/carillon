@@ -154,7 +154,7 @@ class LiveActivitiesTest extends TestCase
             && $request->header('apns-priority') === ['10']);
         $activity = LiveActivity::sole();
         $this->assertSame('ended', $activity->status);
-        $this->assertNull($activity->update_token);
+        $this->assertSame(1, $activity->ends);
 
         // Ended: further updates find nothing.
         $this->api()->postJson("/api/v1/apps/{$this->project->app_id}/live_activities/MRC-0428/notifications", ['event' => 'update', 'event_updates' => ['step' => 'x']])
@@ -362,5 +362,32 @@ class LiveActivitiesTest extends TestCase
         $this->start(['end_after' => 600])->assertOk();
 
         Http::assertSent(fn (HttpRequest $request) => ($request['aps']['event'] ?? null) === 'start' && $request['aps']['stale-date'] === now()->addSeconds(600)->getTimestamp());
+    }
+
+    public function test_an_end_is_sent_again_until_the_app_confirms_it(): void
+    {
+        $phone = $this->device('phone-token', 'user-1');
+        $this->sdk($phone, 'enter', ['activity_id' => 'A9', 'activity_type' => 'DeliveryAttributes', 'token' => 'update-a9']);
+        $this->api()->postJson("/api/v1/apps/{$this->project->app_id}/live_activities/A9/notifications", ['event' => 'end', 'event_updates' => ['step' => 'done']])->assertOk();
+        $ends = fn () => collect(Http::recorded())->filter(fn ($pair) => str_ends_with($pair[0]->url(), '/update-a9') && $pair[0]['aps']['event'] === 'end')->count();
+        $this->assertSame(1, $ends());
+
+        // Not confirmed: again after 5 minutes, then once more, then never.
+        $this->travel(6)->minutes();
+        app(LiveActivities::class)->sweep();
+        $this->assertSame(2, $ends());
+        $this->travel(6)->minutes();
+        app(LiveActivities::class)->sweep();
+        $this->travel(6)->minutes();
+        app(LiveActivities::class)->sweep();
+        $this->assertSame(3, $ends());
+
+        // Confirmed by the app (exit): no retry for another activity either.
+        $this->sdk($phone, 'enter', ['activity_id' => 'A10', 'token' => 'update-a10']);
+        $this->api()->postJson("/api/v1/apps/{$this->project->app_id}/live_activities/A10/notifications", ['event' => 'end'])->assertOk();
+        $this->sdk($phone, 'exit', ['activity_id' => 'A10'])->assertOk();
+        $this->travel(6)->minutes();
+        app(LiveActivities::class)->sweep();
+        $this->assertSame(1, collect(Http::recorded())->filter(fn ($pair) => str_ends_with($pair[0]->url(), '/update-a10'))->count());
     }
 }

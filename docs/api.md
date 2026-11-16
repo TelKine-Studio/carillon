@@ -331,6 +331,10 @@ POST /api/v1/apps/{app_id}/live_activities/{activity_id}/notifications
   started by push). The update, or the end, is kept and sent as soon as the
   token arrives: an activity ended before is closed on the device then.
 - 404 when no device shows the activity (never started, or ended).
+- An end accepted by Apple may still never reach the device: until the app
+  confirms the activity left the screen, Carillon sends it again after 5
+  and 10 minutes (3 at most), and once more whenever the app gives the
+  token of an ended activity.
 
 The dashboard lists the activities (*Messages → Live Activities*). An API key
 limited to sending can start, update and end activities.
