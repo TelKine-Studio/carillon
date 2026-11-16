@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ProjectRole;
 use App\LiveActivities\LiveActivities;
 use App\Models\ApiKey;
 use App\Models\LiveActivity;
 use App\Models\LiveActivityStartToken;
 use App\Models\Project;
 use App\Models\PushCredential;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\Http;
@@ -303,5 +305,25 @@ class LiveActivitiesTest extends TestCase
         $this->artisan('carillon:live-activity', ['event' => 'end', 'app_id' => $this->project->app_id, 'activity_id' => 'T1', '--state' => '{"step":"done"}'])
             ->assertSuccessful();
         $this->assertSame(['event' => 'end', 'event_updates' => ['step' => 'done'], 'priority' => 10], LiveActivity::sole()->pending);
+    }
+
+    public function test_the_dashboard_starts_and_ends_a_test_activity(): void
+    {
+        $owner = User::factory()->admin()->create();
+        $this->project->addMember($owner, ProjectRole::Owner);
+        $phone = $this->device('phone-token', 'user-1');
+        $this->sdk($phone, 'start-token', ['activity_type' => 'DeliveryAttributes', 'token' => 'start-token-1']);
+
+        $this->actingAs($owner)->post(route('projects.live-activities.start', $this->project), [
+            'subscription_ids' => $phone, 'activity_type' => 'DeliveryAttributes', 'activity_id' => 'T2',
+            'title' => 'Test', 'state' => '{"step":"waiting"}', 'attributes' => '{}', 'end_minutes' => 30,
+        ])->assertRedirect()->assertSessionHas('status', '1 device reached.');
+        $this->assertSame('started', LiveActivity::sole()->status);
+
+        $this->actingAs($owner)->get(route('projects.live-activities.index', $this->project))->assertOk()->assertSee('T2');
+
+        $this->actingAs($owner)->post(route('projects.live-activities.notify', $this->project), [
+            'activity_id' => 'T2', 'event' => 'end', 'update_state' => '{"step":"done"}',
+        ])->assertRedirect()->assertSessionHas('status', '0 devices reached · 1 waiting for the token of the app.');
     }
 }

@@ -1,6 +1,9 @@
 <x-layouts.app :title="__('Live Activities').' · '.$project->name">
     <x-ui.page-header :title="__('Live Activities')" :description="__('Activities shown on the lock screen of iPhones and as Live Updates on Android, started and updated through the API.')">
         <x-ui.button variant="secondary" :href="route('projects.messages.index', $project)" icon="arrow-left">{{ __('Messages') }}</x-ui.button>
+        @can('send', $project)
+            <x-ui.button type="button" icon="play" x-data x-on:click="$dispatch('open-modal', 'live-start')">{{ __('Test an activity') }}</x-ui.button>
+        @endcan
     </x-ui.page-header>
 
     <div class="mb-6 grid gap-4 sm:grid-cols-3">
@@ -39,6 +42,14 @@
                         @if ($activity->error) · <span class="text-red-600 dark:text-red-400">{{ $activity->error }}</span> @endif
                     </p>
                 </div>
+                @if ($activity->isOpen())
+                    @can('send', $project)
+                        <div class="flex shrink-0 gap-2" x-data>
+                            <x-ui.button type="button" size="sm" variant="secondary" x-on:click="$dispatch('live-notify', { id: {{ \Illuminate\Support\Js::from($activity->activity_id) }}, event: 'update' })">{{ __('Update') }}</x-ui.button>
+                            <x-ui.button type="button" size="sm" variant="secondary" x-on:click="$dispatch('live-notify', { id: {{ \Illuminate\Support\Js::from($activity->activity_id) }}, event: 'end' })">{{ __('End') }}</x-ui.button>
+                        </div>
+                    @endcan
+                @endif
                 <dl class="grid grid-cols-3 gap-4 text-xs lg:w-96">
                     <div><dt class="text-zinc-500 dark:text-zinc-400">{{ __('Started') }}</dt><dd class="mt-0.5 font-medium text-zinc-900 tabular-nums dark:text-zinc-100">{{ $activity->started_at?->isoFormat('D MMM HH:mm:ss') ?? '—' }}</dd></div>
                     <div><dt class="text-zinc-500 dark:text-zinc-400">{{ __('Updates') }}</dt><dd class="mt-0.5 font-medium text-zinc-900 tabular-nums dark:text-zinc-100">{{ $activity->updates }}</dd></div>
@@ -54,4 +65,60 @@
     @if ($activities->hasPages())
         <div class="mt-4">{{ $activities->links() }}</div>
     @endif
+
+    @can('send', $project)
+        <x-ui.modal name="live-start" :title="__('Test a Live Activity')" :description="__('Starts an activity on your own devices, to check the widget of your app (iOS) or the Live Update (Android).')" max-width="max-w-xl"
+            :open="$errors->hasAny(['subscription_ids', 'activity_type', 'activity_id', 'state', 'attributes', 'android'])">
+            <form method="POST" action="{{ route('projects.live-activities.start', $project) }}" class="space-y-4">
+                @csrf
+                <x-ui.textarea name="subscription_ids" :label="__('Device ids')" rows="2" :hint="__('One or more ids of devices (Audience). An iPhone needs the push-to-start token of the type.')" class="font-mono text-xs" required />
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <x-ui.input name="activity_type" :label="__('Activity type')" :hint="__('Name of the ActivityAttributes struct.')" class="font-mono" required />
+                    <x-ui.input name="activity_id" :label="__('Activity id')" :value="'test-'.now()->format('His')" class="font-mono" required />
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <x-ui.input name="title" :label="__('Title')" :optional="true" />
+                    <x-ui.input name="body" :label="__('Text')" :optional="true" />
+                </div>
+                <x-ui.textarea name="state" :label="__('Content state (JSON)')" rows="2" value="{}" class="font-mono text-xs" />
+                <x-ui.textarea name="attributes" :label="__('Attributes (JSON)')" rows="2" value="{}" class="font-mono text-xs" />
+                <x-ui.textarea name="android" :label="__('Android display (JSON)')" rows="2" :optional="true" placeholder='{"progress": 1, "progress_max": 3, "segments": 3}' class="font-mono text-xs" />
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <x-ui.input name="stale_minutes" type="number" min="1" max="480" :label="__('Stale after (minutes)')" :optional="true" />
+                    <x-ui.input name="end_minutes" type="number" min="1" max="480" :label="__('Ended by Carillon after (minutes)')" :optional="true" />
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <x-ui.button type="button" variant="ghost" x-on:click="$dispatch('close-modal', 'live-start')">{{ __('Cancel') }}</x-ui.button>
+                    <x-ui.button icon="play">{{ __('Start') }}</x-ui.button>
+                </div>
+            </form>
+        </x-ui.modal>
+
+        <div x-data="{ id: '', event: 'update' }" x-on:live-notify.window="id = $event.detail.id; event = $event.detail.event; $dispatch('open-modal', 'live-notify')">
+            <x-ui.modal name="live-notify" :title="__('Update or end')" max-width="max-w-xl">
+                <form method="POST" action="{{ route('projects.live-activities.notify', $project) }}" class="space-y-4">
+                    @csrf
+                    <input type="hidden" name="activity_id" :value="id">
+                    <input type="hidden" name="event" :value="event">
+                    <p class="text-sm text-zinc-600 dark:text-zinc-300"><span x-text="event === 'end' ? @js(__('End')) : @js(__('Update'))"></span> · <span class="font-mono" x-text="id"></span></p>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <x-ui.input name="update_title" :label="__('Title')" :optional="true" :hint="__('iOS: shown as an alert.')" />
+                        <x-ui.input name="update_body" :label="__('Text')" :optional="true" />
+                    </div>
+                    <x-ui.textarea name="update_state" :label="__('Content state (JSON)')" rows="2" :optional="true" class="font-mono text-xs" />
+                    <x-ui.textarea name="update_android" :label="__('Android display (JSON)')" rows="2" :optional="true" class="font-mono text-xs" />
+                    <div class="grid gap-4 sm:grid-cols-2" x-show="event === 'update'">
+                        <x-ui.select name="priority" :label="__('Priority')" :options="['10' => __('10 — at once (Apple budget)'), '5' => __('5 — when convenient')]" value="10" />
+                    </div>
+                    <div x-show="event === 'end'">
+                        <x-ui.input name="dismiss_minutes" type="number" min="0" max="240" :label="__('Removed from the screen after (minutes)')" :optional="true" />
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <x-ui.button type="button" variant="ghost" x-on:click="$dispatch('close-modal', 'live-notify')">{{ __('Cancel') }}</x-ui.button>
+                        <x-ui.button icon="send"><span x-text="event === 'end' ? @js(__('End')) : @js(__('Update'))"></span></x-ui.button>
+                    </div>
+                </form>
+            </x-ui.modal>
+        </div>
+    @endcan
 </x-layouts.app>

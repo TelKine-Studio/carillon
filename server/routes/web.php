@@ -107,6 +107,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('journeys/{journey}', [JourneyController::class, 'destroy'])->name('journeys.destroy');
         Route::get('messages', [MessageController::class, 'index'])->name('messages.index');
         Route::get('live-activities', [LiveActivityController::class, 'index'])->name('live-activities.index');
+        Route::post('live-activities', [LiveActivityController::class, 'start'])->name('live-activities.start');
+        Route::post('live-activities/notify', [LiveActivityController::class, 'notify'])->name('live-activities.notify');
         Route::get('messages/create', [MessageController::class, 'create'])->name('messages.create');
         Route::post('messages', [MessageController::class, 'store'])->name('messages.store');
         Route::post('messages/estimate', [MessageController::class, 'estimate'])->name('messages.estimate');
