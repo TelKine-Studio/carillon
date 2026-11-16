@@ -244,4 +244,35 @@ class JourneyTest extends TestCase
             'steps' => [['type' => 'condition', 'check' => 'clicked', 'otherwise' => 'goto', 'goto' => 1]],
         ])->assertSessionHasErrors('steps.0.goto');
     }
+
+    public function test_in_app_timing_recipes_and_ab_test(): void
+    {
+        $this->actingAs($this->owner)->get(route('projects.in-app.create', [$this->project, 'recipe' => 'review']))->assertOk()->assertSee('A review helps us a lot', false);
+        $this->post(route('projects.in-app.store', $this->project), [
+            'name' => 'Promo', 'layout' => 'modal', 'title' => 'A', 'body' => 'Texte A', 'trigger_type' => 'app_open', 'frequency' => 'once',
+            'trigger_delay' => 5, 'min_sessions' => 3, 'ab_enabled' => 1, 'variant_b_title' => 'B', 'variant_b_body' => 'Texte B',
+        ])->assertSessionHasNoErrors();
+        $message = InAppMessage::firstOrFail();
+        $this->assertSame(['type' => 'app_open', 'delay_seconds' => 5, 'min_sessions' => 3], $message->trigger);
+        $message->forceFill(['status' => 'active'])->save();
+
+        $base = "/api/v1/sdk/apps/{$this->project->app_id}";
+        // Shown from the third session only.
+        $devices = collect(range(1, 12))->map(fn ($i) => $this->device("device-$i"));
+        $this->getJson("$base/subscriptions/{$devices[0]->id}/in-app-messages")->assertJsonCount(0, 'in_app_messages');
+        Subscription::query()->update(['sessions' => 3]);
+
+        $bodies = $devices->map(fn ($device) => $this->getJson("$base/subscriptions/{$device->id}/in-app-messages")->json('in_app_messages.0'));
+        $this->assertSame(['a', 'b'], $bodies->pluck('variant')->unique()->sort()->values()->all());
+        $this->assertTrue($bodies->every(fn ($m) => $m['body'] === ($m['variant'] === 'b' ? 'Texte B' : 'Texte A')));
+        // The same device always sees the same version.
+        $this->assertSame($bodies[0]['variant'], $this->getJson("$base/subscriptions/{$devices[0]->id}/in-app-messages")->json('in_app_messages.0.variant'));
+
+        $this->postJson("$base/in-app-messages/{$message->id}/events", ['subscription_id' => $devices[0]->id, 'event' => 'shown', 'variant' => 'b'])->assertOk();
+        $this->postJson("$base/in-app-messages/{$message->id}/events", ['subscription_id' => $devices[0]->id, 'event' => 'clicked', 'variant' => 'b'])->assertOk();
+        $this->postJson("$base/in-app-messages/{$message->id}/events", ['subscription_id' => $devices[1]->id, 'event' => 'shown', 'variant' => 'a'])->assertOk();
+        $message->refresh();
+        $this->assertSame([1, 0, 1, 1], [$message->shown, $message->clicked, $message->shown_b, $message->clicked_b]);
+        $this->get(route('projects.in-app.index', $this->project))->assertOk()->assertSee('B 100,0 %', false);
+    }
 }

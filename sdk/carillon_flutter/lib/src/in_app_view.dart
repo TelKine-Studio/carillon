@@ -18,6 +18,12 @@ class InAppMessage {
   String get frequency => (data['frequency'] as String?) ?? 'once';
   int get frequencyDays => (data['frequency_days'] as num?)?.toInt() ?? 1;
 
+  /// "a" or "b" when the message is A/B tested.
+  String? get variant => data['variant'] as String?;
+
+  /// Seconds in the app before it shows.
+  int get delaySeconds => (trigger['delay_seconds'] as num?)?.toInt() ?? 0;
+
   List<Map<String, dynamic>> get buttons => [
     for (final button in (data['buttons'] as List?) ?? const [])
       Map<String, dynamic>.from(button as Map),

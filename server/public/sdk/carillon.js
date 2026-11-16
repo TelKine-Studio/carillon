@@ -275,6 +275,17 @@
     showingInApp = true;
     shown[message.id] = { at: now, session: session };
     store.set('in_app', shown);
+    // Shown after a while on the page (the first screen stays visible).
+    var delay = (message.trigger && message.trigger.delay_seconds) || 0;
+    setTimeout(function () {
+      if (Carillon.inAppMessages.paused) {
+        showingInApp = false;
+        return;
+      }
+      display();
+    }, delay * 1000);
+
+    function display() {
     report('shown');
     renderInApp(message, function (outcome, button) {
       showingInApp = false;
@@ -285,12 +296,14 @@
       });
       if (button.action === 'url' && button.url) window.location.href = button.url;
     });
+    }
 
     function report(event, button) {
       api('POST', '/in-app-messages/' + message.id + '/events', {
         subscription_id: id,
         event: event,
         button_id: button && button.id ? button.id : undefined,
+        variant: message.variant || undefined,
       }).catch(function () {});
     }
   }

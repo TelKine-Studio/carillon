@@ -485,11 +485,25 @@ class _Engine with WidgetsBindingObserver {
     if (message == null) return;
 
     _showingInApp = true;
+    // Shown after a while in the app (the first screen stays visible).
+    if (message.delaySeconds > 0) {
+      await Future<void>.delayed(Duration(seconds: message.delaySeconds));
+      if (Carillon.inAppMessages.paused ||
+          Carillon.navigatorKey.currentState == null) {
+        _showingInApp = false;
+        return;
+      }
+    }
     store.inAppShown = {
       ...shown,
       message.id: {'at': now, 'session': session},
     };
-    unawaited(_guard(() => api.inAppEvent(message!.id, id, 'shown')));
+    unawaited(
+      _guard(
+        () =>
+            api.inAppEvent(message!.id, id, 'shown', variant: message.variant),
+      ),
+    );
     try {
       final (outcome, button) = await showInAppMessage(navigator, message);
       unawaited(
@@ -499,6 +513,7 @@ class _Engine with WidgetsBindingObserver {
             id,
             outcome == InAppOutcome.clicked ? 'clicked' : 'dismissed',
             buttonId: button?['id'] as String?,
+            variant: message.variant,
           ),
         ),
       );

@@ -37,8 +37,19 @@
                             @if ($message->segment) · {{ __($message->segment) }}@endif
                         </span>
                     </a>
+                    @if ($message->hasAbTest())
+                        @php
+                            $rate = fn ($clicked, $shown) => $shown ? number_format($clicked / $shown * 100, 1, ',', ' ').' %' : '—';
+                            $winner = $message->shown && $message->shown_b ? ($message->clicked / $message->shown >= $message->clicked_b / $message->shown_b ? 'A' : 'B') : null;
+                        @endphp
+                        <span class="flex items-center gap-3 rounded-lg bg-zinc-50 px-3 py-1.5 text-xs dark:bg-white/5">
+                            <span class="font-semibold text-zinc-500">A/B</span>
+                            <span @class(['tabular-nums', 'font-semibold text-emerald-700 dark:text-emerald-400' => $winner === 'A'])>A {{ $rate($message->clicked, $message->shown) }}</span>
+                            <span @class(['tabular-nums', 'font-semibold text-emerald-700 dark:text-emerald-400' => $winner === 'B'])>B {{ $rate($message->clicked_b, $message->shown_b) }}</span>
+                        </span>
+                    @endif
                     <span class="grid grid-cols-3 gap-6 text-center">
-                        @foreach ([[__('Shown'), $message->shown], [__('Clicked'), $message->clicked], [__('Click rate'), $message->shown ? number_format($message->clicked / $message->shown * 100, 1, ',', ' ').' %' : '—']] as [$what, $value])
+                        @foreach ([[__('Shown'), $message->shown + $message->shown_b], [__('Clicked'), $message->clicked + $message->clicked_b], [__('Click rate'), ($message->shown + $message->shown_b) ? number_format(($message->clicked + $message->clicked_b) / ($message->shown + $message->shown_b) * 100, 1, ',', ' ').' %' : '—']] as [$what, $value])
                             <span>
                                 <span class="block text-base font-semibold tabular-nums text-zinc-900 dark:text-white">{{ is_numeric($value) ? $n($value) : $value }}</span>
                                 <span class="block text-xs text-zinc-500">{{ $what }}</span>

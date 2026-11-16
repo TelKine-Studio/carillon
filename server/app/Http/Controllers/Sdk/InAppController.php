@@ -24,10 +24,13 @@ class InAppController extends Controller
             ->where('project_id', $subscription->project_id)
             ->where('status', 'active')
             ->get()
-            ->filter(fn (InAppMessage $message) => $message->isLive() && $this->targets($message, $subscription, $audience))
+            ->filter(fn (InAppMessage $message) => $message->isLive()
+                // Only from the Nth session of the device.
+                && (int) $subscription->sessions >= (int) ($message->trigger['min_sessions'] ?? 0)
+                && $this->targets($message, $subscription, $audience))
             ->values();
 
-        return response()->json(['in_app_messages' => $messages->map->toSdk()->all()]);
+        return response()->json(['in_app_messages' => $messages->map(fn (InAppMessage $message) => $message->toSdk($subscription->id))->all()]);
     }
 
     public function event(Request $request, string $appId, string $messageId): JsonResponse
@@ -36,6 +39,7 @@ class InAppController extends Controller
             'subscription_id' => ['required', 'uuid'],
             'event' => ['required', Rule::in(['shown', 'clicked', 'dismissed'])],
             'button_id' => ['nullable', 'string', 'max:64'],
+            'variant' => ['nullable', Rule::in(['a', 'b'])],
         ]);
         $subscription = $this->subscription($appId, $data['subscription_id']);
         abort_unless(Str::isUuid($messageId), 404);
@@ -43,7 +47,7 @@ class InAppController extends Controller
         DB::table('in_app_messages')
             ->where('id', $messageId)
             ->where('project_id', $subscription->project_id)
-            ->increment($data['event']);
+            ->increment($data['event'].(($data['variant'] ?? 'a') === 'b' ? '_b' : ''));
 
         if ($data['event'] === 'shown') {
             $subscription->forceFill(['last_active_at' => now()])->save();

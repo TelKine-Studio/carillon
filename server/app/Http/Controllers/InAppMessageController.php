@@ -27,12 +27,21 @@ class InAppMessageController extends Controller
     {
         $this->authorize('send', $project);
 
+        // Starting points, like the templates of OneSignal.
+        $recipes = [
+            'announce' => ['name' => __('New feature'), 'layout' => 'modal', 'title' => __('New in the app'), 'body' => __('Discover what we just added for you.'), 'buttons' => [['id' => 'button-1', 'text' => __('Discover'), 'action' => 'dismiss'], ['id' => 'button-2', 'text' => __('Later'), 'action' => 'dismiss']]],
+            'offer' => ['name' => __('Special offer'), 'layout' => 'modal', 'title' => __('An offer for you'), 'body' => __('-20% today only. Do not miss it!'), 'buttons' => [['id' => 'button-1', 'text' => __('I take it'), 'action' => 'dismiss']]],
+            'update' => ['name' => __('Update required'), 'layout' => 'fullscreen', 'title' => __('Update the app'), 'body' => __('A new version is available with improvements and fixes.'), 'buttons' => [['id' => 'button-1', 'text' => __('Update'), 'action' => 'url', 'url' => 'https://']]],
+            'review' => ['name' => __('Ask for a review'), 'layout' => 'banner', 'title' => __('Do you like the app?'), 'body' => __('A review helps us a lot. It takes 10 seconds.'), 'trigger' => ['type' => 'app_open', 'min_sessions' => 5]],
+        ];
+
         return $this->form($project, new InAppMessage([
             'layout' => 'modal',
             'trigger' => ['type' => 'app_open'],
             'frequency' => 'once',
             'buttons' => [['id' => 'ok', 'text' => __('Got it'), 'action' => 'dismiss']],
-        ]));
+            ...($recipes[request()->query('recipe')] ?? []),
+        ]), $recipes);
     }
 
     public function store(Request $request, Project $project): RedirectResponse
@@ -87,11 +96,12 @@ class InAppMessageController extends Controller
         return redirect()->route('projects.in-app.index', $project)->with('status', __('In-app message deleted.'));
     }
 
-    protected function form(Project $project, InAppMessage $message): View
+    protected function form(Project $project, InAppMessage $message, array $recipes = []): View
     {
         return view('in-app.form', [
             'project' => $project,
             'message' => $message,
+            'recipes' => $recipes,
             'segments' => $project->segments()->orderBy('name')->pluck('name'),
         ]);
     }
@@ -111,6 +121,11 @@ class InAppMessageController extends Controller
             'buttons.*.url' => ['nullable', 'string', 'max:500'],
             'trigger_type' => ['required', Rule::in(['app_open', 'event'])],
             'trigger_event' => ['nullable', 'required_if:trigger_type,event', 'string', 'max:128'],
+            'trigger_delay' => ['nullable', 'integer', 'min:0', 'max:600'],
+            'min_sessions' => ['nullable', 'integer', 'min:1', 'max:10000'],
+            'ab_enabled' => ['boolean'],
+            'variant_b_title' => ['nullable', 'string', 'max:120'],
+            'variant_b_body' => ['nullable', 'required_if:ab_enabled,1', 'string', 'max:600'],
             'segment' => ['nullable', 'string', 'max:255'],
             'frequency' => ['required', Rule::in(InAppMessage::FREQUENCIES)],
             'frequency_days' => ['nullable', 'required_if:frequency,every_days', 'integer', 'min:1', 'max:365'],
@@ -132,7 +147,16 @@ class InAppMessageController extends Controller
             'body' => $data['body'],
             'image_url' => $data['image_url'] ?? null,
             'buttons' => $buttons ?: null,
-            'trigger' => array_filter(['type' => $data['trigger_type'], 'event' => $data['trigger_type'] === 'event' ? $data['trigger_event'] : null]),
+            'trigger' => array_filter([
+                'type' => $data['trigger_type'],
+                'event' => $data['trigger_type'] === 'event' ? $data['trigger_event'] : null,
+                // Seconds after the opening (or the event) before it shows.
+                'delay_seconds' => ! empty($data['trigger_delay']) ? (int) $data['trigger_delay'] : null,
+                'min_sessions' => ! empty($data['min_sessions']) && (int) $data['min_sessions'] > 1 ? (int) $data['min_sessions'] : null,
+            ]),
+            'variant_b' => $request->boolean('ab_enabled') && filled($data['variant_b_body'] ?? null)
+                ? ['title' => $data['variant_b_title'] ?? null, 'body' => $data['variant_b_body']]
+                : null,
             'segment' => ($data['segment'] ?? null) ?: null,
             'frequency' => $data['frequency'],
             'frequency_days' => $data['frequency'] === 'every_days' ? (int) $data['frequency_days'] : null,

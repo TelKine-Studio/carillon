@@ -69,10 +69,12 @@ class CarillonApi {
     String subscriptionId,
     String event, {
     String? buttonId,
+    String? variant,
   }) => _send('POST', '/in-app-messages/$messageId/events', {
     'subscription_id': subscriptionId,
     'event': event,
     'button_id': ?buttonId,
+    'variant': ?variant,
   });
 
   Future<void> event(
