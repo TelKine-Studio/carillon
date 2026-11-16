@@ -1939,5 +1939,6 @@
     "Sender number": "Numéro d’envoi",
     "The number of your Orange contract (country code followed by 0000).": "Le numéro de votre contrat Orange (indicatif pays suivi de 0000).",
     "If Orange validated one for your contract.": "Si Orange en a validé un pour votre contrat.",
-    "The number of your Orange contract, in the international format (e.g. +2250000).": "Le numéro de votre contrat Orange, au format international (ex. +2250000)."
+    "The number of your Orange contract, in the international format (e.g. +2250000).": "Le numéro de votre contrat Orange, au format international (ex. +2250000).",
+    "Retention by cohort": "Rétention par cohorte"
 }

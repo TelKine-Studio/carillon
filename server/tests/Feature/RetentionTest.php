@@ -42,6 +42,6 @@ class RetentionTest extends TestCase
         $this->assertEquals([100, 50, 0], array_slice($cohort['weeks'], 0, 3));
         $this->assertNull($cohort['weeks'][3]);
 
-        $this->actingAs($owner)->get(route('projects.stats', $project))->assertOk()->assertSee('Retention');
+        $this->actingAs($owner)->get(route('projects.stats', $project))->assertOk()->assertSee('Retention by cohort');
     }
 }

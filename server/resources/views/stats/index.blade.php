@@ -87,7 +87,7 @@
         @endforeach
     </div>
 
-    <x-ui.card class="mt-6" :title="__('Retention')" :description="__('People grouped by the week they were first seen, and the share of them who used the app again in the following weeks.')" icon="activity" :padding="false">
+    <x-ui.card class="mt-6" :title="__('Retention by cohort')" :description="__('People grouped by the week they were first seen, and the share of them who used the app again in the following weeks.')" icon="activity" :padding="false">
         @if (collect($retention)->sum('size') === 0)
             <p class="px-5 pb-5 text-sm text-zinc-500 sm:px-6">{{ __('No new people in the last 8 weeks yet.') }}</p>
         @else
