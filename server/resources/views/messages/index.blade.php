@@ -3,6 +3,7 @@
 @endphp
 <x-layouts.app :title="__('Messages').' · '.$project->name">
     <x-ui.page-header :title="__('Messages')" :description="__('Notifications sent from the dashboard and the API.')">
+        <x-ui.button variant="secondary" :href="route('projects.live-activities.index', $project)" icon="activity">{{ __('Live Activities') }}</x-ui.button>
         @can('send', $project)
             <x-ui.button :href="route('projects.messages.create', $project)" icon="send">{{ __('New message') }}</x-ui.button>
         @endcan

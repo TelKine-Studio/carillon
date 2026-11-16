@@ -2,6 +2,7 @@
 
 use App\Jobs\SyncOneSignal;
 use App\Journeys\JourneyRunner;
+use App\LiveActivities\LiveActivities;
 use App\Models\OneSignalSync;
 use App\Support\SystemHealth;
 use Illuminate\Support\Facades\Cache;
@@ -35,3 +36,6 @@ Schedule::call(function () {
 // Journeys: people whose step is due move on; inactive people enter.
 Schedule::call(fn () => app(JourneyRunner::class)->run())->everyMinute()->name('journeys-run')->withoutOverlapping();
 Schedule::call(fn () => app(JourneyRunner::class)->sweepInactive())->hourly()->name('journeys-inactive')->withoutOverlapping();
+
+// Live Activities nobody ended (end_after passed): ended by Carillon.
+Schedule::call(fn () => app(LiveActivities::class)->sweep())->everyMinute()->name('live-activities-sweep')->withoutOverlapping();

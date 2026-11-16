@@ -2,12 +2,14 @@
 
 use App\Http\Controllers\Api\AppStatsController;
 use App\Http\Controllers\Api\CustomEventController;
+use App\Http\Controllers\Api\LiveActivityController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Sdk\ConfigController;
 use App\Http\Controllers\Sdk\EmailEventsController;
 use App\Http\Controllers\Sdk\InAppController;
+use App\Http\Controllers\Sdk\LiveActivityController as SdkLiveActivityController;
 use App\Http\Controllers\Sdk\SubscriptionController;
 use App\Http\Middleware\AuthenticateApiKey;
 use Illuminate\Support\Facades\Route;
@@ -36,6 +38,8 @@ Route::prefix('v1')->group(function () {
         Route::delete('apps/{app_id}/users/by/external_id/{externalId}', [UserController::class, 'destroy']);
         Route::post('apps/{app_id}/custom_events', [CustomEventController::class, 'store']);
         Route::get('apps/{app_id}/stats', [AppStatsController::class, 'show']);
+        Route::post('apps/{app_id}/activities/activity/{activity_type}', [LiveActivityController::class, 'start']);
+        Route::post('apps/{app_id}/live_activities/{activity_id}/notifications', [LiveActivityController::class, 'notify']);
     });
 
     // Bounces and complaints from the email service of a project.
@@ -61,5 +65,8 @@ Route::prefix('v1')->group(function () {
         Route::delete('subscriptions/{id}/sms', [SubscriptionController::class, 'removeSms']);
         Route::post('subscriptions/{id}/whatsapp', [SubscriptionController::class, 'addWhatsApp']);
         Route::delete('subscriptions/{id}/whatsapp', [SubscriptionController::class, 'removeWhatsApp']);
+        Route::put('subscriptions/{id}/live-activities/start-token', [SdkLiveActivityController::class, 'startToken']);
+        Route::post('subscriptions/{id}/live-activities/enter', [SdkLiveActivityController::class, 'enter']);
+        Route::post('subscriptions/{id}/live-activities/exit', [SdkLiveActivityController::class, 'exit']);
     });
 });

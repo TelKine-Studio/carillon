@@ -57,6 +57,36 @@ class ApnsSender implements Sender
         return $results;
     }
 
+    /**
+     * Sends prepared requests (Live Activities): each item has the token,
+     * the environment, the JSON body and the headers.
+     *
+     * @param  array<string, array{token: string, environment: ?string, body: array<string, mixed>, headers: array<string, string>}>  $requests
+     * @return array<string, Result>
+     */
+    public function push(PushCredential $credential, array $requests): array
+    {
+        $token = $this->token($credential);
+
+        $responses = Http::pool(function (Pool $pool) use ($requests, $token) {
+            foreach ($requests as $id => $request) {
+                $pool->as((string) $id)
+                    ->withOptions(['version' => 2.0])
+                    ->timeout(15)
+                    ->withHeaders(['authorization' => 'bearer '.$token, ...$request['headers']])
+                    ->withBody(json_encode($request['body'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 'application/json')
+                    ->post((self::HOSTS[$request['environment'] ?? ''] ?? self::HOSTS['production']).'/3/device/'.$request['token']);
+            }
+        }, self::CONCURRENCY);
+
+        $results = [];
+        foreach ($responses as $id => $response) {
+            $results[$id] = $this->result($credential, $response);
+        }
+
+        return $results;
+    }
+
     protected function result(PushCredential $credential, mixed $response): Result
     {
         if (! $response instanceof Response) {

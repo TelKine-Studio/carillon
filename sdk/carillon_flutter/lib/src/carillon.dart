@@ -20,7 +20,7 @@ import 'store.dart';
 class Carillon {
   Carillon._();
 
-  static const sdkVersion = 'carillon-flutter/0.2.0';
+  static const sdkVersion = 'carillon-flutter/0.3.0';
 
   static _Engine? _engine;
   static final _started = Completer<_Engine>();
@@ -89,6 +89,58 @@ class Carillon {
   /// messages are shown above the current page.
   static final navigatorKey = GlobalKey<NavigatorState>();
   static final session = CarillonSession._();
+
+  /// Live Activities of iOS (see CarillonLiveActivities.observe on the
+  /// native side, which reports the tokens by itself).
+  static final liveActivities = CarillonLiveActivitiesApi._();
+}
+
+/// Same calls as OneSignal.LiveActivities, for activities managed by hand.
+class CarillonLiveActivitiesApi {
+  CarillonLiveActivitiesApi._();
+
+  /// Push-to-start token of [activityType] (iOS 17.2+), to start activities
+  /// of this type by push.
+  Future<void> setPushToStartToken(String activityType, String token) =>
+      Carillon._whenReadyCall(
+        (engine) => engine.liveActivity(
+          'start:$activityType',
+          (id) => engine.api.liveActivityStartToken(id, activityType, token),
+        ),
+      );
+
+  Future<void> removePushToStartToken(String activityType) =>
+      Carillon._whenReadyCall(
+        (engine) => engine.liveActivity(
+          'start:$activityType',
+          (id) => engine.api.liveActivityStartToken(id, activityType, null),
+        ),
+      );
+
+  /// The app shows the activity [activityId]; [token] is its update token.
+  Future<void> enterLiveActivity(
+    String activityId,
+    String token, {
+    String? activityType,
+  }) => Carillon._whenReadyCall(
+    (engine) => engine.liveActivity(
+      'activity:$activityId',
+      (id) => engine.api.liveActivityEnter(
+        id,
+        activityId,
+        token,
+        activityType: activityType,
+      ),
+    ),
+  );
+
+  /// The activity [activityId] left the screen.
+  Future<void> exitLiveActivity(String activityId) => Carillon._whenReadyCall(
+    (engine) => engine.liveActivity(
+      'activity:$activityId',
+      (id) => engine.api.liveActivityExit(id, activityId),
+    ),
+  );
 }
 
 class CarillonNotifications {
@@ -323,6 +375,8 @@ class _Engine with WidgetsBindingObserver {
       }
       return event.willDisplay;
     };
+    // Before start: tokens held by iOS until Dart is ready arrive at once.
+    platform.liveActivities.listen(_handleLiveActivity);
     await platform.start();
 
     platform.tokens.listen((_) => sync());
@@ -550,6 +604,7 @@ class _Engine with WidgetsBindingObserver {
     });
     _absorb(result);
     await _flushEvents();
+    await _flushLiveActivities();
     if (newSession) await _refreshInApp(showOnOpen: true);
   }
 
@@ -762,6 +817,69 @@ class _Engine with WidgetsBindingObserver {
       } catch (_) {
         store.pendingEvents = [...store.pendingEvents, event];
       }
+    }
+  }
+
+  /// Live Activity calls waiting for the device to be registered (iOS
+  /// gives no push token before the notification permission). The last
+  /// call per key wins.
+  final _liveActivityCalls =
+      <String, Future<Map<String, dynamic>> Function(String id)>{};
+
+  void _handleLiveActivity(Map<String, dynamic> event) {
+    final type = event['activity_type'] as String?;
+    final activityId = event['activity_id'] as String?;
+    final token = event['token'] as String?;
+    switch (event['event']) {
+      case 'onLiveActivityStartToken' when type != null:
+        unawaited(
+          liveActivity(
+            'start:$type',
+            (id) => api.liveActivityStartToken(id, type, token),
+          ),
+        );
+      case 'onLiveActivityToken' when activityId != null && token != null:
+        unawaited(
+          liveActivity(
+            'activity:$activityId',
+            (id) => api.liveActivityEnter(
+              id,
+              activityId,
+              token,
+              activityType: type,
+            ),
+          ),
+        );
+      case 'onLiveActivityEnded' when activityId != null:
+        unawaited(
+          liveActivity(
+            'activity:$activityId',
+            (id) => api.liveActivityExit(id, activityId),
+          ),
+        );
+    }
+  }
+
+  Future<void> liveActivity(
+    String key,
+    Future<Map<String, dynamic>> Function(String id) call,
+  ) async {
+    await (_syncing ?? Future.value());
+    final id = store.subscriptionId;
+    if (id == null) {
+      _liveActivityCalls[key] = call;
+      return;
+    }
+    await _guard(() => call(id), operation: 'liveActivity');
+  }
+
+  Future<void> _flushLiveActivities() async {
+    final id = store.subscriptionId;
+    if (id == null || _liveActivityCalls.isEmpty) return;
+    final calls = List.of(_liveActivityCalls.values);
+    _liveActivityCalls.clear();
+    for (final call in calls) {
+      await _guard(() => call(id), operation: 'liveActivity');
     }
   }
 

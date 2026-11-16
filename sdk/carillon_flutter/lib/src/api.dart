@@ -69,6 +69,32 @@ class CarillonApi {
     const {},
   );
 
+  /// Push-to-start token of a type of Live Activity (null removes it).
+  Future<Map<String, dynamic>> liveActivityStartToken(
+    String id,
+    String activityType,
+    String? token,
+  ) => _send('PUT', '/subscriptions/$id/live-activities/start-token', {
+    'activity_type': activityType,
+    'token': token,
+  });
+
+  Future<Map<String, dynamic>> liveActivityEnter(
+    String id,
+    String activityId,
+    String token, {
+    String? activityType,
+  }) => _send('POST', '/subscriptions/$id/live-activities/enter', {
+    'activity_id': activityId,
+    'token': token,
+    'activity_type': ?activityType,
+  });
+
+  Future<Map<String, dynamic>> liveActivityExit(String id, String activityId) =>
+      _send('POST', '/subscriptions/$id/live-activities/exit', {
+        'activity_id': activityId,
+      });
+
   Future<Map<String, dynamic>> heartbeat(String id) =>
       _send('POST', '/subscriptions/$id/heartbeat', const {});
 

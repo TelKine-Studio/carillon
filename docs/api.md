@@ -262,6 +262,63 @@ POST /api/v1/apps/{app_id}/custom_events
 From the apps: `Carillon.user.trackEvent(name, properties)` and
 `Carillon.session.addOutcome(name)` / `addOutcomeWithValue(name, value)`.
 
+## Live Activities (iOS)
+
+Activities shown on the lock screen and in the Dynamic Island, in the format
+of OneSignal. The app declares them (SwiftUI widget extension) and the SDK
+sends their tokens: see [Channels → Live Activities](channels.md#live-activities-ios).
+
+**Start** by push (iOS 17.2+), on the targeted devices that have a
+push-to-start token for this type:
+
+```
+POST /api/v1/apps/{app_id}/activities/activity/{activity_type}
+{
+  "event": "start",
+  "activity_id": "MRC-20261116-0428",
+  "event_attributes": {"reference": "MRC-20261116-0428", "amount": 1000},
+  "event_updates": {"step": "waiting"},
+  "headings": {"fr": "Recharge en cours"},
+  "contents": {"fr": "On s'en occupe."},
+  "include_aliases": {"external_id": ["user-42"]},
+  "stale_date": 1763310000,
+  "end_after": 1800
+}
+→ {"id": "MRC-20261116-0428", "recipients": 1, "already": 0, "errors": []}
+```
+
+- `activity_type` is the name of the `ActivityAttributes` struct of the app;
+  `event_attributes` its fields, `event_updates` its `ContentState`.
+- Audience: `include_aliases.external_id`, `include_subscription_ids`,
+  `included_segments` / `excluded_segments`, `filters` (iOS devices only).
+- `headings` / `contents` are the alert iOS shows at the start (required by
+  Apple; the `name` is used without them).
+- An `activity_id` starts once per device: calling start again (a retry of
+  your backend) does nothing (`already`).
+- `end_after` (seconds, default 8 hours, Apple's limit): Carillon ends the
+  activity by then if nobody did. `stale_date` / `dismissal_date` are Unix
+  timestamps in seconds.
+
+**Update** or **end**, on every device showing the activity:
+
+```
+POST /api/v1/apps/{app_id}/live_activities/{activity_id}/notifications
+{"event": "update", "event_updates": {"step": "sending"}, "priority": 5}
+{"event": "end", "event_updates": {"step": "delivered"}, "dismissal_date": 1763309000}
+→ {"id": "…", "recipients": 1, "pending": 0, "errors": []}
+```
+
+- `priority` 10 (default) is delivered at once and counts against the budget
+  Apple gives each device; 5 is delivered when convenient, without limit.
+  The end is always sent with 10.
+- `pending`: devices whose app has not sent the update token yet (just
+  started by push). The update, or the end, is kept and sent as soon as the
+  token arrives: an activity ended before is closed on the device then.
+- 404 when no device shows the activity (never started, or ended).
+
+The dashboard lists the activities (*Messages → Live Activities*). An API key
+limited to sending can start, update and end activities.
+
 ## SDK endpoints
 
 Called by the Carillon SDKs from the apps, with the App ID only (it is
@@ -277,6 +334,9 @@ afterwards.
 - `POST …/subscriptions/{id}/logout`
 - `PUT …/subscriptions/{id}/tags` — `{"tags": {"plan": "gold", "old": null}}`
 - `POST …/subscriptions/{id}/events` — `{"message_id": "…", "event": "received|clicked"}`
+- `PUT …/subscriptions/{id}/live-activities/start-token` — `{"activity_type": "DeliveryAttributes", "token": "…"}` (`token: null` removes it)
+- `POST …/subscriptions/{id}/live-activities/enter` — `{"activity_id", "activity_type", "token"}`: the update token of an activity on screen
+- `POST …/subscriptions/{id}/live-activities/exit` — `{"activity_id"}`: the activity left the screen
 
 ## What the devices receive
 

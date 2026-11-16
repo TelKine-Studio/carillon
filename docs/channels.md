@@ -77,3 +77,59 @@ and a WhatsApp subscription.
 Banners, pop-ups and full screens shown inside the open app by the Carillon
 SDKs (Flutter, web): nothing to set up besides `navigatorKey:
 Carillon.navigatorKey` in the `MaterialApp` of a Flutter app.
+
+## Live Activities (iOS)
+
+A Live Activity shows something in progress on the lock screen and in the
+Dynamic Island (a delivery, a match, a ride), updated by your server without
+opening the app. Carillon starts them by push (iOS 17.2+), updates and ends
+them through the [API](api.md#live-activities-ios), with the same APNs key.
+
+In the app (the look of the activity belongs to it):
+
+1. Add a **Widget Extension** with a Live Activity, and
+   `NSSupportsLiveActivities = YES` in the `Info.plist` of the app.
+2. Keep the activity_id that Carillon puts under `carillon` in the
+   attributes, in a file shared by the app and the widget:
+
+   ```swift
+   import ActivityKit
+
+   struct DeliveryAttributes: ActivityAttributes {
+     struct ContentState: Codable, Hashable { var step: String }
+     var reference: String
+     var carillon: [String: String]   // {"activityId": …}, filled by Carillon
+   }
+   ```
+
+   and, in the app target only (the widget does not link the plugin):
+
+   ```swift
+   import carillon_flutter
+
+   extension DeliveryAttributes: CarillonLiveActivityAttributes {
+     var carillonActivityId: String { carillon["activityId"] ?? "" }
+   }
+   ```
+
+   An activity started by the app itself gives
+   `carillon: ["activityId": "…"]` with an id your server knows.
+3. At launch, in `AppDelegate`, after `GeneratedPluginRegistrant.register`:
+
+   ```swift
+   if #available(iOS 16.1, *) {
+     CarillonLiveActivities.observe(DeliveryAttributes.self)
+   }
+   ```
+
+   The SDK then sends Carillon the push-to-start token of the type, the
+   update token of each activity on screen and its end. A device must be
+   registered (notifications allowed) for its tokens to be kept.
+
+From your server: start when it is worth it (for instance only when an
+order takes longer than usual), update rarely, end at the outcome. Carillon
+ends by itself an activity left open past `end_after`, and the end sent
+before the app gave its token is delivered when it does.
+
+Android has no Live Activities: keep a regular notification for the outcome.
+

@@ -2106,5 +2106,22 @@
     "With it, the Carillon SDK sets Firebase up by itself: the apps need neither this file nor the Google services Gradle plugin.": "Avec lui, le SDK Carillon configure Firebase tout seul : les apps n’ont besoin ni de ce fichier ni du greffon Gradle Google services.",
     "This is not a google-services.json file of an Android app.": "Ce n’est pas un fichier google-services.json d’une app Android.",
     "This file belongs to the Firebase project :other, not :project.": "Ce fichier appartient au projet Firebase :other, pas à :project.",
-    ":count with several devices on one platform|:count with several devices on one platform": ":count avec plusieurs appareils sur une plateforme|:count avec plusieurs appareils sur une plateforme"
+    ":count with several devices on one platform|:count with several devices on one platform": ":count avec plusieurs appareils sur une plateforme|:count avec plusieurs appareils sur une plateforme",
+    "Live Activities": "Live Activities",
+    "Activities shown on the lock screen of iPhones, started and updated through the API.": "Les activités affichées sur l’écran verrouillé des iPhone, démarrées et mises à jour par l’API.",
+    "On screen now": "À l’écran maintenant",
+    "Started and not ended yet.": "Démarrées et pas encore terminées.",
+    "Started in 24 h": "Démarrées en 24 h",
+    "Devices able to start": "Appareils prêts",
+    "iPhones on iOS 17.2 or later whose app sent a push-to-start token.": "Les iPhone sous iOS 17.2 ou plus dont l’app a envoyé un jeton de démarrage.",
+    "Search an activity_id…": "Rechercher un activity_id…",
+    "Started": "Démarrée",
+    "Updates": "Mises à jour",
+    "Ended": "Terminée",
+    "No activity matches": "Aucune activité ne correspond",
+    "No Live Activity yet": "Aucune Live Activity pour l’instant",
+    "Start one from your server with POST /api/v1/apps/{app_id}/activities/activity/{type}: the guide is in the documentation (Channels → Live Activities).": "Démarrez-en une depuis votre serveur avec POST /api/v1/apps/{app_id}/activities/activity/{type} : le guide est dans la documentation (Canaux → Live Activities).",
+    "Starting": "Au démarrage",
+    "On screen": "À l’écran",
+    "Refused by Apple": "Refusée par Apple"
 }

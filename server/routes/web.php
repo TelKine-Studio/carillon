@@ -17,6 +17,7 @@ use App\Http\Controllers\EmailSettingsController;
 use App\Http\Controllers\EmailTrackingController;
 use App\Http\Controllers\InAppMessageController;
 use App\Http\Controllers\JourneyController;
+use App\Http\Controllers\LiveActivityController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\OneSignalSyncController;
 use App\Http\Controllers\ProfileController;
@@ -105,6 +106,7 @@ Route::middleware('auth')->group(function () {
         Route::put('journeys/{journey}/status', [JourneyController::class, 'status'])->name('journeys.status');
         Route::delete('journeys/{journey}', [JourneyController::class, 'destroy'])->name('journeys.destroy');
         Route::get('messages', [MessageController::class, 'index'])->name('messages.index');
+        Route::get('live-activities', [LiveActivityController::class, 'index'])->name('live-activities.index');
         Route::get('messages/create', [MessageController::class, 'create'])->name('messages.create');
         Route::post('messages', [MessageController::class, 'store'])->name('messages.store');
         Route::post('messages/estimate', [MessageController::class, 'estimate'])->name('messages.estimate');

@@ -88,6 +88,12 @@ class Project extends Model
         return $this->hasMany(Template::class);
     }
 
+    /** @return HasMany<LiveActivity, $this> */
+    public function liveActivities(): HasMany
+    {
+        return $this->hasMany(LiveActivity::class);
+    }
+
     /** @return HasMany<Segment, $this> */
     public function inAppMessages(): HasMany
     {

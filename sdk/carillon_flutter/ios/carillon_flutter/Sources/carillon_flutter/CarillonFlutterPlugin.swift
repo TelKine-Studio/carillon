@@ -10,6 +10,8 @@ public class CarillonFlutterPlugin: NSObject, FlutterPlugin {
   private var started = false
   /// Tap received before Dart was ready (cold start).
   private var initialResponse: [String: Any]?
+  /// Live Activity tokens received before Dart was ready.
+  private var pendingEvents: [(String, [String: Any])] = []
 
   init(channel: FlutterMethodChannel) {
     self.channel = channel
@@ -23,6 +25,20 @@ public class CarillonFlutterPlugin: NSObject, FlutterPlugin {
     // callbacks to the plugins registered here.
     registrar.addApplicationDelegate(instance)
 
+    // Plugins are registered on the main thread.
+    if #available(iOS 16.1, *) {
+      MainActor.assumeIsolated {
+        CarillonLiveActivities.sink = { [weak instance] method, arguments in
+          guard let instance else { return }
+          if instance.started {
+            instance.channel.invokeMethod(method, arguments: arguments)
+          } else {
+            instance.pendingEvents.append((method, arguments))
+          }
+        }
+      }
+    }
+
     let center = UNUserNotificationCenter.current()
     if center.delegate == nil, let delegate = UIApplication.shared.delegate as? UNUserNotificationCenterDelegate {
       center.delegate = delegate
@@ -35,6 +51,10 @@ public class CarillonFlutterPlugin: NSObject, FlutterPlugin {
       started = true
       registerIfAllowed()
       result(nil)
+      for (method, arguments) in pendingEvents {
+        channel.invokeMethod(method, arguments: arguments)
+      }
+      pendingEvents.removeAll()
     case "token":
       result(token)
     case "environment":

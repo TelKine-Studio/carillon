@@ -1,3 +1,7 @@
+## 0.3.0
+
+- Live Activities (iOS): `CarillonLiveActivities.observe(YourAttributes.self)` sends Carillon the push-to-start token of the type (iOS 17.2+), the update token of each activity and its end; `Carillon.liveActivities` has the OneSignal calls for activities managed by hand. Calls made before the device is registered are sent once it is.
+
 ## 0.2.0
 
 - iOS notification service extension as a Swift package (`CarillonExtension`, at the root of the repository): subclass `CarillonNotificationService` instead of copying a file.

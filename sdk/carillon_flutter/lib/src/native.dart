@@ -14,6 +14,7 @@ class NativePush extends PushPlatform {
   final _tokens = StreamController<String>.broadcast();
   final _clicks = StreamController<CarillonClickEvent>.broadcast();
   final _displayed = StreamController<CarillonNotification>.broadcast();
+  final _liveActivities = StreamController<Map<String, dynamic>>.broadcast();
   FutureOr<bool> Function(CarillonNotification)? _foreground;
   String? _token;
 
@@ -28,6 +29,9 @@ class NativePush extends PushPlatform {
 
   @override
   Stream<CarillonNotification> get displayed => _displayed.stream;
+
+  @override
+  Stream<Map<String, dynamic>> get liveActivities => _liveActivities.stream;
 
   @override
   set foregroundHandler(
@@ -47,6 +51,10 @@ class NativePush extends PushPlatform {
         case 'onOpened':
           final event = _event(args);
           if (event != null) _clicks.add(event);
+        case 'onLiveActivityStartToken' ||
+            'onLiveActivityToken' ||
+            'onLiveActivityEnded':
+          _liveActivities.add({'event': call.method, ...args});
         case 'onForeground':
           final notification = CarillonNotification.fromPayload(_payload(args));
           if (notification == null) return true;

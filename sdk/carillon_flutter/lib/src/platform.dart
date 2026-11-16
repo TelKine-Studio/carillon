@@ -42,6 +42,9 @@ abstract class PushPlatform {
   /// Notifications received while the app is open (reported as received).
   Stream<CarillonNotification> get displayed;
 
+  /// Live Activity tokens and ends reported by the system (iOS).
+  Stream<Map<String, dynamic>> get liveActivities => const Stream.empty();
+
   Future<void> start();
 
   Future<void> clearAll();

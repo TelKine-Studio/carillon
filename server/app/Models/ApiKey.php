@@ -33,7 +33,7 @@ class ApiKey extends Model
 
         return str_starts_with($uri, 'api/v1/notifications')
             || ($method === 'GET' && str_starts_with($uri, 'api/v1/templates'))
-            || preg_match('#^api/v1/apps/[^/]+/(custom_events|stats)$#', $uri) === 1;
+            || preg_match('#^api/v1/apps/[^/]+/(custom_events|stats|activities/activity/[^/]+|live_activities/[^/]+/notifications)$#', $uri) === 1;
     }
 
     public static function generate(Project $project, string $name, ?User $creator = null, string $scope = 'full'): array

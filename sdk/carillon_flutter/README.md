@@ -155,6 +155,28 @@ to the extension, and its name under the `CarillonAppGroup` key in both
 Debug builds use the APNs sandbox, TestFlight and App Store builds
 production: the SDK detects it and tells the server.
 
+### Live Activities
+
+Activities started, updated and ended by your server through Carillon
+(iOS 16.1+, started by push from iOS 17.2): give your `ActivityAttributes`
+a `carillon: [String: String]` field (Carillon puts the activity_id in it),
+make them `CarillonLiveActivityAttributes` in the app target
+(`var carillonActivityId: String { carillon["activityId"] ?? "" }`), then at
+launch:
+
+```swift
+import carillon_flutter
+
+if #available(iOS 16.1, *) {
+  CarillonLiveActivities.observe(DeliveryAttributes.self)
+}
+```
+
+The tokens reach Carillon by themselves. For activities managed by hand,
+`Carillon.liveActivities` has the calls of OneSignal: `setPushToStartToken`,
+`removePushToStartToken`, `enterLiveActivity`, `exitLiveActivity`. Full
+guide: [docs/channels.md](../../docs/channels.md#live-activities-ios).
+
 ## Android setup
 
 1. In Carillon, *Project → Settings → Platforms → Android (Firebase)*:
