@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Audience\Activity;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
@@ -32,6 +33,11 @@ class Subscription extends Model
     {
         static::saving(function (Subscription $subscription) {
             $subscription->token_hash = $subscription->token ? hash('sha256', $subscription->token) : null;
+        });
+        static::saved(function (Subscription $subscription) {
+            if ($subscription->subscriber_id && $subscription->last_active_at && $subscription->wasChanged('last_active_at') && ! $subscription->wasRecentlyCreated) {
+                Activity::record($subscription->subscriber_id, $subscription->project_id, $subscription->last_active_at);
+            }
         });
     }
 

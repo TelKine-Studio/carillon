@@ -185,4 +185,28 @@ class TemplateTest extends TestCase
         $this->assertSame(['vip'], $message->fresh()->labels);
         $this->get(route('projects.messages.show', [$this->project, $message]))->assertOk()->assertSee('vip');
     }
+
+    public function test_the_visual_email_design_is_kept_to_edit_again(): void
+    {
+        $this->actingAs($this->owner);
+        $design = ['accent' => '#2563eb', 'background' => '#f4f4f5', 'blocks' => [['type' => 'heading', 'text' => 'Spring sale', 'align' => 'left']]];
+
+        $this->post(route('projects.templates.store', $this->project), [
+            'template_name' => 'Spring',
+            'channel' => 'email',
+            'email_subject' => 'Spring',
+            'email_body' => '<h1>Spring sale</h1>',
+            'email_design' => json_encode($design),
+        ])->assertSessionHasNoErrors();
+
+        $template = $this->project->templates()->first();
+        $this->assertSame('Spring sale', $template->option('email_design.blocks.0.text'));
+        $this->get(route('projects.templates.edit', [$this->project, $template]))->assertOk()->assertSee('#2563eb', false);
+
+        // A broken design is ignored, the HTML stays.
+        $this->post(route('projects.templates.store', $this->project), [
+            'template_name' => 'Broken', 'channel' => 'email', 'email_subject' => 'x', 'email_body' => '<p>x</p>', 'email_design' => '{nope',
+        ])->assertSessionHasNoErrors();
+        $this->assertNull($this->project->templates()->where('name', 'Broken')->first()->option('email_design'));
+    }
 }

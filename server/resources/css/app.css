@@ -407,3 +407,8 @@ span.flatpickr-weekday {
     from { transform: translateX(-100%); }
     to { transform: translateX(100%); }
 }
+
+/* Retention cohorts: one hue, the share of people back sets the strength. */
+.retention-cell {
+    background: color-mix(in oklab, var(--color-brand-700) var(--level), transparent);
+}

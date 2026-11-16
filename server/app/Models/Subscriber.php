@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Audience\Activity;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** A person using an app (OneSignal "user"), with their devices and tags. */
-#[Fillable(['project_id', 'external_id', 'tags', 'language', 'timezone', 'country', 'last_active_at'])]
+#[Fillable(['project_id', 'external_id', 'tags', 'language', 'timezone', 'country', 'last_active_at', 'first_seen_at'])]
 class Subscriber extends Model
 {
     use HasUuids;
@@ -22,7 +23,25 @@ class Subscriber extends Model
         return [
             'tags' => 'array',
             'last_active_at' => 'datetime',
+            'first_seen_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Subscriber $subscriber) {
+            $subscriber->first_seen_at ??= $subscriber->last_active_at && $subscriber->last_active_at->isPast() ? $subscriber->last_active_at : now();
+        });
+
+        // Each day of activity counts once, for retention cohorts.
+        static::saved(function (Subscriber $subscriber) {
+            if ($subscriber->wasRecentlyCreated) {
+                Activity::record($subscriber->id, $subscriber->project_id, $subscriber->first_seen_at);
+            }
+            if ($subscriber->last_active_at && ($subscriber->wasRecentlyCreated || $subscriber->wasChanged('last_active_at'))) {
+                Activity::record($subscriber->id, $subscriber->project_id, $subscriber->last_active_at);
+            }
+        });
     }
 
     /** @return BelongsTo<Project, $this> */

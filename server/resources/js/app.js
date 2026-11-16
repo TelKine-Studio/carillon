@@ -494,6 +494,155 @@ Alpine.data('selectBox', () => ({
 
 /* ---------------------------------------------------- Message composer */
 
+/**
+ * Visual email editor: a list of blocks turned into table-based HTML that
+ * mail clients render the same way. Lives inside messageComposer (emailBody).
+ */
+const EMAIL_FONT = "-apple-system,Segoe UI,Helvetica,Arial,sans-serif";
+
+function emailEscape(value) {
+    return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/** Links typed by the author: web, mail, phone or a {{ variable }}. */
+function emailUrl(value) {
+    const url = String(value ?? '').trim();
+    return /^(https?:|mailto:|tel:|\{\{)/i.test(url) ? emailEscape(url) : '#';
+}
+
+/** Text with **bold**, *italic*, [links](https://…) and line breaks. */
+function emailInline(text, accent) {
+    // Quotes stay as typed so {{ tags.x | default: "…" }} keeps working.
+    return String(text ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/(^|[^*])\*([^*]+?)\*/g, '$1<em>$2</em>')
+        .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (all, label, url) => `<a href="${emailUrl(url.replace(/&amp;/g, '&'))}" style="color:${accent}">${label}</a>`)
+        .replace(/\n/g, '<br>');
+}
+
+export function renderEmailDesign(design) {
+    const accent = design.accent || '#e4531e';
+    const align = (block) => (['left', 'center', 'right'].includes(block.align) ? block.align : 'left');
+    const rows = (design.blocks || []).map((block) => {
+        switch (block.type) {
+            case 'heading':
+                return `<tr><td style="padding:0 32px 12px;text-align:${align(block)}"><h1 style="margin:0;font-size:${block.size === 'small' ? 18 : 24}px;line-height:1.3;color:#18181b">${emailInline(block.text, accent)}</h1></td></tr>`;
+            case 'text':
+                return `<tr><td style="padding:0 32px 16px;text-align:${align(block)};font-size:15px;line-height:1.6;color:#3f3f46">${emailInline(block.text, accent)}</td></tr>`;
+            case 'image': {
+                if (!block.src) return '';
+                const img = `<img src="${emailUrl(block.src)}" alt="${emailEscape(block.alt)}" width="${block.full ? 560 : 496}" style="display:block;width:100%;max-width:${block.full ? 560 : 496}px;height:auto;border:0${block.full ? '' : ';border-radius:6px'}">`;
+                const linked = block.href ? `<a href="${emailUrl(block.href)}">${img}</a>` : img;
+                return `<tr><td style="padding:${block.full ? '0 0 16px' : '0 32px 16px'}">${linked}</td></tr>`;
+            }
+            case 'button':
+                return `<tr><td style="padding:8px 32px 20px;text-align:${align(block)}"><a href="${emailUrl(block.href)}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:12px 22px;border-radius:6px">${emailEscape(block.text || '…')}</a></td></tr>`;
+            case 'divider':
+                return '<tr><td style="padding:8px 32px 20px"><div style="border-top:1px solid #e4e4e7;font-size:0;line-height:0">&nbsp;</div></td></tr>';
+            case 'spacer':
+                return `<tr><td style="height:${block.size === 'large' ? 40 : 20}px;font-size:0;line-height:0">&nbsp;</td></tr>`;
+            default:
+                return '';
+        }
+    });
+    const footer = design.footer ? `<p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#a1a1aa">${emailInline(design.footer, '#a1a1aa')}</p>` : '';
+
+    return `<!doctype html>
+<html>
+<body style="margin:0;background:${design.background || '#f4f4f5'};padding:32px 16px;font-family:${EMAIL_FONT};color:#18181b">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:8px;overflow:hidden">
+<tr><td style="height:32px;font-size:0;line-height:0">&nbsp;</td></tr>
+${rows.join('\n')}
+<tr><td style="height:16px;font-size:0;line-height:0">&nbsp;</td></tr>
+</table>
+<div style="max-width:560px;margin:24px auto 0;text-align:center">${footer}<p style="margin:0;font-size:12px;color:#a1a1aa"><a href="{{ unsubscribe_url }}" style="color:#a1a1aa">${emailEscape(design.unsubscribe || 'Unsubscribe')}</a></p></div>
+</td></tr></table>
+</body>
+</html>`;
+}
+
+Alpine.data('emailDesigner', (initial, labels) => ({
+    mode: initial ? 'visual' : null,
+    design: initial,
+    uid: 0,
+    accents: ['#e4531e', '#2563eb', '#16a34a', '#7c3aed', '#db2777', '#18181b'],
+    backgrounds: ['#f4f4f5', '#ffffff', '#fef3ec', '#eff6ff', '#f0fdf4'],
+
+    init() {
+        // An existing HTML body without design stays in HTML mode.
+        this.mode ??= this.emailBody.trim() ? 'html' : 'visual';
+        if (this.mode === 'visual' && !this.design) this.design = this.starter();
+        (this.design?.blocks ?? []).forEach((block) => (block.uid ??= ++this.uid));
+        this.$watch('design', () => this.sync(), { deep: true });
+        this.sync();
+    },
+
+    starter() {
+        return {
+            accent: '#e4531e',
+            background: '#f4f4f5',
+            footer: '',
+            unsubscribe: labels.unsubscribe,
+            blocks: [
+                { uid: ++this.uid, type: 'heading', text: labels.heading, align: 'left' },
+                { uid: ++this.uid, type: 'text', text: labels.text, align: 'left' },
+                { uid: ++this.uid, type: 'button', text: labels.button, href: 'https://', align: 'left' },
+            ],
+        };
+    },
+
+    sync() {
+        if (this.mode === 'visual' && this.design) this.emailBody = renderEmailDesign(this.design);
+    },
+
+    get designJson() {
+        return this.mode === 'visual' && this.design ? JSON.stringify({ ...this.design, blocks: this.design.blocks.map(({ uid, ...block }) => block) }) : '';
+    },
+
+    askReplace: false,
+
+    /** Written HTML is not turned into blocks: switching replaces it, after a confirmation. */
+    useVisual(confirmed = false) {
+        if (this.mode === 'visual') return;
+        if (!this.design && this.emailBody.trim() && !confirmed) {
+            this.askReplace = true;
+            return;
+        }
+        this.askReplace = false;
+        this.design ??= this.starter();
+        this.mode = 'visual';
+        this.sync();
+    },
+
+    useHtml() {
+        this.mode = 'html';
+    },
+
+    add(type) {
+        const defaults = {
+            heading: { text: '', align: 'left', size: 'large' },
+            text: { text: '', align: 'left' },
+            image: { src: '', alt: '', href: '', full: false },
+            button: { text: labels.button, href: 'https://', align: 'left' },
+            divider: {},
+            spacer: { size: 'small' },
+        };
+        this.design.blocks.push({ uid: ++this.uid, type, ...structuredClone(defaults[type]) });
+    },
+
+    move(index, step) {
+        const blocks = this.design.blocks;
+        const target = index + step;
+        if (target < 0 || target >= blocks.length) return;
+        [blocks[index], blocks[target]] = [blocks[target], blocks[index]];
+    },
+
+    remove(index) {
+        this.design.blocks.splice(index, 1);
+    },
+}));
+
 Alpine.data('messageComposer', (config) => ({
     ab: config.ab ?? false,
     test: { sending: false, result: '', ok: false, url: null },

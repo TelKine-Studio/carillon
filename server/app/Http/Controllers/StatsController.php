@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Audience\Retention;
 use App\Models\CustomEvent;
 use App\Models\Project;
 use App\Models\Subscription;
@@ -105,6 +106,7 @@ class StatsController extends Controller
                 ->orderByDesc('total')
                 ->limit(10)
                 ->get(),
+            'retention' => Retention::weekly($project),
             'legacy' => (clone $reachable)->where('sdk', Subscription::ONESIGNAL_SDK)->count(),
         ]);
     }

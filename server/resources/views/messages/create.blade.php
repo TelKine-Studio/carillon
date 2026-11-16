@@ -35,6 +35,10 @@
         'starterEmail' => view('email.starter')->render(),
         'emailBody' => old('email_body', is_string($source?->option('email_body')) ? $source->option('email_body') : ''),
     ];
+    $emailDesign = old('email_design') ? json_decode(old('email_design'), true) : $source?->option('email_design');
+    $emailDesign = is_array($emailDesign) && is_array($emailDesign['blocks'] ?? null) ? $emailDesign : null;
+    $designerLabels = ['heading' => __('Hello').' '.$open.' tags.first_name | default: "'.__('there').'" '.$close, 'text' => __('Write your message here.'), 'button' => __('Discover'), 'unsubscribe' => __('Unsubscribe')];
+    $blockTypes = ['heading' => __('Title'), 'text' => __('Text'), 'image' => __('Image'), 'button' => __('Button'), 'divider' => __('Divider'), 'spacer' => __('Space')];
     $externalIds = old('external_ids', implode(PHP_EOL, $targeting['external_ids'] ?? []));
     $deviceIds = old('subscription_ids', implode(PHP_EOL, $targeting['subscription_ids'] ?? []));
     $builtIn = ['Subscribed Users' => __('Subscribed Users'), 'Active Users' => __('Active Users'), 'Engaged Users' => __('Engaged Users'), 'Inactive Users' => __('Inactive Users'), 'iOS Users' => __('iOS Users'), 'Android Users' => __('Android Users'), 'Web Users' => __('Web Users'), 'Test Devices' => __('Test Devices')];
@@ -197,12 +201,108 @@
                     <x-ui.input name="email_subject" :label="__('Subject')" x-model="emailSubject" maxlength="255" :placeholder="__('e.g. Our new collection is here')" />
                     <x-ui.input name="email_preheader" :label="__('Preview text')" x-model="emailPreheader" maxlength="255" :hint="__('Shown after the subject in the inbox.')" optional />
                     <x-ui.input name="email_from_name" :label="__('Sender name')" :value="old('email_from_name', $source?->option('email_from_name'))" :placeholder="$project->credential('email')?->detail('from_name') ?: $project->name" optional />
-                    <div class="space-y-1.5">
+                    <div class="space-y-3" x-data="emailDesigner(@js($emailDesign), @js($designerLabels))">
                         <div class="flex items-center justify-between gap-3">
-                            <label for="email_body" class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Content (HTML)') }}</label>
-                            <button type="button" class="text-sm font-medium text-brand-700 hover:underline dark:text-brand-300" x-show="!emailBody.trim()" x-on:click="emailBody = starterEmail">{{ __('Start from a layout') }}</button>
+                            <label for="email_body" class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Content') }}</label>
+                            <div class="inline-flex gap-0.5 rounded-lg bg-zinc-100 p-0.5 text-xs dark:bg-white/5">
+                                @foreach (['visual' => [__('Visual'), 'layers'], 'html' => ['HTML', 'code']] as $key => [$label, $icon])
+                                    <button type="button" x-on:click="{{ $key === 'visual' ? 'useVisual()' : 'useHtml()' }}" class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium transition"
+                                        :class="mode === '{{ $key }}' ? 'bg-white text-zinc-900 shadow-(--shadow-soft) dark:bg-zinc-800 dark:text-white' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'">
+                                        <x-ui.icon :name="$icon" class="size-3.5" />{{ $label }}
+                                    </button>
+                                @endforeach
+                            </div>
                         </div>
-                        <textarea id="email_body" name="email_body" x-model="emailBody" rows="14" spellcheck="false" class="form-control resize-y font-mono text-[12.5px] leading-relaxed" placeholder="{{ '<p>'.__('Hello').' '.$open.' tags.first_name | default: "'.__('there').'" '.$close.'</p>' }}"></textarea>
+                        <input type="hidden" name="email_body" :value="emailBody">
+                        <input type="hidden" name="email_design" :value="designJson">
+
+                        <div x-show="askReplace" x-cloak class="flex flex-wrap items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
+                            <span class="min-w-0 flex-1">{{ __('The visual editor starts from a new layout: the HTML written here will be replaced.') }}</span>
+                            <x-ui.button type="button" size="sm" variant="secondary" x-on:click="askReplace = false">{{ __('Cancel') }}</x-ui.button>
+                            <x-ui.button type="button" size="sm" x-on:click="useVisual(true)">{{ __('Replace') }}</x-ui.button>
+                        </div>
+
+                        {{-- Visual --}}
+                        <div x-show="mode === 'visual'" class="space-y-3">
+                            <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-zinc-500">
+                                <span class="flex items-center gap-2">{{ __('Color') }}
+                                    <template x-for="color in accents" :key="color">
+                                        <button type="button" x-on:click="design.accent = color" class="size-5 rounded-full ring-offset-2 transition ring-offset-white dark:ring-offset-zinc-900" :class="design?.accent === color ? 'ring-2 ring-zinc-900 dark:ring-white' : 'hover:scale-110'" :style="`background:${color}`" :title="color"></button>
+                                    </template>
+                                </span>
+                                <span class="flex items-center gap-2">{{ __('Background') }}
+                                    <template x-for="color in backgrounds" :key="color">
+                                        <button type="button" x-on:click="design.background = color" class="size-5 rounded-full border border-zinc-300 ring-offset-2 transition ring-offset-white dark:border-zinc-600 dark:ring-offset-zinc-900" :class="design?.background === color ? 'ring-2 ring-zinc-900 dark:ring-white' : 'hover:scale-110'" :style="`background:${color}`" :title="color"></button>
+                                    </template>
+                                </span>
+                            </div>
+
+                            <template x-for="(block, index) in design?.blocks ?? []" :key="block.uid">
+                                <div class="group rounded-xl border border-zinc-200 bg-white p-3 transition hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700">
+                                    <div class="mb-2 flex items-center gap-2">
+                                        <span class="text-xs font-semibold tracking-wide text-zinc-500 uppercase" x-text="@js($blockTypes)[block.type]"></span>
+                                        <span class="flex-1"></span>
+                                        <template x-if="['heading', 'text', 'button'].includes(block.type)">
+                                            <span class="inline-flex gap-0.5 rounded-md bg-zinc-100 p-0.5 dark:bg-white/5">
+                                                @foreach (['left' => '⟸', 'center' => '⟺', 'right' => '⟹'] as $value => $glyph)
+                                                    <button type="button" x-on:click="block.align = '{{ $value }}'" class="rounded px-1.5 text-[11px] leading-5" :class="block.align === '{{ $value }}' ? 'bg-white text-zinc-900 shadow-(--shadow-soft) dark:bg-zinc-800 dark:text-white' : 'text-zinc-400 hover:text-zinc-700'" title="{{ ['left' => __('Align left'), 'center' => __('Align center'), 'right' => __('Align right')][$value] }}">{{ ['left' => __('Align left'), 'center' => __('Align center'), 'right' => __('Align right')][$value] }}</button>
+                                                @endforeach
+                                            </span>
+                                        </template>
+                                        <button type="button" x-on:click="move(index, -1)" :disabled="index === 0" class="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-30 dark:hover:bg-white/5" title="{{ __('Move up') }}"><x-ui.icon name="chevron-down" class="size-3.5 rotate-180" /></button>
+                                        <button type="button" x-on:click="move(index, 1)" :disabled="index === design.blocks.length - 1" class="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-30 dark:hover:bg-white/5" title="{{ __('Move down') }}"><x-ui.icon name="chevron-down" class="size-3.5" /></button>
+                                        <button type="button" x-on:click="remove(index)" class="rounded p-1 text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10" title="{{ __('Remove') }}"><x-ui.icon name="trash" class="size-3.5" /></button>
+                                    </div>
+                                    <template x-if="block.type === 'heading'">
+                                        <input x-model="block.text" class="form-control text-base font-semibold" placeholder="{{ __('Title') }}">
+                                    </template>
+                                    <template x-if="block.type === 'text'">
+                                        <textarea x-model="block.text" rows="3" class="form-control resize-y" placeholder="{{ __('Your text') }}"></textarea>
+                                    </template>
+                                    <template x-if="block.type === 'image'">
+                                        <div class="grid gap-2 sm:grid-cols-2">
+                                            <input x-model="block.src" type="url" class="form-control sm:col-span-2" placeholder="{{ __('Image link (https://…)') }}">
+                                            <input x-model="block.alt" class="form-control" placeholder="{{ __('Description (alt)') }}">
+                                            <input x-model="block.href" type="url" class="form-control" placeholder="{{ __('Link when clicked (optional)') }}">
+                                            <label class="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300"><input type="checkbox" x-model="block.full" class="form-checkbox rounded">{{ __('Full width') }}</label>
+                                        </div>
+                                    </template>
+                                    <template x-if="block.type === 'button'">
+                                        <div class="grid gap-2 sm:grid-cols-2">
+                                            <input x-model="block.text" class="form-control" placeholder="{{ __('Button text') }}">
+                                            <input x-model="block.href" class="form-control" placeholder="https://">
+                                        </div>
+                                    </template>
+                                    <template x-if="block.type === 'spacer'">
+                                        <span class="inline-flex gap-0.5 rounded-md bg-zinc-100 p-0.5 text-xs dark:bg-white/5">
+                                            @foreach (['small' => __('Small'), 'large' => __('Large')] as $value => $label)
+                                                <button type="button" x-on:click="block.size = '{{ $value }}'" class="rounded px-2 py-0.5" :class="block.size === '{{ $value }}' ? 'bg-white text-zinc-900 shadow-(--shadow-soft) dark:bg-zinc-800 dark:text-white' : 'text-zinc-500'">{{ $label }}</button>
+                                            @endforeach
+                                        </span>
+                                    </template>
+                                    <template x-if="block.type === 'divider'">
+                                        <div class="border-t border-zinc-200 dark:border-zinc-700"></div>
+                                    </template>
+                                </div>
+                            </template>
+
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                <span class="mr-1 text-xs font-medium text-zinc-500">{{ __('Add') }}</span>
+                                @foreach ($blockTypes as $type => $label)
+                                    <button type="button" x-on:click="add('{{ $type }}')" class="inline-flex items-center gap-1 rounded-md border border-dashed border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-600 transition hover:border-brand-500 hover:text-brand-700 dark:border-zinc-700 dark:text-zinc-300 dark:hover:text-brand-300"><x-ui.icon name="plus" class="size-3" />{{ $label }}</button>
+                                @endforeach
+                            </div>
+                            <input x-model="design.footer" class="form-control text-sm" placeholder="{{ __('Footer: address, legal notice… (optional)') }}" x-show="design">
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400">{!! __('In the texts: :bold, :link.', ['bold' => '<code class="font-mono">**'.e(__('bold')).'**</code>', 'link' => '<code class="font-mono">['.e(__('text')).'](https://…)</code>']) !!}</p>
+                        </div>
+
+                        {{-- HTML --}}
+                        <div x-show="mode === 'html'" x-cloak class="space-y-1.5">
+                            <div class="flex justify-end" x-show="!emailBody.trim()">
+                                <button type="button" class="text-sm font-medium text-brand-700 hover:underline dark:text-brand-300" x-on:click="emailBody = starterEmail">{{ __('Start from a layout') }}</button>
+                            </div>
+                            <textarea id="email_body" x-model="emailBody" rows="14" spellcheck="false" class="form-control resize-y font-mono text-[12.5px] leading-relaxed" placeholder="{{ '<p>'.__('Hello').' '.$open.' tags.first_name | default: "'.__('there').'" '.$close.'</p>' }}"></textarea>
+                        </div>
                         <p class="text-xs text-zinc-500 dark:text-zinc-400">{!! __('Variables: :vars. An unsubscribe link is added at the bottom unless you place :unsubscribe yourself.', ['vars' => collect(['email', 'external_id', 'tags.first_name', 'tags.plan | default: "free"'])->map($variable)->implode(', '), 'unsubscribe' => $variable('unsubscribe_url')]) !!}</p>
                     </div>
                 </div>

@@ -185,6 +185,7 @@ class OneSignalImport
             'device_os' => mb_substr((string) $value('device_os'), 0, 32) ?: null,
             'sessions' => (int) $value('session_count'),
             'last_active_at' => $this->date($value('last_active')),
+            'first_seen_at' => $this->date($value('created_at')),
         ];
     }
 
@@ -205,6 +206,9 @@ class OneSignalImport
         }
         foreach (['language', 'country', 'timezone'] as $field) {
             $subscriber->{$field} ??= $device[$field];
+        }
+        if (($device['first_seen_at'] ?? null) && $device['first_seen_at']->isPast() && (! $subscriber->first_seen_at || $subscriber->first_seen_at->gt($device['first_seen_at']))) {
+            $subscriber->first_seen_at = $device['first_seen_at'];
         }
         if ($device['last_active_at'] && (! $subscriber->last_active_at || $subscriber->last_active_at->lt($device['last_active_at']))) {
             $subscriber->last_active_at = $device['last_active_at'];

@@ -124,6 +124,12 @@ final class ComposerInput
             }
         }
 
+        // Blocks of the visual editor, kept to edit the email again (the HTML is what is sent).
+        $design = json_decode((string) $request->input('email_design'), true);
+        if (is_array($design) && is_array($design['blocks'] ?? null) && strlen((string) $request->input('email_design')) <= 200000) {
+            $kept['email_design'] = $design;
+        }
+
         return $kept;
     }
 
