@@ -21,6 +21,7 @@ use App\Http\Controllers\ProjectMemberController;
 use App\Http\Controllers\PushCredentialController;
 use App\Http\Controllers\SegmentController;
 use App\Http\Controllers\SetupController;
+use App\Http\Controllers\StatsController;
 use App\Http\Controllers\SubscriberController;
 use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\WebhookController;
@@ -75,6 +76,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/', [ProjectController::class, 'update'])->name('update');
         Route::delete('/', [ProjectController::class, 'destroy'])->name('destroy');
 
+        Route::get('stats', StatsController::class)->name('stats');
         Route::get('messages', [MessageController::class, 'index'])->name('messages.index');
         Route::get('messages/create', [MessageController::class, 'create'])->name('messages.create');
         Route::post('messages', [MessageController::class, 'store'])->name('messages.store');

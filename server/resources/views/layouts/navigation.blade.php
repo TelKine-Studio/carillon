@@ -6,6 +6,7 @@
     // Sections of a project; each appears once its pages exist.
     $sections = collect([
         ['route' => 'projects.show', 'match' => 'projects.show', 'icon' => 'home', 'label' => __('Overview')],
+        ['route' => 'projects.stats', 'match' => 'projects.stats', 'icon' => 'bar-chart', 'label' => __('Statistics')],
         ['route' => 'projects.messages.index', 'match' => 'projects.messages.*', 'icon' => 'send', 'label' => __('Messages')],
         ['route' => 'projects.subscribers.index', 'match' => 'projects.subscribers.*', 'icon' => 'users', 'label' => __('Audience')],
         ['route' => 'projects.segments.index', 'match' => 'projects.segments.*', 'icon' => 'layers', 'label' => __('Segments')],
