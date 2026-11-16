@@ -15,7 +15,7 @@
     <form method="POST" action="{{ route('projects.push.update', [$project, 'apns']) }}" enctype="multipart/form-data">
         @csrf
         @method('PUT')
-        <x-settings.section :title="__('iOS · Apple Push Notification service')" :description="__('A .p8 key of your Apple Developer account: one key works for all your apps and for both development and App Store builds.')" icon="apple"
+        <x-settings.section :title="__('iOS · Apple Push Notification service')" :description="__('A .p8 key of your Apple Developer account: one key works for all your apps. Create it with the environment Sandbox & Production, else debug builds and simulators receive nothing.')" icon="apple"
             :editable="$canConfigure" :empty="! $apns" :fields="['key_id', 'team_id', 'bundle_id', 'private_key']">
             <x-slot:status>
                 @if ($apns?->isUsable())<x-ui.badge color="green" dot>{{ __('Configured') }}</x-ui.badge>@else<x-ui.badge color="zinc">{{ __('Not configured') }}</x-ui.badge>@endif

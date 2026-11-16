@@ -941,7 +941,7 @@
     ":inviter invited you to join :app, a self-hosted push notification service.": ":inviter vous invite à rejoindre :app, un service de notifications push auto-hébergé.",
     ":name no longer has access to the project.": ":name n’a plus accès au projet.",
     ":name now has access to the project.": ":name a maintenant accès au projet.",
-    "A .p8 key of your Apple Developer account: one key works for all your apps and for both development and App Store builds.": "Une clé .p8 de votre compte Apple Developer : une seule clé sert pour toutes vos apps, en développement comme sur l’App Store.",
+    "A .p8 key of your Apple Developer account: one key works for all your apps. Create it with the environment Sandbox & Production, else debug builds and simulators receive nothing.": "Une clé .p8 de votre compte Apple Developer : une seule clé sert pour toutes vos apps. Créez-la avec l’environnement Sandbox & Production, sinon les builds de développement et les simulateurs ne reçoivent rien.",
     "A key is stored (encrypted). Leave empty to keep it.": "Une clé est enregistrée (chiffrée). Laissez vide pour la conserver.",
     "A key pair is generated when you save.": "Une paire de clés est générée à l’enregistrement.",
     "A project groups the subscribers, push keys and messages of one app. Use the same project for the iOS, Android and web versions of an app.": "Un projet regroupe les abonnés, les clés push et les messages d’une app. Utilisez le même projet pour les versions iOS, Android et web d’une app.",
