@@ -17,8 +17,12 @@
             ['route' => 'projects.templates.index', 'match' => 'projects.templates.*', 'icon' => 'file', 'label' => __('Templates')],
         ]],
         'audience' => [__('Audience'), [
-            ['route' => 'projects.subscribers.index', 'match' => ['projects.subscribers.*', 'projects.test-devices.*', 'projects.imports.*'], 'icon' => 'users', 'label' => __('Users & devices')],
+            ['route' => 'projects.subscribers.index', 'match' => ['projects.subscribers.*', 'projects.test-devices.*'], 'icon' => 'users', 'label' => __('Users & devices')],
             ['route' => 'projects.segments.index', 'match' => 'projects.segments.*', 'icon' => 'layers', 'label' => __('Segments')],
+        ]],
+        'data' => [__('Data'), [
+            ['route' => 'projects.integrations.index', 'match' => 'projects.integrations.*', 'icon' => 'grid', 'label' => __('Integrations')],
+            ['route' => 'projects.imports.create', 'match' => 'projects.imports.*', 'icon' => 'upload', 'label' => __('Import'), 'can' => 'configure'],
         ]],
         'settings' => [null, [
             ['route' => 'projects.settings', 'match' => 'projects.settings*', 'icon' => 'settings', 'label' => __('Settings')],
@@ -82,6 +86,7 @@
                     <div class="space-y-0.5">
                         @if ($groupLabel)<p class="eyebrow px-3 pb-1">{{ $groupLabel }}</p>@endif
                         @foreach ($items as $item)
+                            @continue(isset($item['can']) && ! auth()->user()?->can($item['can'], $current))
                             <a href="{{ route($item['route'], $current) }}" @class(['nav-link', 'nav-link-active' => request()->routeIs(...(array) $item['match'])])>
                                 <x-ui.icon :name="$item['icon']" class="size-[18px]" />
                                 <span class="flex-1">{{ $item['label'] }}</span>

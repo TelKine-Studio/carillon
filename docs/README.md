@@ -8,9 +8,11 @@
    messages, insights, team and security.
 4. [REST API](api.md): sending (OneSignal format), users, templates, custom
    events, webhooks.
-5. [Moving from OneSignal](migrate-from-onesignal.md): import, sync, switching
+5. [Integrations](integrations.md): PostHog, Mixpanel, Amplitude, Segment,
+   RudderStack, PostgreSQL, MySQL, S3, Slack, Discord.
+6. [Moving from OneSignal](migrate-from-onesignal.md): import, sync, switching
    the apps.
-6. [Operations](operations.md): health, backups, updates, large audiences,
+7. [Operations](operations.md): health, backups, updates, large audiences,
    troubleshooting.
 
 SDKs:

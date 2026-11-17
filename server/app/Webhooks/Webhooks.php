@@ -2,7 +2,9 @@
 
 namespace App\Webhooks;
 
+use App\Jobs\DeliverIntegrationEvent;
 use App\Jobs\DeliverWebhook;
+use App\Models\Integration;
 use App\Models\Project;
 use App\Models\Webhook;
 use Illuminate\Support\Str;
@@ -20,15 +22,24 @@ class Webhooks
     {
         $projectId = $project instanceof Project ? $project->id : $project;
 
-        [$at, $webhooks] = self::$cache[$projectId] ?? [0, null];
+        [$at, $webhooks, $integrations] = self::$cache[$projectId] ?? [0, null, null];
         if ($webhooks === null || time() - $at > self::CACHE_SECONDS) {
             $webhooks = Webhook::query()->where('project_id', $projectId)->where('enabled', true)->get();
-            self::$cache[$projectId] = [time(), $webhooks];
+            $integrations = Integration::query()->where('project_id', $projectId)->where('enabled', true)
+                ->whereIn('kind', Integration::STREAMS)->get();
+            self::$cache[$projectId] = [time(), $webhooks, $integrations];
         }
 
+        $payload = null;
         foreach ($webhooks as $webhook) {
             if ($webhook->listensTo($event)) {
-                DeliverWebhook::dispatch($webhook->id, self::payload($event, $data));
+                DeliverWebhook::dispatch($webhook->id, $payload ??= self::payload($event, $data));
+            }
+        }
+        // Analytics and chat tools following the same events.
+        foreach ($integrations as $integration) {
+            if ($integration->listensTo($event)) {
+                DeliverIntegrationEvent::dispatch($integration->id, $payload ??= self::payload($event, $data));
             }
         }
     }

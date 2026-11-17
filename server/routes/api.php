@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AppStatsController;
 use App\Http\Controllers\Api\CustomEventController;
 use App\Http\Controllers\Api\LiveActivityController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\SegmentSourceController;
 use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Sdk\ConfigController;
@@ -41,6 +42,9 @@ Route::prefix('v1')->group(function () {
         Route::post('apps/{app_id}/activities/activity/{activity_type}', [LiveActivityController::class, 'start']);
         Route::post('apps/{app_id}/live_activities/{activity_id}/notifications', [LiveActivityController::class, 'notify']);
     });
+
+    // Segment / RudderStack compatible source (write key of the integration).
+    Route::post('sources/segment/{appId}/{path?}', SegmentSourceController::class)->where('path', '.*')->middleware('throttle:sources')->name('sources.segment');
 
     // Bounces and complaints from the email service of a project.
     Route::post('email/{appId}/{provider}/{secret}', [EmailEventsController::class, 'store'])->middleware('throttle:email-events');

@@ -16,6 +16,7 @@ use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\EmailSettingsController;
 use App\Http\Controllers\EmailTrackingController;
 use App\Http\Controllers\InAppMessageController;
+use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\JourneyController;
 use App\Http\Controllers\LiveActivityController;
 use App\Http\Controllers\MessageController;
@@ -125,6 +126,15 @@ Route::middleware('auth')->group(function () {
         Route::post('ab-tests/{abTest}/winner', [AbTestController::class, 'winner'])->name('ab-tests.winner');
 
         Route::get('audience', [SubscriberController::class, 'index'])->name('subscribers.index');
+        Route::get('integrations', [IntegrationController::class, 'index'])->name('integrations.index');
+        Route::get('integrations/new/{card}', [IntegrationController::class, 'create'])->name('integrations.create');
+        Route::post('integrations', [IntegrationController::class, 'store'])->name('integrations.store');
+        Route::get('integrations/{integration}', [IntegrationController::class, 'show'])->whereNumber('integration')->name('integrations.show');
+        Route::put('integrations/{integration}', [IntegrationController::class, 'update'])->whereNumber('integration')->name('integrations.update');
+        Route::post('integrations/{integration}/test', [IntegrationController::class, 'test'])->whereNumber('integration')->name('integrations.test');
+        Route::post('integrations/{integration}/run', [IntegrationController::class, 'run'])->whereNumber('integration')->name('integrations.run');
+        Route::post('integrations/{integration}/rotate', [IntegrationController::class, 'rotate'])->whereNumber('integration')->name('integrations.rotate');
+        Route::delete('integrations/{integration}', [IntegrationController::class, 'destroy'])->whereNumber('integration')->name('integrations.destroy');
         Route::get('audience/import', [AudienceImportController::class, 'create'])->name('imports.create');
         Route::post('audience/import', [AudienceImportController::class, 'store'])->name('imports.store');
         Route::get('audience/import/{import}', [AudienceImportController::class, 'show'])->whereNumber('import')->name('imports.show');

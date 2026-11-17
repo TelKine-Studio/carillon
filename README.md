@@ -70,6 +70,9 @@ ways (plain Docker, Coolify, PostgreSQL): [docs/installation.md](docs/installati
 - **OneSignal-compatible REST API** and SDKs with the OneSignal API; the
   import and nightly sync of a OneSignal app keep the old app version
   reachable during the move.
+- **Integrations**: events to PostHog, Mixpanel, Amplitude, Slack or Discord;
+  users and events from Segment, RudderStack, or a SQL query on the database
+  of your app (PostgreSQL, MySQL); the daily send history in S3, R2 or MinIO.
 
 A tour of every screen: [docs/features.md](docs/features.md).
 
@@ -87,6 +90,7 @@ A tour of every screen: [docs/features.md](docs/features.md).
 [Channels](docs/channels.md) ·
 [Features](docs/features.md) ·
 [API](docs/api.md) ·
+[Integrations](docs/integrations.md) ·
 [Moving from OneSignal](docs/migrate-from-onesignal.md) ·
 [Operations](docs/operations.md)
 

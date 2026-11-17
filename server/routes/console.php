@@ -1,8 +1,10 @@
 <?php
 
+use App\Jobs\RunIntegration;
 use App\Jobs\SyncOneSignal;
 use App\Journeys\JourneyRunner;
 use App\LiveActivities\LiveActivities;
+use App\Models\Integration;
 use App\Models\OneSignalSync;
 use App\Support\SystemHealth;
 use Illuminate\Support\Facades\Cache;
@@ -39,3 +41,14 @@ Schedule::call(fn () => app(JourneyRunner::class)->sweepInactive())->hourly()->n
 
 // Live Activities nobody ended (end_after passed): ended by Carillon.
 Schedule::call(fn () => app(LiveActivities::class)->sweep())->everyMinute()->name('live-activities-sweep')->withoutOverlapping();
+
+// Integrations: SQL syncs (hourly, or daily at 03:00) and exports to S3 (04:15, the day before).
+Schedule::call(function () {
+    Integration::query()->where('enabled', true)->whereIn('kind', ['postgres', 'mysql'])->get()
+        ->filter(fn (Integration $integration) => $integration->setting('schedule', 'daily') === 'hourly' || now()->hour === 3)
+        ->each(fn (Integration $integration) => RunIntegration::dispatch($integration->id));
+})->hourly()->name('integrations-sql')->withoutOverlapping();
+Schedule::call(function () {
+    Integration::query()->where('enabled', true)->where('kind', 's3')->pluck('id')
+        ->each(fn (int $id) => RunIntegration::dispatch($id, now()->subDay()->toDateString()));
+})->dailyAt('04:15')->name('integrations-s3')->withoutOverlapping();
