@@ -2579,5 +2579,7 @@
     "Counted even while the verification is off: turn it on when almost every login sends a valid hash.": "Comptées même quand la vérification est désactivée : activez-la quand presque toutes les connexions envoient un hash valide.",
     "Valid hash": "Hash valide",
     "Without hash": "Sans hash",
-    "Wrong hash": "Hash faux"
+    "Wrong hash": "Hash faux",
+    ":count answer of the push service|:count answers of the push service": ":count réponse du service de push|:count réponses du service de push",
+    "token": "jeton"
 }

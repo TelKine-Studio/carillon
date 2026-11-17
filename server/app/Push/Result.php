@@ -11,7 +11,15 @@ final class Result
         public readonly ?string $error = null,
         /** The token is dead: the device no longer receives anything. */
         public readonly bool $invalid = false,
+        /** Answer of the provider: HTTP status, ids (apns-id, apns-unique-id…), host. */
+        public readonly array $response = [],
     ) {}
+
+    /** Same result with the details of the answer of the provider. */
+    public function withResponse(array $response): self
+    {
+        return new self($this->status, $this->error, $this->invalid, array_filter($response, fn ($value) => $value !== null && $value !== ''));
+    }
 
     public static function sent(): self
     {

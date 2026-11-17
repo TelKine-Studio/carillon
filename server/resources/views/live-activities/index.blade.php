@@ -56,6 +56,27 @@
                     <div><dt class="text-zinc-500 dark:text-zinc-400">{{ __('Ended') }}</dt><dd class="mt-0.5 font-medium text-zinc-900 tabular-nums dark:text-zinc-100">{{ $activity->ended_at?->isoFormat('D MMM HH:mm:ss') ?? '—' }}</dd></div>
                 </dl>
             </div>
+            @if ($activity->pushes)
+                {{-- Answers of Apple / Google: what was sent, accepted or refused, with the ids to trace it. --}}
+                <details class="group -mt-2 px-4 pb-3 text-xs sm:px-5">
+                    <summary class="flex cursor-pointer list-none items-center gap-1.5 font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
+                        <x-ui.icon name="chevron-right" class="size-3.5 transition group-open:rotate-90" />{{ trans_choice(':count answer of the push service|:count answers of the push service', count($activity->pushes)) }}
+                    </summary>
+                    <ul class="mt-2 space-y-2">
+                        @foreach ($activity->pushes as $push)
+                            <li class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                                <span class="tabular-nums text-zinc-500">{{ \Illuminate\Support\Carbon::parse($push['at'])->isoFormat('D MMM HH:mm:ss') }}</span>
+                                <span class="font-medium text-zinc-800 dark:text-zinc-200">{{ $push['event'] }}</span>
+                                <x-ui.badge :color="($push['result'] ?? '') === 'sent' ? 'green' : 'red'">{{ $push['status'] ?? '—' }}{{ isset($push['error']) ? ' · '.$push['error'] : '' }}</x-ui.badge>
+                                @isset($push['environment'])<span class="text-zinc-500">{{ $push['environment'] }}</span>@endisset
+                                @isset($push['token'])<span class="font-mono text-zinc-500">{{ __('token') }} {{ $push['token'] }}</span>@endisset
+                                @isset($push['apns_id'])<span class="inline-flex items-center gap-1 font-mono text-zinc-500">apns-id {{ $push['apns_id'] }}<x-ui.copy :value="$push['apns_id']" /></span>@endisset
+                                @isset($push['apns_unique_id'])<span class="inline-flex items-center gap-1 font-mono text-zinc-500">apns-unique-id {{ $push['apns_unique_id'] }}<x-ui.copy :value="$push['apns_unique_id']" /></span>@endisset
+                            </li>
+                        @endforeach
+                    </ul>
+                </details>
+            @endif
         @empty
             <x-ui.empty icon="activity" :title="$search !== '' ? __('No activity matches') : __('No Live Activity yet')"
                 :description="__('Start one from your server with POST /api/v1/apps/{app_id}/activities/activity/{type}: the guide is in the documentation (Channels → Live Activities).')" />

@@ -45,7 +45,7 @@ class LiveActivitiesTest extends TestCase
             'oauth2.googleapis.com/*' => Http::response(['access_token' => 'ya29.test', 'expires_in' => 3600]),
             'fcm.googleapis.com/*' => Http::response(['name' => 'projects/shop-123/messages/1']),
             'api.sandbox.push.apple.com/3/device/dead-start' => Http::response(['reason' => 'BadDeviceToken'], 400),
-            'api.sandbox.push.apple.com/*' => Http::response(null, 200),
+            'api.sandbox.push.apple.com/*' => Http::response(null, 200, ['apns-id' => 'A1B2C3D4-0000-0000-0000-000000000001', 'apns-unique-id' => 'u-123']),
             'api.push.apple.com/*' => Http::response(null, 200),
         ]);
     }
@@ -101,6 +101,26 @@ class LiveActivitiesTest extends TestCase
                 && $aps['alert'] === ['title' => 'Recharge en cours', 'body' => 'Recharge en cours']
                 && str_contains($request->body(), '"progression":0.4');
         });
+    }
+
+    public function test_the_answers_of_apple_are_kept_on_the_activity(): void
+    {
+        $phone = $this->device('phone-token', 'user-1');
+        $this->sdk($phone, 'start-token', ['activity_type' => 'DeliveryAttributes', 'token' => 'start-token-0123456789'])->assertOk();
+        $this->start()->assertOk();
+
+        $push = LiveActivity::sole()->pushes[0];
+        $this->assertSame('start', $push['event']);
+        $this->assertSame('sent', $push['result']);
+        $this->assertSame(200, $push['status']);
+        $this->assertSame('A1B2C3D4-0000-0000-0000-000000000001', $push['apns_id']);
+        $this->assertSame('u-123', $push['apns_unique_id']);
+        $this->assertSame('sandbox', $push['environment']);
+        $this->assertSame('start-to…456789', $push['token']);
+
+        $owner = User::factory()->admin()->create();
+        $this->project->addMember($owner, ProjectRole::Owner);
+        $this->actingAs($owner)->get(route('projects.live-activities.index', $this->project))->assertOk()->assertSee('A1B2C3D4-0000-0000-0000-000000000001');
     }
 
     public function test_starts_by_push_with_the_start_token_of_the_type(): void

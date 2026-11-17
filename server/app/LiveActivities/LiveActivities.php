@@ -135,6 +135,7 @@ class LiveActivities
         $errors = [];
         foreach ($results as $id => $result) {
             [$activity, $device] = $activities[$id];
+            $this->remember($activity, 'start', $result);
 
             if ($result->status === 'sent') {
                 // Android has no token to wait for: on screen at once.
@@ -372,6 +373,7 @@ class LiveActivities
 
         foreach ($results as $id => $result) {
             $activity = $byId[$id];
+            $this->remember($activity, $event, $result);
 
             if ($result->status === 'sent') {
                 // The token is kept after an end: sent again until the app
@@ -388,6 +390,13 @@ class LiveActivities
         }
 
         return $results;
+    }
+
+    /** Keeps the last answers of Apple / Google on the activity (saved with it). */
+    protected function remember(LiveActivity $activity, string $event, Result $result): void
+    {
+        $push = ['event' => $event, 'at' => now()->toIso8601String(), 'result' => $result->status, 'error' => $result->error, ...$result->response];
+        $activity->pushes = array_slice([array_filter($push, fn ($value) => $value !== null), ...($activity->pushes ?? [])], 0, 10);
     }
 
     /**

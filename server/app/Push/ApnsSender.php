@@ -81,7 +81,15 @@ class ApnsSender implements Sender
 
         $results = [];
         foreach ($responses as $id => $response) {
-            $results[$id] = $this->result($credential, $response);
+            $request = $requests[$id] ?? $requests[(int) $id] ?? [];
+            $results[$id] = $this->result($credential, $response)->withResponse([
+                'status' => $response instanceof Response ? $response->status() : null,
+                // apns-unique-id (development only) finds the push in the Push Notifications Console of Apple.
+                'apns_id' => $response instanceof Response ? $response->header('apns-id') : null,
+                'apns_unique_id' => $response instanceof Response ? $response->header('apns-unique-id') : null,
+                'environment' => isset(self::HOSTS[$request['environment'] ?? '']) ? $request['environment'] : 'production',
+                'token' => isset($request['token']) ? substr((string) $request['token'], 0, 8).'…'.substr((string) $request['token'], -6) : null,
+            ]);
         }
 
         return $results;
