@@ -4,7 +4,7 @@
     $svg = isset($card['logo']) ? \App\Integrations\Catalog::logo($card['logo']) : null;
 @endphp
 @if ($svg)
-    <span class="{{ $size }} inline-flex shrink-0 items-center justify-center rounded-lg bg-white p-[18%] ring-1 ring-zinc-200 dark:ring-white/10" aria-hidden="true">{!! $svg !!}</span>
+    <span class="{{ $size }} inline-flex shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-zinc-200 dark:ring-white/10" aria-hidden="true"><span class="flex size-[62%] items-center justify-center [&>svg]:size-full">{!! $svg !!}</span></span>
 @elseif ($card['monogram'] ?? '')
     <span class="{{ $size }} inline-flex shrink-0 items-center justify-center rounded-lg text-[13px] font-semibold tracking-tight text-white" style="background: {{ $card['color'] }}" aria-hidden="true">{{ $card['monogram'] }}</span>
 @else
