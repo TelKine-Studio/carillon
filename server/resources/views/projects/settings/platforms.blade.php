@@ -11,11 +11,62 @@
     ];
 @endphp
 <x-projects.settings :project="$project" :section="$section">
+    @php
+        $platformRows = [
+            'apns' => ['apple', 'Apple iOS', 'APNs'],
+            'fcm' => ['android', 'Google Android', 'FCM'],
+            'hms' => ['android', 'Huawei Android', 'Push Kit'],
+            'adm' => ['android', 'Amazon Fire', 'ADM'],
+            'webpush' => ['globe-web', __('Web browsers'), 'VAPID'],
+            'email' => ['mail', __('Email'), null],
+            'sms' => ['message', 'SMS', null],
+            'whatsapp' => ['chat', 'WhatsApp', 'Cloud API'],
+        ];
+    @endphp
+    <div class="card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[520px] text-sm">
+                <thead>
+                    <tr class="border-b border-zinc-100 bg-zinc-50/70 text-left text-xs text-zinc-500 dark:border-zinc-800 dark:bg-white/[.02]">
+                        <th class="px-5 py-2.5 font-medium sm:px-6">{{ __('Platform') }}</th>
+                        <th class="px-3 py-2.5 font-medium">{{ __('Status') }}</th>
+                        <th class="px-5 py-2.5 text-right font-medium sm:px-6"><span class="sr-only">{{ __('Actions') }}</span></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                    @foreach ($platformRows as $provider => [$platformIcon, $platformName, $platformService])
+                        @php $platformCredential = $project->credential($provider); @endphp
+                        <tr class="transition hover:bg-zinc-50/80 dark:hover:bg-white/[.02]">
+                            <td class="px-5 py-3 sm:px-6">
+                                <span class="flex items-center gap-3">
+                                    <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 dark:bg-white/5 dark:text-zinc-300"><x-ui.icon :name="$platformIcon" class="size-4" /></span>
+                                    <span class="font-medium text-zinc-900 dark:text-zinc-100">{{ $platformName }}</span>
+                                    @if ($platformService)<span class="hidden text-xs text-zinc-400 sm:inline">{{ $platformService }}</span>@endif
+                                </span>
+                            </td>
+                            <td class="px-3 py-3 whitespace-nowrap">
+                                @if ($platformCredential?->isUsable())
+                                    <span class="inline-flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300"><span class="size-2 rounded-full bg-emerald-500"></span>{{ __('Active') }}</span>
+                                @elseif ($platformCredential)
+                                    <span class="inline-flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300"><span class="size-2 rounded-full bg-amber-500"></span>{{ __('Incomplete') }}</span>
+                                @else
+                                    <span class="inline-flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400"><span class="size-2 rounded-full bg-zinc-300 dark:bg-zinc-600"></span>{{ __('Not configured') }}</span>
+                                @endif
+                            </td>
+                            <td class="px-5 py-3 text-right sm:px-6">
+                                <a href="#platform-{{ $provider }}" class="text-sm font-medium whitespace-nowrap text-brand-700 hover:text-brand-800 dark:text-brand-300 dark:hover:text-brand-200">{{ $platformCredential ? __('Manage') : __('Set up') }}</a>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
     {{-- Apple --}}
     <form method="POST" action="{{ route('projects.push.update', [$project, 'apns']) }}" enctype="multipart/form-data">
         @csrf
         @method('PUT')
-        <x-settings.section :title="__('iOS · Apple Push Notification service')" :description="__('A .p8 key of your Apple Developer account: one key works for all your apps. Create it with the environment Sandbox & Production, else debug builds and simulators receive nothing.')" icon="apple"
+        <x-settings.section id="platform-apns" class="scroll-mt-6" :title="__('iOS · Apple Push Notification service')" :description="__('A .p8 key of your Apple Developer account: one key works for all your apps. Create it with the environment Sandbox & Production, else debug builds and simulators receive nothing.')" icon="apple"
             :editable="$canConfigure" :empty="! $apns" :fields="['key_id', 'team_id', 'bundle_id', 'private_key']">
             <x-slot:status>
                 @if ($apns?->isUsable())<x-ui.badge color="green" dot>{{ __('Configured') }}</x-ui.badge>@else<x-ui.badge color="zinc">{{ __('Not configured') }}</x-ui.badge>@endif
@@ -64,7 +115,7 @@
     <form method="POST" action="{{ route('projects.push.update', [$project, 'fcm']) }}" enctype="multipart/form-data">
         @csrf
         @method('PUT')
-        <x-settings.section :title="__('Android · Firebase Cloud Messaging')" :description="__('The service account key of the Firebase project of your Android app.')" icon="android"
+        <x-settings.section id="platform-fcm" class="scroll-mt-6" :title="__('Android · Firebase Cloud Messaging')" :description="__('The service account key of the Firebase project of your Android app.')" icon="android"
             :editable="$canConfigure" :empty="! $fcm" :fields="['service_account', 'google_services']">
             <x-slot:status>
                 @if ($fcm?->isUsable())<x-ui.badge color="green" dot>{{ __('Configured') }}</x-ui.badge>@else<x-ui.badge color="zinc">{{ __('Not configured') }}</x-ui.badge>@endif
@@ -99,7 +150,7 @@
         <form method="POST" action="{{ route('projects.push.update', [$project, $provider]) }}">
             @csrf
             @method('PUT')
-            <x-settings.section :title="$title" :description="$description" icon="android"
+            <x-settings.section id="platform-{{ $provider }}" class="scroll-mt-6" :title="$title" :description="$description" icon="android"
                 :editable="$canConfigure" :empty="! $credential" :fields="[$idField, $secretField]">
                 <x-slot:status>
                     @if ($credential?->isUsable())<x-ui.badge color="green" dot>{{ __('Configured') }}</x-ui.badge>@else<x-ui.badge color="zinc">{{ __('Not configured') }}</x-ui.badge>@endif
@@ -134,7 +185,7 @@
     <form method="POST" action="{{ route('projects.push.update', [$project, 'webpush']) }}" x-data="{ custom: {{ $errors->hasAny(['public_key', 'private_key']) ? 'true' : 'false' }} }">
         @csrf
         @method('PUT')
-        <x-settings.section :title="__('Web · Push API')" :description="__('Notifications in Chrome, Edge, Firefox and Safari, with VAPID keys.')" icon="globe-web"
+        <x-settings.section id="platform-webpush" class="scroll-mt-6" :title="__('Web · Push API')" :description="__('Notifications in Chrome, Edge, Firefox and Safari, with VAPID keys.')" icon="globe-web"
             :editable="$canConfigure" :empty="! $web" :fields="['subject', 'public_key', 'private_key']">
             <x-slot:status>
                 @if ($web?->isUsable())<x-ui.badge color="green" dot>{{ __('Configured') }}</x-ui.badge>@else<x-ui.badge color="zinc">{{ __('Not configured') }}</x-ui.badge>@endif
@@ -183,7 +234,7 @@
     <form method="POST" action="{{ route('projects.push.update', [$project, 'sms']) }}" x-data="{ driver: @js($smsDriver) }">
         @csrf
         @method('PUT')
-        <x-settings.section :title="__('SMS')" :description="__('Text messages to the phone numbers of your audience, with Twilio or Orange.')" icon="message"
+        <x-settings.section id="platform-sms" class="scroll-mt-6" :title="__('SMS')" :description="__('Text messages to the phone numbers of your audience, with Twilio or Orange.')" icon="message"
             :editable="$canConfigure" :empty="! $sms" :fields="['driver', 'account_sid', 'from', 'auth_token', 'client_id', 'client_secret', 'sender_address', 'sender_name']">
             <x-slot:status>
                 @if ($sms?->isUsable())<x-ui.badge color="green" dot>{{ $smsProviders[$sms->detail('driver', 'twilio')] ?? __('Configured') }}</x-ui.badge>@else<x-ui.badge color="zinc">{{ __('Not configured') }}</x-ui.badge>@endif
@@ -296,7 +347,7 @@
     <form method="POST" action="{{ route('projects.push.update', [$project, 'whatsapp']) }}">
         @csrf
         @method('PUT')
-        <x-settings.section :title="__('WhatsApp · Cloud API')" :description="__('Messages on WhatsApp from your WhatsApp Business number (Meta).')" icon="chat"
+        <x-settings.section id="platform-whatsapp" class="scroll-mt-6" :title="__('WhatsApp · Cloud API')" :description="__('Messages on WhatsApp from your WhatsApp Business number (Meta).')" icon="chat"
             :editable="$canConfigure" :empty="! $whatsapp" :fields="['phone_number_id', 'business_account_id', 'access_token']">
             <x-slot:status>
                 @if ($whatsapp?->isUsable())<x-ui.badge color="green" dot>{{ __('Configured') }}</x-ui.badge>@else<x-ui.badge color="zinc">{{ __('Not configured') }}</x-ui.badge>@endif

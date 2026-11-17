@@ -19,7 +19,7 @@
 <form method="POST" action="{{ route('projects.email.update', $project) }}" x-data="{ driver: @js($driver) }">
     @csrf
     @method('PUT')
-    <x-settings.section :title="__('Email')" :description="__('Send emails to your audience, with the service of your choice.')" icon="mail"
+    <x-settings.section id="platform-email" class="scroll-mt-6" :title="__('Email')" :description="__('Send emails to your audience, with the service of your choice.')" icon="mail"
         :editable="$canConfigure" :empty="! $mail"
         :fields="['driver', 'from_address', 'from_name', 'host', 'port', 'encryption', 'username', 'secret', 'aws_key_id', 'region', 'domain', 'message_stream', 'helo', 'rate', 'reply_to', 'tracking']">
         <x-slot:status>

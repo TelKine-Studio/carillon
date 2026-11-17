@@ -2216,5 +2216,13 @@
     "Chosen users": "Utilisateurs choisis",
     "Chosen devices": "Appareils choisis",
     "At the same local time for each person": "À la même heure locale pour chacun",
-    "It will reach :count people: a message sent cannot be taken back.": "Il touchera :count personnes : un message envoyé ne peut pas être rattrapé."
+    "It will reach :count people: a message sent cannot be taken back.": "Il touchera :count personnes : un message envoyé ne peut pas être rattrapé.",
+    "Keys & IDs": "Clés et identifiants",
+    "Platforms, keys and members of :name.": "Plateformes, clés et membres de :name.",
+    "Identifiers": "Identifiants",
+    "What your apps and your server need to reach this project.": "Ce dont vos apps et votre serveur ont besoin pour joindre ce projet.",
+    "Server URL": "Adresse du serveur",
+    "In the SDK of your apps and in the API URLs.": "Dans le SDK de vos apps et dans les URL de l’API.",
+    "Where the SDK and your server send their requests.": "Là où le SDK et votre serveur envoient leurs requêtes.",
+    "Incomplete": "Incomplète"
 }

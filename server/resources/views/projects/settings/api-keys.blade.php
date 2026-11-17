@@ -1,4 +1,24 @@
 <x-projects.settings :project="$project" :section="$section">
+    <x-ui.card :title="__('Identifiers')" :description="__('What your apps and your server need to reach this project.')" icon="link" :padding="false">
+        <dl class="divide-y divide-zinc-100 dark:divide-zinc-800">
+            @foreach ([[__('App ID'), $project->app_id, __('In the SDK of your apps and in the API URLs.')], [__('Server URL'), url('/'), __('Where the SDK and your server send their requests.')]] as [$idLabel, $idValue, $idHint])
+                <div x-data="copy" class="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:gap-6 sm:px-6">
+                    <dt class="sm:w-44 sm:shrink-0">
+                        <span class="block text-sm font-medium text-zinc-900 dark:text-white">{{ $idLabel }}</span>
+                        <span class="block text-xs text-zinc-500 dark:text-zinc-400">{{ $idHint }}</span>
+                    </dt>
+                    <dd class="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 py-1 pr-1 pl-3 dark:border-zinc-800 dark:bg-white/[.03]">
+                        <code x-ref="source" class="min-w-0 flex-1 truncate font-mono text-[13px] text-zinc-800 dark:text-zinc-200">{{ $idValue }}</code>
+                        <button type="button" x-on:click="copy()" class="inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-zinc-500 transition hover:bg-zinc-200/70 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white">
+                            <x-ui.icon name="copy" class="size-3.5" x-show="!copied" />
+                            <x-ui.icon name="check" class="size-3.5 text-emerald-500" x-show="copied" x-cloak />
+                            <span x-text="copied ? @js(__('Copied')) : @js(__('Copy'))">{{ __('Copy') }}</span>
+                        </button>
+                    </dd>
+                </div>
+            @endforeach
+        </dl>
+    </x-ui.card>
     <x-ui.card :title="__('API keys')" :description="__('Your server sends notifications and manages subscribers with these keys. Keep them secret: never put them in an app.')" icon="key" :padding="false">
         @if ($canConfigure)
             <x-slot:actions>
