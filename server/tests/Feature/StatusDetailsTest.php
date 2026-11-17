@@ -161,4 +161,22 @@ class StatusDetailsTest extends TestCase
         $page(['view' => 'test'])->assertSee('My phone')->assertSee('Pixel-Busy')->assertDontSee('Pixel-Idle')
             ->assertSee(__('Rename'))->assertDontSee('@js(', false);
     }
+
+    public function test_segments_page_like_onesignal(): void
+    {
+        $this->device('a', ['external_id' => 'u1', 'country' => 'CI']);
+        $this->project->segments()->create(['name' => 'VIP', 'filters' => [['field' => 'tag', 'key' => 'plan', 'relation' => '=', 'value' => 'vip'], ['operator' => 'OR'], ['field' => 'last_session', 'relation' => '<', 'hours_ago' => 24]]]);
+
+        $this->actingAs($this->owner)->get(route('projects.segments.index', $this->project))->assertOk()
+            ->assertSee('VIP')->assertSee('plan '.__('is').' vip')->assertSee(__('Push subscribers'))->assertSee(__('Start from a quick segment'))
+            ->assertSee(__('Last session less than :hours hours ago', ['hours' => 168]))->assertSee(__('Send a message'))->assertDontSee('@js(', false);
+
+        foreach (['new', 'country', 'location', 'tag'] as $recipe) {
+            $this->actingAs($this->owner)->get(route('projects.segments.create', [$this->project, 'recipe' => $recipe]))->assertOk();
+        }
+        $this->actingAs($this->owner)->get(route('projects.segments.create', [$this->project, 'recipe' => 'country']))->assertSee('CI');
+
+        // "Send a message" preselects the segment in the composer.
+        $this->actingAs($this->owner)->get(route('projects.messages.create', [$this->project, 'segment' => 'VIP']))->assertOk()->assertSee('VIP');
+    }
 }

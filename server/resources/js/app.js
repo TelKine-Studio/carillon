@@ -937,7 +937,7 @@ Alpine.data('segmentBuilder', (config) => ({
             if (filter.operator === 'OR') groups.push([]);
             else if (filter.field === 'location') {
                 // Shown as "lat, long" (key) and a radius (value).
-                groups[groups.length - 1].push({ field: 'location', key: `${filter.lat ?? ''}, ${filter.long ?? ''}`, relation: 'within', value: String(filter.radius ?? ''), hours_ago: '' });
+                groups[groups.length - 1].push({ field: 'location', key: [filter.lat, filter.long].filter((part) => part !== '' && part !== null && part !== undefined).join(', '), relation: 'within', value: String(filter.radius ?? ''), hours_ago: '' });
             } else groups[groups.length - 1].push({ field: 'tag', key: '', relation: '=', value: '', hours_ago: '', ...filter });
         }
         this.groups = groups.filter((g) => g.length).length ? groups.filter((g) => g.length) : [[this.blank()]];

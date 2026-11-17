@@ -21,7 +21,8 @@
         'languages' => $languages,
         'texts' => old('texts', $texts),
         'audience' => old('audience', ! empty($targeting['external_ids']) ? 'users' : (! empty($targeting['subscription_ids']) ? 'devices' : 'segments')),
-        'included' => old('included_segments', $targeting['segments'] ?? ['Subscribed Users']),
+        // "Send a message" from the segments page preselects the segment.
+        'included' => old('included_segments', $targeting['segments'] ?? (in_array(request('segment'), [...\App\Models\Segment::BUILT_IN, ...$segments->all()], true) ? [request('segment')] : ['Subscribed Users'])),
         'excluded' => old('excluded_segments', $targeting['excluded_segments'] ?? []),
         'platforms' => old('platforms', $targeting['platforms'] ?? ($ready ?: ['ios', 'android', 'web'])),
         'image' => old('big_picture', $source?->option('big_picture')),

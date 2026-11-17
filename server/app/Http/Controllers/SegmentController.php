@@ -21,19 +21,22 @@ class SegmentController extends Controller
     {
         $this->authorize('view', $project);
 
-        $counts = [];
-        foreach (Segment::BUILT_IN as $name) {
-            if ($name !== 'All') {
-                $counts[$name] = $this->audience->query($project, ['segments' => [$name]])->count();
-            }
-        }
-
         $segments = $project->segments()->orderBy('name')->get();
-        foreach ($segments as $segment) {
+        $names = [...$segments->pluck('name')->all(), ...array_values(array_diff(Segment::BUILT_IN, ['All']))];
+
+        // Like OneSignal: subscribers per channel, and the people behind them.
+        $counts = [];
+        foreach ($names as $name) {
             try {
-                $counts[$segment->name] = $this->audience->query($project, ['segments' => [$segment->name]])->count();
+                $count = fn (string $channel) => $this->audience->query($project, ['segments' => [$name], 'channel' => $channel])->count();
+                $counts[$name] = [
+                    'push' => $count('push'),
+                    'email' => $count('email'),
+                    'sms' => $count('sms') + $count('whatsapp'),
+                    'users' => $this->audience->query($project, ['segments' => [$name]])->distinct()->count('subscriptions.subscriber_id'),
+                ];
             } catch (ValidationException) {
-                $counts[$segment->name] = null;
+                $counts[$name] = null;
             }
         }
 
@@ -44,7 +47,16 @@ class SegmentController extends Controller
     {
         $this->authorize('send', $project);
 
-        return view('segments.form', ['project' => $project, 'segment' => new Segment(['filters' => [['field' => 'tag', 'key' => '', 'relation' => '=', 'value' => '']]])]);
+        // Quick starts of the segments page (OneSignal "quickstart segments").
+        [$name, $filters] = match (request()->query('recipe')) {
+            'new' => [__('New users'), [['field' => 'first_session', 'relation' => '<', 'hours_ago' => 3]]],
+            'country' => [__('Users of a country'), [['field' => 'country', 'relation' => '=', 'value' => $project->subscribers()->whereNotNull('country')->groupBy('country')->orderByRaw('count(*) desc')->value('country') ?? '']]],
+            'location' => [__('Around a place'), [['field' => 'location', 'lat' => '', 'long' => '', 'radius' => 5000]]],
+            'tag' => [__('Users with a tag'), [['field' => 'tag', 'key' => '', 'relation' => '=', 'value' => '']]],
+            default => ['', [['field' => 'tag', 'key' => '', 'relation' => '=', 'value' => '']]],
+        };
+
+        return view('segments.form', ['project' => $project, 'segment' => new Segment(['name' => $name, 'filters' => $filters])]);
     }
 
     public function store(Request $request, Project $project): RedirectResponse
