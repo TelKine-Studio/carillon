@@ -179,4 +179,15 @@ class HardeningTest extends TestCase
         $this->actingAs($viewer)->get(route('projects.settings', [$this->project, 'platforms']))->assertOk()->assertDontSee('bounce-secret-123');
         $this->actingAs($this->owner)->get(route('projects.settings', [$this->project, 'platforms']))->assertOk()->assertSee('bounce-secret-123');
     }
+
+    public function test_https_headers_and_redirects_follow_the_instance_url(): void
+    {
+        app(Settings::class)->set(['app.url' => 'https://carillon.example.com']);
+
+        $this->get('http://carillon.example.com/projects')->assertRedirect('https://carillon.example.com/login')
+            ->assertHeader('Strict-Transport-Security', 'max-age=31536000')
+            ->assertHeader('Content-Security-Policy');
+        // Another host (an IP address, a misconfigured URL): no HSTS.
+        $this->get('http://10.0.0.9:8080/projects')->assertRedirect()->assertHeaderMissing('Strict-Transport-Security');
+    }
 }

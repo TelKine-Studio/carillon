@@ -49,6 +49,11 @@ $app = Application::configure(basePath: dirname(__DIR__))
             before: AuthenticatesRequests::class,
             prepend: EnsureApplicationIsInstalled::class,
         );
+        // https links and redirects decided before the redirect to the login page.
+        $middleware->prependToPriorityList(
+            before: EnsureApplicationIsInstalled::class,
+            prepend: SecurityHeaders::class,
+        );
 
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(fn () => route('projects.index'));
