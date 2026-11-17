@@ -5,7 +5,7 @@
     $config = [
         'labels' => ['push' => __('Send a notification'), 'email' => __('Send an email'), 'sms' => __('Send an SMS'), 'whatsapp' => __('Send a WhatsApp message'), 'in_app' => __('Show an in-app message'), 'wait' => __('Wait'), 'wait_event' => __('Wait for an event'), 'condition' => __('Condition'), 'split' => __('A/B split'), 'exit' => __('End of the journey')],
         'texts' => [
-            'units' => ['minutes' => __('minutes'), 'hours' => __('hours'), 'days' => __('days')],
+            'units' => ['minutes' => [__('minute'), __('minutes')], 'hours' => [__('hour'), __('hours')], 'days' => [__('day'), __('days')]],
             'exit' => __('leave the journey'), 'next' => __('next step'), 'step' => __('step :number'),
             'yes' => __('Yes'), 'no' => __('No'), 'from_template' => __('From a template'), 'empty' => __('Not written yet'),
             'wait_for' => __('Wait :duration'), 'wait_event' => __('Until :event, at most :duration'),

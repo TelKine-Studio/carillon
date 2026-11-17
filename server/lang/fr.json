@@ -2376,5 +2376,8 @@
     "Every journey reacts to what users do: opening, purchases, going quiet.": "Chaque parcours réagit à ce que font les utilisateurs : ouvertures, achats, silences.",
     "Launch once, it runs on its own while you work on what is next.": "Lancé une fois, il tourne seul pendant que vous passez à la suite.",
     "A/B test messages, timing and channels to see what converts.": "Testez en A/B les messages, les délais et les canaux pour voir ce qui convertit.",
-    "Or start from a quick journey": "Ou partez d’un parcours prêt à l’emploi"
+    "Or start from a quick journey": "Ou partez d’un parcours prêt à l’emploi",
+    "minute": "minute",
+    "hour": "heure",
+    "day": "jour"
 }

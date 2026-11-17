@@ -177,7 +177,8 @@ Alpine.data('journeyEditor', (config) => ({
         return number ? this.texts.step.replace(':number', number) : this.texts.exit;
     },
     duration(step) {
-        return `${step.amount} ${this.texts.units[step.unit] ?? ''}`;
+        const [one, many] = this.texts.units[step.unit] ?? ['', ''];
+        return `${step.amount} ${Number(step.amount) === 1 ? one : many}`;
     },
     summary(step) {
         const t = this.texts;
