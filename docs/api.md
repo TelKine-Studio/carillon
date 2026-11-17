@@ -320,8 +320,10 @@ POST /api/v1/apps/{app_id}/activities/activity/{activity_type}
   `indeterminate`, `chronometer` (Unix seconds to count from or to),
   `color`, `small_icon`. Updates only send what changes. `data` is given to
   the click listener of the app when the notification is tapped.
-- `headings` / `contents` are the alert iOS shows at the start (required by
-  Apple; the `name` is used without them).
+- `headings` / `contents` are the alert iOS shows at the start. Apple refuses
+  a start whose alert lacks the title or the body, so both are always sent:
+  a missing one comes from the standard activity (`live`), the `name`, or
+  the other one. Send both for a readable alert.
 - An `activity_id` starts once per device: calling start again (a retry of
   your backend) does nothing (`already`).
 - `end_after` (seconds, default 8 hours, Apple's limit): Carillon ends the

@@ -86,6 +86,23 @@ class LiveActivitiesTest extends TestCase
         ]);
     }
 
+    public function test_a_start_without_texts_still_has_a_complete_alert_and_typed_state(): void
+    {
+        $phone = $this->device('phone-token', 'user-1');
+        $this->sdk($phone, 'start-token', ['activity_type' => 'DeliveryAttributes', 'token' => 'start-token-1'])->assertOk();
+
+        // iOS refuses a start whose alert lacks the title or the body.
+        $this->start(['headings' => null, 'contents' => null, 'name' => 'Recharge en cours', 'event_updates' => ['etat' => 'en_cours', 'progression' => 0.4]])->assertOk();
+
+        Http::assertSent(function (HttpRequest $request) {
+            $aps = $request['aps'] ?? [];
+
+            return ($aps['event'] ?? null) === 'start'
+                && $aps['alert'] === ['title' => 'Recharge en cours', 'body' => 'Recharge en cours']
+                && str_contains($request->body(), '"progression":0.4');
+        });
+    }
+
     public function test_starts_by_push_with_the_start_token_of_the_type(): void
     {
         $phone = $this->device('phone-token', 'user-1');

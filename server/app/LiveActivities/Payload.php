@@ -29,8 +29,9 @@ final class Payload
             'content-state' => (object) $state,
             'attributes-type' => $type,
             'attributes' => (object) $attributes,
-            // iOS shows the start as an alert: required by Apple.
-            'alert' => self::alert($data, $language) ?? ['title' => (string) ($data['name'] ?? $type)],
+            // iOS shows the start as an alert and refuses a start whose alert
+            // lacks the title or the body ("start without an alert configuration").
+            'alert' => self::startAlert($data, $type, $language),
             ...self::common($data),
         ];
 
@@ -69,6 +70,24 @@ final class Payload
             'dismissal-date' => isset($data['dismissal_date']) ? (int) $data['dismissal_date'] : null,
             'relevance-score' => isset($data['ios_relevance_score']) ? (float) $data['ios_relevance_score'] : null,
         ], fn ($value) => $value !== null);
+    }
+
+    /**
+     * Alert of a start: always a title and a body. Missing ones come from the
+     * standard activity ("live"), the name of the activity, then each other.
+     *
+     * @return array<string, string>
+     */
+    protected static function startAlert(array $data, string $type, ?string $language): array
+    {
+        $alert = self::alert($data, $language) ?? [];
+        $live = is_array($data['live'] ?? null) ? $data['live'] : [];
+        $alert['title'] ??= LiveActivities::text($live['title'] ?? null, $language) ?? (filled($data['name'] ?? null) ? (string) $data['name'] : null);
+        $alert['body'] ??= LiveActivities::text($live['body'] ?? null, $language) ?? $alert['title'];
+        $alert['title'] ??= $alert['body'] ?? $type;
+        $alert['body'] ??= $alert['title'];
+
+        return $alert;
     }
 
     /** @return array<string, string>|null */
