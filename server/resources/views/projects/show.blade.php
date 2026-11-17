@@ -63,9 +63,14 @@
     <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <x-ui.stat :label="__('Subscribed devices')" :value="$n($stats['devices'])" icon="smartphone" :href="route('projects.subscribers.index', $project)"
             :hint="collect(['ios' => 'iOS', 'android' => 'Android', 'huawei' => 'Huawei', 'amazon' => 'Amazon', 'web' => 'Web', 'email' => __('Email'), 'sms' => 'SMS', 'whatsapp' => 'WhatsApp'])->filter(fn ($l, $k) => $stats['platforms'][$k] ?? 0)->map(fn ($l, $k) => $l.' '.$n($stats['platforms'][$k]))->implode(' · ') ?: null" />
-        <x-ui.stat :label="__('New devices')" :value="$n(array_sum($stats['new']))" icon="users" :hint="__('Last 30 days')" :series="$stats['new']" />
-        <x-ui.stat :label="__('Messages')" :value="$n($stats['messages'])" icon="send" :hint="__(':count delivered notifications', ['count' => $n($stats['delivered'])])" :href="route('projects.messages.index', $project)" />
-        <x-ui.stat :label="__('Click rate')" :value="$ctr" icon="external" :hint="__(':count clicks in 30 days', ['count' => $n($stats['clicked'])])" />
+        @php
+            $trend = fn ($now, $before) => $before > 0 ? ($now - $before) / $before * 100 : null;
+            $ctrNow = $stats['delivered'] > 0 ? $stats['clicked'] / $stats['delivered'] * 100 : null;
+            $ctrBefore = $stats['previous']['delivered'] > 0 ? $stats['previous']['clicked'] / $stats['previous']['delivered'] * 100 : null;
+        @endphp
+        <x-ui.stat :label="__('New devices')" :value="$n(array_sum($stats['new']))" icon="users" :delta="$trend(array_sum($stats['new']), $stats['previous']['new'])" :hint="__('Last 30 days')" :series="$stats['new']" />
+        <x-ui.stat :label="__('Messages')" :value="$n($stats['messages'])" icon="send" :delta="$trend($stats['messages'], $stats['previous']['messages'])" :hint="__(':count delivered notifications', ['count' => $n($stats['delivered'])])" :href="route('projects.messages.index', $project)" />
+        <x-ui.stat :label="__('Click rate')" :value="$ctr" icon="external" :delta="$ctrNow !== null && $ctrBefore ? $trend($ctrNow, $ctrBefore) : null" :hint="__(':count clicks in 30 days', ['count' => $n($stats['clicked'])])" />
     </div>
 
     @if ($latest->isNotEmpty())

@@ -73,6 +73,8 @@ class ProjectController extends Controller
             ->groupBy('day')
             ->pluck('total', 'day');
         $recent = $project->messages()->where('is_test', false)->where('status', '!=', 'draft')->where('created_at', '>=', now()->subDays(30));
+        // The 30 days before, to show the trend as OneSignal does.
+        $before = $project->messages()->where('is_test', false)->where('status', '!=', 'draft')->whereBetween('created_at', [now()->subDays(60), now()->subDays(30)]);
 
         return view('projects.show', [
             'project' => $project,
@@ -84,6 +86,12 @@ class ProjectController extends Controller
                 'messages' => (clone $recent)->count(),
                 'delivered' => (int) (clone $recent)->sum('successful'),
                 'clicked' => (int) (clone $recent)->sum('clicked'),
+                'previous' => [
+                    'new' => $project->subscriptions()->whereBetween('created_at', [$since->copy()->subDays(30), $since])->count(),
+                    'messages' => (clone $before)->count(),
+                    'delivered' => (int) (clone $before)->sum('successful'),
+                    'clicked' => (int) (clone $before)->sum('clicked'),
+                ],
             ],
             'latest' => $project->messages()->latest()->limit(5)->get(),
             'steps' => [

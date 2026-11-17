@@ -18,47 +18,61 @@
         @endcan
     </x-ui.page-header>
 
-    <div class="space-y-6">
-        <x-ui.card :title="__('Your segments')" icon="layers" :padding="false">
-            <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
-                @forelse ($segments as $segment)
-                    <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 sm:px-6">
-                        <div class="min-w-0 flex-1">
-                            <p class="truncate text-sm font-semibold text-zinc-900 dark:text-white">{{ $segment->name }}</p>
-                            <p class="mt-0.5 truncate font-mono text-xs text-zinc-500">
-                                {{ collect($segment->filters)->map(fn ($f) => ($f['operator'] ?? null) === 'OR' ? __('or') : trim(($f['field'] === 'tag' ? ($f['key'] ?? '') : __(str_replace('_', ' ', $f['field']))).' '.($f['relation'] ?? '').' '.($f['value'] ?? ($f['hours_ago'] ?? '').(isset($f['hours_ago']) ? ' h' : ''))))->implode(' · ') }}
-                            </p>
-                        </div>
-                        <span class="text-sm font-semibold tabular-nums text-zinc-900 dark:text-white">{{ $n($counts[$segment->name] ?? null) }}<span class="ml-1 text-xs font-normal text-zinc-500">{{ __('devices') }}</span></span>
-                        @can('send', $project)
-                            <div class="flex items-center gap-1">
-                                <x-ui.button variant="ghost" size="sm" :href="route('projects.segments.edit', [$project, $segment])" icon="settings">{{ __('Edit') }}</x-ui.button>
-                                <form method="POST" action="{{ route('projects.segments.destroy', [$project, $segment]) }}" data-confirm-title="{{ __('Delete this segment?') }}" data-confirm="{{ __('Messages already sent are not affected.') }}" data-confirm-action="{{ __('Delete') }}">
-                                    @csrf
-                                    @method('DELETE')
-                                    <x-ui.button variant="ghost-danger" size="icon" icon="trash" class="size-8"><span class="sr-only">{{ __('Delete') }}</span></x-ui.button>
-                                </form>
-                            </div>
-                        @endcan
-                    </li>
-                @empty
-                    <li><x-ui.empty icon="layers" :title="__('No segment yet')" :description="__('For example: customers with the tag plan = vip, or people inactive for 30 days.')" /></li>
-                @endforelse
-            </ul>
-        </x-ui.card>
-
-        <x-ui.card :title="__('Built-in segments')" icon="users" :padding="false">
-            <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
-                @foreach ($builtIn as $name => $text)
-                    <li class="flex items-center gap-4 px-5 py-3.5 sm:px-6">
-                        <div class="min-w-0 flex-1">
-                            <p class="text-sm font-medium text-zinc-900 dark:text-white">{{ __($name) }}</p>
-                            <p class="text-xs text-zinc-500">{{ $text }}</p>
-                        </div>
-                        <span class="text-sm font-semibold tabular-nums text-zinc-900 dark:text-white">{{ $n($counts[$name] ?? 0) }}</span>
-                    </li>
-                @endforeach
-            </ul>
-        </x-ui.card>
+    {{-- One table, as OneSignal: your segments first, then the built-in ones. --}}
+    <div class="card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[640px] text-sm">
+                <thead>
+                    <tr class="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium text-zinc-500 dark:border-zinc-800 dark:bg-white/[.03] dark:text-zinc-400">
+                        <th class="px-4 py-3 font-medium sm:px-5">{{ __('Name') }}</th>
+                        <th class="px-3 py-3 font-medium">{{ __('Type') }}</th>
+                        <th class="px-3 py-3 text-right font-medium">{{ __('Devices') }}</th>
+                        <th class="w-24 px-4 py-3 sm:px-5"><span class="sr-only">{{ __('Actions') }}</span></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                    @foreach ($segments as $segment)
+                        <tr class="transition hover:bg-zinc-50/80 dark:hover:bg-white/[.02]">
+                            <td class="max-w-0 px-4 py-3.5 sm:px-5" style="width: 55%">
+                                <p class="truncate font-medium text-zinc-900 dark:text-white">{{ $segment->name }}</p>
+                                <p class="mt-0.5 truncate font-mono text-xs text-zinc-500">
+                                    {{ collect($segment->filters)->map(fn ($f) => ($f['operator'] ?? null) === 'OR' ? __('or') : trim(($f['field'] === 'tag' ? ($f['key'] ?? '') : __(str_replace('_', ' ', $f['field']))).' '.($f['relation'] ?? '').' '.($f['value'] ?? ($f['hours_ago'] ?? '').(isset($f['hours_ago']) ? ' h' : ''))))->implode(' · ') }}
+                                </p>
+                            </td>
+                            <td class="px-3 py-3.5"><x-ui.badge color="brand">{{ __('Custom') }}</x-ui.badge></td>
+                            <td class="px-3 py-3.5 text-right font-medium text-zinc-900 tabular-nums dark:text-white">{{ $n($counts[$segment->name] ?? null) }}</td>
+                            <td class="px-4 py-3.5 sm:px-5">
+                                @can('send', $project)
+                                    <div class="flex items-center justify-end gap-1">
+                                        <x-ui.button variant="ghost" size="icon" :href="route('projects.segments.edit', [$project, $segment])" icon="pencil" class="size-8" title="{{ __('Edit') }}"><span class="sr-only">{{ __('Edit') }}</span></x-ui.button>
+                                        <form method="POST" action="{{ route('projects.segments.destroy', [$project, $segment]) }}" data-confirm-title="{{ __('Delete this segment?') }}" data-confirm="{{ __('Messages already sent are not affected.') }}" data-confirm-action="{{ __('Delete') }}">
+                                            @csrf
+                                            @method('DELETE')
+                                            <x-ui.button variant="ghost-danger" size="icon" icon="trash" class="size-8" title="{{ __('Delete') }}"><span class="sr-only">{{ __('Delete') }}</span></x-ui.button>
+                                        </form>
+                                    </div>
+                                @endcan
+                            </td>
+                        </tr>
+                    @endforeach
+                    @foreach ($builtIn as $name => $text)
+                        <tr class="transition hover:bg-zinc-50/80 dark:hover:bg-white/[.02]">
+                            <td class="max-w-0 px-4 py-3.5 sm:px-5">
+                                <p class="truncate font-medium text-zinc-900 dark:text-white">{{ __($name) }}</p>
+                                <p class="mt-0.5 truncate text-xs text-zinc-500">{{ $text }}</p>
+                            </td>
+                            <td class="px-3 py-3.5"><x-ui.badge>{{ __('Built-in') }}</x-ui.badge></td>
+                            <td class="px-3 py-3.5 text-right font-medium text-zinc-900 tabular-nums dark:text-white">{{ $n($counts[$name] ?? 0) }}</td>
+                            <td class="px-4 py-3.5 sm:px-5"></td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @if ($segments->isEmpty())
+            <p class="flex items-center gap-2 border-t border-zinc-100 px-4 py-3 text-xs text-zinc-500 sm:px-5 dark:border-zinc-800">
+                <x-ui.icon name="info" class="size-3.5 shrink-0" />{{ __('Create your own: for example the customers with the tag plan = vip, or the people inactive for 30 days.') }}
+            </p>
+        @endif
     </div>
 </x-layouts.app>
