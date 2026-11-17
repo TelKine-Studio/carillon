@@ -58,7 +58,7 @@ class SubscriberController extends Controller
 
         if ($view === 'people') {
             $results = $project->subscribers()
-                ->with(['subscriptions' => fn ($q) => $q->select('id', 'subscriber_id', 'type', 'enabled', 'invalid_at', 'is_test', 'device_model')->orderBy('type')])
+                ->with(['subscriptions' => fn ($q) => $q->select('id', 'subscriber_id', 'type', 'enabled', 'invalid_at', 'is_test', 'device_model', 'latitude', 'longitude', 'located_at')->orderBy('type')])
                 ->withSum('subscriptions as sessions_total', 'sessions')
                 ->withSum('subscriptions as usage_total', 'usage_seconds')
                 ->when($platform || $state || $reason || $segment, fn (Builder $q) => $q->whereHas('subscriptions', $devices))

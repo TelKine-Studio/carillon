@@ -3,7 +3,7 @@
     $columns = [
         'p_external' => __('External id'), 'p_channels' => __('Channels'), 'p_last' => __('Last session'),
         'p_first' => __('First session'), 'p_sessions' => __('Sessions'), 'p_usage' => __('Usage duration'),
-        'p_timezone' => __('Timezone'), 'p_country' => __('Country'), 'p_language' => __('Language'), 'p_tags' => __('Tags'),
+        'p_timezone' => __('Timezone'), 'p_country' => __('Country'), 'p_language' => __('Language'), 'p_location' => __('Location'), 'p_tags' => __('Tags'),
     ];
     $sorts = ['p_last' => 'last_active', 'p_first' => 'first_active', 'p_sessions' => 'sessions', 'p_usage' => 'usage'];
     $duration = function (int $seconds): string {
@@ -58,7 +58,11 @@
             </thead>
             <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
                 @foreach ($results as $person)
-                    @php $profile = route('projects.subscribers.show', [$project, $person]); @endphp
+                    @php
+                        $profile = route('projects.subscribers.show', [$project, $person]);
+                        // Latest known position among the devices of the person.
+                        $located = $person->subscriptions->whereNotNull('latitude')->sortByDesc('located_at')->first();
+                    @endphp
                     <tr class="group whitespace-nowrap transition hover:bg-zinc-50/80 dark:hover:bg-white/[.02]">
                         <td class="sticky left-0 z-10 bg-white px-4 py-2.5 group-hover:bg-zinc-50 sm:px-5 dark:bg-zinc-900 dark:group-hover:bg-zinc-800/60">
                             <a href="{{ $profile }}" class="flex max-w-64 min-w-0 items-center gap-3">
@@ -89,6 +93,7 @@
                         <td data-col="p_timezone" class="px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400">{{ $person->timezone ?? '—' }}</td>
                         <td data-col="p_country" class="px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400">{{ $person->country ?? '—' }}</td>
                         <td data-col="p_language" class="px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400">{{ $languageName($person->language) ?? '—' }}</td>
+                        <td data-col="p_location" class="px-3 py-2.5 text-xs">@if ($located)<a href="https://www.openstreetmap.org/?mlat={{ $located->latitude }}&mlon={{ $located->longitude }}#map=13/{{ $located->latitude }}/{{ $located->longitude }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 font-mono text-zinc-700 hover:text-brand-700 dark:text-zinc-300 dark:hover:text-brand-300" title="{{ $located->located_at?->isoFormat('LLL') }}"><x-ui.icon name="map-pin" class="size-3" />{{ number_format($located->latitude, 2, '.', '') }}, {{ number_format($located->longitude, 2, '.', '') }}</a>@else<span class="text-zinc-400">—</span>@endif</td>
                         <td data-col="p_tags" class="px-3 py-2.5">
                             <span class="flex max-w-72 gap-1 overflow-hidden">
                                 @forelse (array_slice($person->tags ?? [], 0, 3, true) as $tagKey => $tagValue)

@@ -62,6 +62,9 @@ class LocationTest extends TestCase
 
         $this->actingAs($this->owner)->get(route('projects.subscribers.show', [$this->project, $device->subscriber_id]))
             ->assertOk()->assertSee('5.36, -3.98')->assertSee('openstreetmap.org', false);
+        // In the tables of the audience too.
+        $this->actingAs($this->owner)->get(route('projects.subscribers.index', [$this->project, 'view' => 'devices']))->assertOk()->assertSee('5.36, -3.98');
+        $this->actingAs($this->owner)->get(route('projects.subscribers.index', $this->project))->assertOk()->assertSee('5.36, -3.98');
     }
 
     public function test_the_app_or_the_project_can_stop_it(): void

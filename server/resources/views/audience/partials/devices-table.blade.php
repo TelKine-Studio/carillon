@@ -5,7 +5,7 @@
         'last_session' => __('Last session'), 'usage' => __('Usage duration'), 'sessions' => __('Sessions'),
         'first_session' => __('First session'), 'id' => __('Device id'), 'person' => __('Person'),
         'address' => __('Email or phone'), 'app_version' => __('App version'), 'timezone' => __('Timezone'),
-        'country' => __('Country'), 'language' => __('Language'), 'tags' => __('Tags'),
+        'country' => __('Country'), 'language' => __('Language'), 'location' => __('Location'), 'tags' => __('Tags'),
     ];
     $sorts = ['unsubscribed' => 'unsubscribed', 'last_session' => 'last_active', 'usage' => 'usage', 'sessions' => 'sessions', 'first_session' => 'first_active'];
     $duration = function (int $seconds): string {
@@ -101,7 +101,8 @@
                         <td data-col="timezone" class="px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400">{{ $person->timezone ?? '—' }}</td>
                         <td data-col="country" class="px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400">{{ $person->country ?? '—' }}</td>
                         <td data-col="language" class="px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400">{{ $languageName($person->language) ?? '—' }}</td>
-                        <td data-col="tags" class="px-3 py-2.5">
+                        <td data-col="location" class="px-3 py-2.5 text-xs">@if ($subscription->latitude !== null)<a href="https://www.openstreetmap.org/?mlat={{ $subscription->latitude }}&mlon={{ $subscription->longitude }}#map=13/{{ $subscription->latitude }}/{{ $subscription->longitude }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 font-mono text-zinc-700 hover:text-brand-700 dark:text-zinc-300 dark:hover:text-brand-300" title="{{ $subscription->located_at?->isoFormat('LLL') }}"><x-ui.icon name="map-pin" class="size-3" />{{ number_format($subscription->latitude, 2, '.', '') }}, {{ number_format($subscription->longitude, 2, '.', '') }}</a>@else<span class="text-zinc-400">—</span>@endif</td>
+            <td data-col="tags" class="px-3 py-2.5">
                             <span class="flex max-w-72 gap-1 overflow-hidden">
                                 @forelse (array_slice($person->tags ?? [], 0, 3, true) as $key => $value)
                                     <span class="inline-flex shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] text-zinc-600 dark:bg-white/5 dark:text-zinc-400">{{ $key }}={{ \Illuminate\Support\Str::limit((string) $value, 18) }}</span>
