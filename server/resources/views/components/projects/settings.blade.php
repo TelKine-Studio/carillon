@@ -12,7 +12,7 @@
 <x-layouts.app :title="__('Settings').' · '.$project->name">
     <x-ui.page-header :title="__('Settings')" :description="__('Platforms, keys and members of :name.', ['name' => $project->name])" />
     <x-settings.tabs :tabs="$tabs" :current="$section" />
-    <div class="max-w-4xl space-y-6">
+    <div class="min-w-0 max-w-4xl space-y-6">
         {{ $slot }}
     </div>
 </x-layouts.app>

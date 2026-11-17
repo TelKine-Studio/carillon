@@ -9,6 +9,6 @@
     ])->map(fn ($label, $key) => [$label, route('admin.settings.edit', $key)])->all();
 @endphp
 <x-settings.tabs :tabs="$tabs" :current="$section" />
-<div class="max-w-4xl space-y-6">
+<div class="min-w-0 max-w-4xl space-y-6">
     {{ $slot }}
 </div>

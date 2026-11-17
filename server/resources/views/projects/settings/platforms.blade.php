@@ -25,7 +25,7 @@
     @endphp
     <div class="card overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full min-w-[520px] text-sm">
+            <table class="w-full text-sm">
                 <thead>
                     <tr class="border-b border-zinc-100 bg-zinc-50/70 text-left text-xs text-zinc-500 dark:border-zinc-800 dark:bg-white/[.02]">
                         <th class="px-5 py-2.5 font-medium sm:px-6">{{ __('Platform') }}</th>
