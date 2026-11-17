@@ -28,7 +28,7 @@ class SubscriberController extends Controller
         $platform = in_array($request->query('platform'), Subscription::TYPES, true) ? $request->query('platform') : null;
         $state = in_array($request->query('state'), ['subscribed', 'unsubscribed', 'invalid'], true) ? $request->query('state') : null;
         // Like OneSignal: one row per person (default) or per device.
-        $view = $request->query('view') === 'devices' ? 'devices' : 'people';
+        $view = in_array($request->query('view'), ['devices', 'test'], true) ? $request->query('view') : 'people';
         $sort = $request->query('sort') === 'first_active' ? 'first_active' : 'last_active';
         $direction = $request->query('dir') === 'asc' ? 'asc' : 'desc';
         $column = $sort === 'first_active' ? 'created_at' : 'last_active_at';
@@ -57,6 +57,7 @@ class SubscriberController extends Controller
             $results = Subscription::query()
                 ->with('subscriber')
                 ->where('subscriptions.project_id', $project->id)
+                ->when($view === 'test', fn (Builder $q) => $q->where('subscriptions.is_test', true))
                 ->where($devices)
                 ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $q) => $q
                     ->when(Str::isUuid($search), fn (Builder $q) => $q->orWhere('subscriptions.id', $search)->orWhere('subscriptions.subscriber_id', $search))
@@ -87,6 +88,7 @@ class SubscriberController extends Controller
                 'identified' => $project->subscribers()->whereNotNull('external_id')->count(),
                 'duplicates' => Duplicates::count($project),
                 'active' => (clone $base)->where('last_active_at', '>=', now()->subDays(7))->count(),
+                'test' => (clone $base)->where('is_test', true)->count(),
             ],
         ]);
     }

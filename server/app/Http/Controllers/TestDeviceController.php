@@ -7,19 +7,16 @@ use App\Models\Subscription;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Illuminate\View\View;
 
 /** Devices that receive the tests sent from the composer (OneSignal "test subscriptions"). */
 class TestDeviceController extends Controller
 {
-    public function index(Project $project): View
+    /** A tab of the audience now. */
+    public function index(Project $project): RedirectResponse
     {
         $this->authorize('view', $project);
 
-        return view('audience.test-devices', [
-            'project' => $project,
-            'devices' => $project->subscriptions()->where('is_test', true)->with('subscriber')->orderBy('test_name')->get(),
-        ]);
+        return redirect()->route('projects.subscribers.index', [$project, 'view' => 'test']);
     }
 
     /** Adds the device(s) of a device id, a person id, an external id or a OneSignal id. */

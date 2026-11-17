@@ -2244,5 +2244,7 @@
     "within (meters)": "dans un rayon de (mètres)",
     "latitude, longitude": "latitude, longitude",
     "radius in meters": "rayon en mètres",
-    "Collection turned off": "Désactivée"
+    "Collection turned off": "Désactivée",
+    "Rename the test device": "Renommer l’appareil de test",
+    "They receive the tests sent from the composer, and the segment “Test Devices”. Add your own phone with its device id or the external id of your account in the app.": "Ils reçoivent les tests envoyés depuis l’éditeur, et le segment « Appareils de test ». Ajoutez votre propre téléphone avec son ID d’appareil ou l’identifiant externe de votre compte dans l’app."
 }

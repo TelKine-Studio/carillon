@@ -25,9 +25,9 @@
 
             return new \Illuminate\Support\HtmlString('<a data-live-link href="'.e($url).'" class="inline-flex items-center gap-1 hover:text-zinc-900 dark:hover:text-white'.($active ? ' text-zinc-900 dark:text-white' : '').'">'.e($label).' <span aria-hidden="true" class="'.($active ? '' : 'opacity-40').'">'.$arrow.'</span></a>');
         };
-        $views = ['people' => [__('People'), $totals['people']], 'devices' => [__('Devices'), $totals['devices']]];
+        $views = ['people' => [__('People'), $totals['people']], 'devices' => [__('Devices'), $totals['devices']], 'test' => [__('Test devices'), $totals['test']]];
     @endphp
-    <div x-data="liveList('audience-results')" data-live-also="audience-tabs audience-view">
+    <div x-data="liveList('audience-results')" data-live-also="audience-tabs audience-view audience-actions">
     <nav id="audience-tabs" class="scrollbar-none mb-4 flex gap-1 overflow-x-auto border-b border-zinc-200 dark:border-zinc-800" aria-label="{{ __('View') }}">
         @foreach ($views as $key => [$label, $count])
             <a data-live-link href="{{ route('projects.subscribers.index', [$project, ...array_filter(request()->only(['q', 'platform', 'state'])), 'view' => $key === 'people' ? null : $key]) }}" @if ($view === $key) aria-current="page" @endif
@@ -37,11 +37,10 @@
                 {{ $label }}<span class="min-w-5 rounded bg-zinc-100 px-1 text-center text-xs tabular-nums text-zinc-500 dark:bg-white/10 dark:text-zinc-400">{{ $n($count) }}</span>
             </a>
         @endforeach
-        <a href="{{ route('projects.test-devices.index', $project) }}" class="-mb-px inline-flex shrink-0 items-center gap-1.5 border-b-2 border-transparent px-2.5 py-2.5 text-sm font-medium whitespace-nowrap text-zinc-500 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">{{ __('Test devices') }}</a>
     </nav>
     <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
         <form method="GET" data-live class="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
-            <span id="audience-view">@if ($view === 'devices')<input type="hidden" name="view" value="devices">@endif</span>
+            <span id="audience-view">@if ($view !== 'people')<input type="hidden" name="view" value="{{ $view }}">@endif</span>
             <div class="relative flex-1">
                 <x-ui.icon name="search" class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-zinc-400" />
                 <x-ui.icon name="refresh" class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-zinc-400" x-show="loading" x-cloak />
@@ -52,6 +51,13 @@
                 <x-ui.select name="state" size="sm" class="sm:w-44" :value="$state" :options="['' => __('All states'), 'subscribed' => __('Subscribed'), 'unsubscribed' => __('Unsubscribed'), 'invalid' => __('Unreachable')]" />
             </div>
         </form>
+        <div id="audience-actions" class="contents">
+            @if ($view === 'test')
+                @can('send', $project)
+                    <x-ui.button type="button" icon="plus" class="shrink-0" x-on:click="$dispatch('open-modal', 'add-test-device')">{{ __('Add a test device') }}</x-ui.button>
+                @endcan
+            @endif
+        </div>
     </div>
 
     <div id="audience-results" class="card transition-opacity" :class="loading && 'is-loading'">
@@ -121,6 +127,47 @@
             <x-ui.empty icon="users" :title="$search || $platform || $state ? __('Nobody matches') : __('No device yet')"
                 :description="$search || $platform || $state ? __('Try another search or filter.') : __('Devices appear here once your app uses the Carillon SDK with this App ID.')" />
         @endforelse
+    @elseif ($view === 'test')
+        @php $testCols = 'lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_130px_110px_150px]'; @endphp
+        <div class="hidden gap-4 rounded-t-2xl border-b border-zinc-200 bg-zinc-50 px-5 py-3 text-xs font-medium text-zinc-500 lg:grid {{ $testCols }} dark:border-zinc-800 dark:bg-white/[.03]">
+            <span>{{ __('Device') }}</span><span>{{ __('Person') }}</span><span>{!! $sortLink('last_active', __('Last seen')) !!}</span><span>{{ __('State') }}</span><span></span>
+        </div>
+        @forelse ($results as $device)
+            @php $person = $device->subscriber; @endphp
+            <div class="relative grid gap-3 border-t border-zinc-100 px-4 py-3 transition first:border-0 last:rounded-b-2xl hover:bg-zinc-50/80 sm:px-5 lg:items-center lg:gap-4 {{ $testCols }} dark:border-zinc-800 dark:hover:bg-white/[.02]">
+                <div class="flex min-w-0 items-center gap-3">
+                    <x-audience.device :subscription="$device" />
+                    <div class="min-w-0">
+                        <a href="{{ route('projects.subscribers.show', [$project, $person]) }}" class="block truncate text-sm font-medium text-zinc-900 after:absolute after:inset-0 dark:text-white">{{ $device->test_name ?: ($device->device_model ?: __('Unnamed device')) }}</a>
+                        <p class="truncate text-xs text-zinc-500">{{ collect([$device->device_model, $device->device_os, $device->app_version ? 'v'.$device->app_version : null])->filter()->implode(' · ') ?: '—' }}</p>
+                    </div>
+                    <span class="ml-auto lg:hidden"><x-audience.state :subscription="$device" /></span>
+                </div>
+                <p class="min-w-0 truncate pl-12 text-sm lg:pl-0">
+                    @if ($person->external_id)
+                        <span class="font-mono text-xs text-zinc-800 dark:text-zinc-200">{{ $person->external_id }}</span>
+                    @else
+                        <span class="text-zinc-400">{{ __('Anonymous') }}</span>
+                    @endif
+                </p>
+                <p class="hidden text-xs text-zinc-500 lg:block" title="{{ $device->last_active_at?->isoFormat('LLL') }}">{{ $device->last_active_at?->diffForHumans() ?? '—' }}</p>
+                <span class="hidden lg:block"><x-audience.state :subscription="$device" /></span>
+                <div class="relative z-10 flex items-center justify-end gap-1 pl-12 lg:pl-0">
+                    @can('send', $project)
+                        <x-ui.button type="button" variant="ghost" size="sm" icon="pencil"
+                            x-on:click="$dispatch('rename-test-device', { url: @js(route('projects.test-devices.update', [$project, $device->id])), name: @js($device->test_name ?? '') })">{{ __('Rename') }}</x-ui.button>
+                        <form method="POST" action="{{ route('projects.test-devices.destroy', [$project, $device->id]) }}">
+                            @csrf
+                            @method('DELETE')
+                            <x-ui.button variant="ghost-danger" size="sm" icon="x" title="{{ __('Stop using as a test device') }}">{{ __('Remove') }}</x-ui.button>
+                        </form>
+                    @endcan
+                </div>
+            </div>
+        @empty
+            <x-ui.empty icon="smartphone" :title="$search || $platform || $state ? __('Nobody matches') : __('No test device yet')"
+                :description="$search || $platform || $state ? __('Try another search or filter.') : __('They receive the tests sent from the composer, and the segment “Test Devices”. Add your own phone with its device id or the external id of your account in the app.')" />
+        @endforelse
     @else
         <div class="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_120px_110px] gap-4 rounded-t-2xl border-b border-zinc-200 bg-zinc-50 px-5 py-3 text-xs font-medium text-zinc-500 dark:bg-white/[.03] lg:grid dark:border-zinc-800">
             <span>{{ __('Device') }}</span><span>{{ __('Person') }}</span><span>{{ __('Tags') }}</span><span>{!! $sortLink('last_active', __('Last seen')) !!}</span><span>{{ __('State') }}</span>
@@ -162,4 +209,34 @@
         @endif
     </div>
     </div>
+    @can('send', $project)
+        <x-ui.modal name="add-test-device" :title="__('Add a test device')" :description="__('Every device of an external id is added at once.')" :open="$errors->has('identifier')">
+            <form method="POST" action="{{ route('projects.test-devices.store', $project) }}" class="space-y-4">
+                @csrf
+                <x-ui.input name="identifier" :label="__('Device id, external id or OneSignal id')" :hint="__('In OneSignal, the Subscription ID of the device (Audience → Test subscriptions).')" required autocomplete="off" :placeholder="__('e.g. user-42')" />
+                <x-ui.input name="test_name" :label="__('Name')" :placeholder="__('e.g. My iPhone')" maxlength="64" optional />
+                <div class="flex justify-end gap-3 pt-2">
+                    <x-ui.button type="button" variant="ghost" x-on:click="$dispatch('close-modal', 'add-test-device')">{{ __('Cancel') }}</x-ui.button>
+                    <x-ui.button icon="plus">{{ __('Add') }}</x-ui.button>
+                </div>
+            </form>
+        </x-ui.modal>
+
+        <div x-data="{ url: '', name: '' }" x-on:rename-test-device.window="url = $event.detail.url; name = $event.detail.name; $dispatch('open-modal', 'rename-test-device')">
+            <x-ui.modal name="rename-test-device" :title="__('Rename the test device')">
+                <form method="POST" :action="url" class="space-y-4">
+                    @csrf
+                    @method('PUT')
+                    <div>
+                        <label for="rename_test_name" class="mb-1.5 block text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Name') }}</label>
+                        <input id="rename_test_name" name="test_name" x-model="name" maxlength="64" class="form-control" placeholder="{{ __('e.g. My iPhone') }}">
+                    </div>
+                    <div class="flex justify-end gap-3 pt-2">
+                        <x-ui.button type="button" variant="ghost" x-on:click="$dispatch('close-modal', 'rename-test-device')">{{ __('Cancel') }}</x-ui.button>
+                        <x-ui.button>{{ __('Save') }}</x-ui.button>
+                    </div>
+                </form>
+            </x-ui.modal>
+        </div>
+    @endcan
 </x-layouts.app>
