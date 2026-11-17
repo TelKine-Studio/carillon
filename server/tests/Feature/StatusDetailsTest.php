@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Enums\ProjectRole;
+use App\Models\Message;
 use App\Models\Project;
 use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /** Why a device is unsubscribed or unreachable (OneSignal "status details"). */
@@ -91,5 +93,20 @@ class StatusDetailsTest extends TestCase
         $person = Subscription::find($denied)->subscriber_id;
         $this->actingAs($this->owner)->get(route('projects.subscribers.show', [$this->project, $person]))
             ->assertOk()->assertSee(__('Status details'))->assertSee(__('Notifications turned off on the device'));
+    }
+
+    public function test_unreachable_devices_get_their_reason_back_from_the_deliveries(): void
+    {
+        $dead = Subscription::find($this->device('dead'));
+        $reused = Subscription::find($this->device('reused'));
+        $message = Message::create(['project_id' => $this->project->id, 'contents' => ['en' => 'Hi'], 'targeting' => ['segments' => ['All']], 'status' => 'sent']);
+        DB::table('deliveries')->insert(['message_id' => $message->id, 'subscription_id' => $dead->id, 'status' => 'failed', 'error' => 'UNREGISTERED', 'sent_at' => now()]);
+        DB::table('subscriptions')->where('id', $dead->id)->update(['invalid_at' => now()]);
+        DB::table('subscriptions')->where('id', $reused->id)->update(['invalid_at' => now(), 'token' => null, 'token_hash' => null]);
+
+        (require database_path('migrations/2026_11_24_120000_backfill_status_reasons.php'))->up();
+
+        $this->assertSame(['rejected', 'UNREGISTERED'], [$dead->fresh()->status_reason, $dead->fresh()->status_detail]);
+        $this->assertSame('token_reused', $reused->fresh()->status_reason);
     }
 }

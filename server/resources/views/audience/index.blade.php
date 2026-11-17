@@ -194,12 +194,12 @@
                 :description="$search || $platform || $state || $reason ? __('Try another search or filter.') : __('They receive the tests sent from the composer, and the segment “Test Devices”. Add your own phone with its device id or the external id of your account in the app.')" />
         @endforelse
     @else
-        <div class="hidden grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)_minmax(0,1fr)_130px_110px_minmax(0,1.3fr)] gap-4 rounded-t-2xl border-b border-zinc-200 bg-zinc-50 px-5 py-3 text-xs font-medium text-zinc-500 dark:bg-white/[.03] lg:grid dark:border-zinc-800">
+        <div class="hidden grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)_minmax(0,1fr)_160px_110px_minmax(0,1.3fr)] gap-4 rounded-t-2xl border-b border-zinc-200 bg-zinc-50 px-5 py-3 text-xs font-medium text-zinc-500 dark:bg-white/[.03] lg:grid dark:border-zinc-800">
             <span>{{ __('Device') }}</span><span>{{ __('Person') }}</span><span>{{ __('Tags') }}</span><span>{!! $sortLink('last_active', __('Last seen')) !!}</span><span>{{ __('State') }}</span><span>{{ __('Status details') }}</span>
         </div>
         @forelse ($results as $subscription)
             @php $person = $subscription->subscriber; @endphp
-            <a href="{{ route('projects.subscribers.show', [$project, $person]) }}" class="grid gap-3 border-t border-zinc-100 px-4 py-3.5 transition first:border-0 hover:bg-zinc-50/80 sm:px-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)_minmax(0,1fr)_130px_110px_minmax(0,1.3fr)] lg:items-center lg:gap-4 dark:border-zinc-800 dark:hover:bg-white/[.02]">
+            <a href="{{ route('projects.subscribers.show', [$project, $person]) }}" class="grid gap-3 border-t border-zinc-100 px-4 py-3.5 transition first:border-0 hover:bg-zinc-50/80 sm:px-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)_minmax(0,1fr)_160px_110px_minmax(0,1.3fr)] lg:items-center lg:gap-4 dark:border-zinc-800 dark:hover:bg-white/[.02]">
                 <div class="flex min-w-0 items-center gap-3">
                     <x-audience.device :subscription="$subscription" />
                     <div class="min-w-0">
