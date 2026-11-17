@@ -42,8 +42,8 @@
                             @endphp
                             <tr class="relative transition hover:bg-zinc-50/80 dark:hover:bg-white/[.02]">
                                 <td class="max-w-0 px-4 py-3.5 sm:px-5" style="width: 45%">
-                                    <a href="{{ route('projects.in-app.edit', [$project, $message]) }}" class="block truncate font-medium text-zinc-900 after:absolute after:inset-0 dark:text-white">{{ $message->name }}</a>
-                                    <p class="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">
+                                    <a href="{{ route('projects.in-app.edit', [$project, $message]) }}" class="block font-medium break-words text-zinc-900 after:absolute after:inset-0 dark:text-white">{{ $message->name }}</a>
+                                    <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
                                         {{ $layouts[$message->layout] ?? $message->layout }} ·
                                         {{ ($message->trigger['type'] ?? '') === 'event' ? __('On event :name', ['name' => $message->trigger['event'] ?? '']) : __('When the app opens') }}
                                         @if ($message->segment) · {{ __($message->segment) }}@endif

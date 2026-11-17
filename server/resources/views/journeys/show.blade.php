@@ -105,7 +105,7 @@
                     @forelse ($recent as $entry)
                         <li>
                             <a href="{{ route('projects.subscribers.show', [$project, $entry->subscriber_id]) }}" class="flex items-center gap-3 px-5 py-3 text-sm transition hover:bg-zinc-50/80 dark:hover:bg-white/[0.02]">
-                                <span class="min-w-0 flex-1 truncate font-mono text-xs text-zinc-700 dark:text-zinc-300">{{ $entry->subscriber?->external_id ?: \Illuminate\Support\Str::limit($entry->subscriber_id, 13, '…') }}</span>
+                                <span class="min-w-0 flex-1 font-mono text-xs break-all text-zinc-700 dark:text-zinc-300">{{ $entry->subscriber?->external_id ?: $entry->subscriber_id }}</span>
                                 <span class="text-xs text-zinc-500">{{ $entry->created_at->diffForHumans() }}</span>
                                 <x-ui.badge :color="['active' => 'blue', 'completed' => 'green'][$entry->status] ?? 'zinc'">{{ ['active' => __('In progress'), 'completed' => __('Completed'), 'exited' => __('Left')][$entry->status] ?? $entry->status }}</x-ui.badge>
                             </a>

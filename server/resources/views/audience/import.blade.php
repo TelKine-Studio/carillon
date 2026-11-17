@@ -93,7 +93,7 @@
                             @if ($import->running()) x-data="{ s: @js($import->only(['status', 'rows', 'created', 'updated', 'skipped'])), timer: null }"
                                 x-init="timer = setInterval(async () => { s = await (await fetch(@js(route('projects.imports.show', [$project, $import])), { headers: { Accept: 'application/json' } })).json(); if (! ['queued', 'running'].includes(s.status)) { clearInterval(timer); location.reload() } }, 2000)" @endif>
                             <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-                                <p class="min-w-0 flex-1 truncate text-sm font-medium text-zinc-900 dark:text-white">{{ $import->filename }}</p>
+                                <p class="min-w-0 flex-1 text-sm font-medium break-all text-zinc-900 dark:text-white">{{ $import->filename }}</p>
                                 <x-ui.badge :color="$statuses[$import->status][0]" dot>{{ $statuses[$import->status][1] }}</x-ui.badge>
                             </div>
                             <p class="mt-1 text-xs text-zinc-500">

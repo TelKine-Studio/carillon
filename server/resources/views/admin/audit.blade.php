@@ -48,7 +48,7 @@
                                             @foreach (array_slice($details, 0, 3) as $detail)
                                                 <span class="inline-flex max-w-full items-center gap-1 rounded-md bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-white/5 dark:text-zinc-300">
                                                     <span class="shrink-0 text-zinc-400">{{ $detail['label'] }}</span>
-                                                    <span class="truncate font-medium">{{ $detail['value'] }}</span>
+                                                    <span class="font-medium break-all">{{ $detail['value'] }}</span>
                                                 </span>
                                             @endforeach
                                         </span>

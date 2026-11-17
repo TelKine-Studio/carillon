@@ -34,8 +34,8 @@
                     @foreach ($segments as $segment)
                         <tr class="transition hover:bg-zinc-50/80 dark:hover:bg-white/[.02]">
                             <td class="max-w-0 px-4 py-3.5 sm:px-5" style="width: 55%">
-                                <p class="truncate font-medium text-zinc-900 dark:text-white">{{ $segment->name }}</p>
-                                <p class="mt-0.5 truncate font-mono text-xs text-zinc-500">
+                                <p class="font-medium break-words text-zinc-900 dark:text-white">{{ $segment->name }}</p>
+                                <p class="mt-0.5 font-mono text-xs break-words text-zinc-500">
                                     {{ collect($segment->filters)->map(fn ($f) => ($f['operator'] ?? null) === 'OR' ? __('or') : trim(($f['field'] === 'tag' ? ($f['key'] ?? '') : __(str_replace('_', ' ', $f['field']))).' '.($f['relation'] ?? '').' '.($f['value'] ?? ($f['hours_ago'] ?? '').(isset($f['hours_ago']) ? ' h' : ''))))->implode(' · ') }}
                                 </p>
                             </td>
@@ -58,8 +58,8 @@
                     @foreach ($builtIn as $name => $text)
                         <tr class="transition hover:bg-zinc-50/80 dark:hover:bg-white/[.02]">
                             <td class="max-w-0 px-4 py-3.5 sm:px-5">
-                                <p class="truncate font-medium text-zinc-900 dark:text-white">{{ __($name) }}</p>
-                                <p class="mt-0.5 truncate text-xs text-zinc-500">{{ $text }}</p>
+                                <p class="font-medium break-words text-zinc-900 dark:text-white">{{ __($name) }}</p>
+                                <p class="mt-0.5 text-xs text-zinc-500">{{ $text }}</p>
                             </td>
                             <td class="px-3 py-3.5"><x-ui.badge>{{ __('Built-in') }}</x-ui.badge></td>
                             <td class="px-3 py-3.5 text-right font-medium text-zinc-900 tabular-nums dark:text-white">{{ $n($counts[$name] ?? 0) }}</td>

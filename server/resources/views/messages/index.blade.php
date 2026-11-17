@@ -74,19 +74,19 @@
                             <tr class="group relative transition hover:bg-zinc-50/80 dark:hover:bg-white/[.02]">
                                 <td class="max-w-0 px-4 py-3.5 sm:px-5" style="width: 38%">
                                     <a href="{{ $href }}" class="flex min-w-0 items-center gap-2 font-medium text-zinc-900 after:absolute after:inset-0 dark:text-white">
-                                        <span class="truncate">{{ $message->label() }}</span>
+                                        <span class="truncate" title="{{ $message->label() }}">{{ $message->label() }}</span>
                                         @if ($message->is_test)<x-ui.badge color="violet" class="shrink-0">{{ __('Test') }}</x-ui.badge>@endif
                                         @if ($message->ab_variant)<x-ui.badge color="blue" class="shrink-0">{{ $message->ab_variant === 'W' ? __('A/B winner') : 'A/B · '.$message->ab_variant }}</x-ui.badge>@endif
                                     </a>
                                     <p class="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
                                         @if ($message->name || \App\Models\Message::localized($message->headings, app()->getLocale()))
-                                            <span class="truncate">{{ \App\Models\Message::localized($message->contents, app()->getLocale()) }}</span>
+                                            <span class="truncate" title="{{ \App\Models\Message::localized($message->contents, app()->getLocale()) }}">{{ \App\Models\Message::localized($message->contents, app()->getLocale()) }}</span>
                                         @endif
                                         @foreach ($message->labels ?? [] as $item)<x-ui.badge class="relative z-10 shrink-0">{{ $item }}</x-ui.badge>@endforeach
                                     </p>
                                 </td>
                                 <td class="px-3 py-3.5 whitespace-nowrap"><x-messages.status :status="$message->status" variant="dot" /></td>
-                                <td class="max-w-44 truncate px-3 py-3.5 text-zinc-600 dark:text-zinc-400">{{ $message->audienceLabel() }}</td>
+                                <td class="max-w-56 px-3 py-3.5 break-words text-zinc-600 dark:text-zinc-400">{{ $message->audienceLabel() }}</td>
                                 <td class="px-3 py-3.5 whitespace-nowrap text-zinc-600 tabular-nums dark:text-zinc-400">
                                     {{ $when?->isoFormat('DD/MM/YY, HH:mm') ?? '—' }}
                                     <span class="block text-xs text-zinc-400">{{ $message->author?->name ?? ($message->api_key_id ? __('API') : '') }}</span>

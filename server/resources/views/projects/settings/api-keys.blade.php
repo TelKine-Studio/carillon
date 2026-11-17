@@ -8,7 +8,7 @@
                         <span class="block text-xs text-zinc-500 dark:text-zinc-400">{{ $idHint }}</span>
                     </dt>
                     <dd class="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 py-1 pr-1 pl-3 dark:border-zinc-800 dark:bg-white/[.03]">
-                        <code x-ref="source" class="min-w-0 flex-1 truncate font-mono text-[13px] text-zinc-800 dark:text-zinc-200">{{ $idValue }}</code>
+                        <code x-ref="source" class="min-w-0 flex-1 font-mono text-[13px] break-all text-zinc-800 dark:text-zinc-200">{{ $idValue }}</code>
                         <button type="button" x-on:click="copy()" class="inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-zinc-500 transition hover:bg-zinc-200/70 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white">
                             <x-ui.icon name="copy" class="size-3.5" x-show="!copied" />
                             <x-ui.icon name="check" class="size-3.5 text-emerald-500" x-show="copied" x-cloak />

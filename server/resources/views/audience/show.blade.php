@@ -11,7 +11,7 @@
         <x-slot:breadcrumb>
             <a href="{{ route('projects.subscribers.index', $project) }}" class="hover:text-zinc-900 dark:hover:text-white">{{ __('Audience') }}</a>
             <x-ui.icon name="chevron-right" class="size-3.5" />
-            <span class="font-mono text-xs">{{ \Illuminate\Support\Str::limit($subscriber->id, 8, '') }}</span>
+            <span class="inline-flex items-center gap-0.5"><span class="font-mono text-xs">{{ $subscriber->id }}</span><x-ui.copy :value="$subscriber->id" :label="__('Copy the user id')" /></span>
         </x-slot:breadcrumb>
         <x-ui.dropdown width="w-64">
             <x-slot:trigger>
@@ -60,14 +60,15 @@
             <x-ui.card :title="__('Profile')" icon="user">
                 <dl class="divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
                     @foreach ([
+                        ['user', __('User ID'), $subscriber->id, true],
                         ['key', __('External id'), $subscriber->external_id, true],
                         ['globe', __('Country'), $country ? $country.' ('.$subscriber->country.')' : null, false],
                         ['message', __('Language'), $language, false],
                         ['clock', __('Time zone'), $subscriber->timezone, false],
                     ] as [$icon, $label, $value, $mono])
-                        <div class="flex items-center gap-3 py-2.5 first:pt-0">
+                        <div class="flex items-start gap-3 py-2.5 first:pt-0">
                             <dt class="flex w-32 shrink-0 items-center gap-2 text-zinc-500"><x-ui.icon :name="$icon" class="size-4 text-zinc-400" />{{ $label }}</dt>
-                            <dd @class(['min-w-0 truncate text-zinc-900 dark:text-zinc-100', 'font-mono text-xs' => $mono && $value])>{{ $value ?? '—' }}</dd>
+                            <dd @class(['flex min-w-0 flex-1 items-start gap-1 text-zinc-900 dark:text-zinc-100', 'font-mono text-xs leading-5 break-all' => $mono && $value, 'break-words' => ! $mono])><span class="min-w-0">{{ $value ?? '—' }}</span>@if ($mono && $value)<x-ui.copy :value="$value" class="-my-0.5 ml-auto" />@endif</dd>
                         </div>
                     @endforeach
                 </dl>
@@ -76,7 +77,7 @@
                     @forelse ($subscriber->subscriptions as $device)
                         <li class="flex items-center gap-2 text-zinc-700 dark:text-zinc-300">
                             <x-ui.icon :name="['ios' => 'apple', 'android' => 'android', 'huawei' => 'android', 'amazon' => 'android', 'email' => 'mail', 'sms' => 'message', 'whatsapp' => 'chat'][$device->type] ?? 'globe-web'" class="size-4 shrink-0 text-zinc-400" />
-                            <span class="min-w-0 truncate">{{ $deviceLabel($device) }}</span>
+                            <span class="min-w-0 break-words">{{ $deviceLabel($device) }}</span>
                             <span @class(['ml-auto size-2 shrink-0 rounded-full', 'bg-emerald-500' => $device->enabled && ! $device->invalid_at, 'bg-red-500' => (bool) $device->invalid_at, 'bg-zinc-300 dark:bg-zinc-600' => ! $device->enabled && ! $device->invalid_at])></span>
                         </li>
                     @empty
@@ -108,7 +109,7 @@
                         <li>
                             <a href="{{ route('projects.messages.show', [$project, $delivery->message_id]) }}" class="flex items-center gap-3 px-5 py-3 transition hover:bg-zinc-50/80 sm:px-6 dark:hover:bg-white/[.02]">
                                 <div class="min-w-0 flex-1">
-                                    <p class="truncate text-sm font-medium text-zinc-900 dark:text-white">{{ $delivery->message?->label() }}</p>
+                                    <p class="text-sm font-medium break-words text-zinc-900 dark:text-white">{{ $delivery->message?->label() }}</p>
                                     <p class="text-xs text-zinc-500">{{ $delivery->sent_at?->diffForHumans() }}@if ($delivery->error) · <span class="font-mono">{{ $delivery->error }}</span>@endif</p>
                                 </div>
                                 @if ($delivery->clicked_at)
@@ -143,9 +144,8 @@
                                 @if ($device->is_test)<x-ui.badge color="violet">{{ $device->test_name ?: __('Test device') }}</x-ui.badge>@endif
                                 @if ($device->environment === 'sandbox')<x-ui.badge color="violet">{{ __('Development') }}</x-ui.badge>@endif
                             </p>
-                            <p class="mt-0.5 text-xs text-zinc-500" x-data="copy(@js($device->id))">
-                                {{ __('Device id') }} <button type="button" x-on:click="copy()" class="font-mono text-brand-700 hover:underline dark:text-brand-300">{{ $device->id }}</button>
-                                <span x-show="copied" x-cloak class="text-emerald-600">· {{ __('Copied') }}</span>
+                            <p class="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-zinc-500">
+                                {{ __('Device id') }} <span class="font-mono break-all text-zinc-700 dark:text-zinc-300">{{ $device->id }}</span><x-ui.copy :value="$device->id" :label="__('Copy the id')" />
                             </p>
                         </div>
                         @if ($device->type !== 'email')
@@ -170,9 +170,9 @@
                             [__('Push token'), in_array($device->type, ['email', 'sms', 'whatsapp'], true) ? null : $device->token, true],
                             [__('OneSignal id'), $device->onesignal_id, true],
                         ] as [$label, $value, $mono])
-                            <div class="flex min-w-0 items-center gap-4 border-t border-zinc-100 py-2.5 dark:border-zinc-800">
+                            <div @class(['flex min-w-0 items-start gap-4 border-t border-zinc-100 py-2.5 dark:border-zinc-800', 'sm:col-span-2' => $mono && filled($value)])>
                                 <dt class="w-32 shrink-0 text-zinc-500">{{ $label }}</dt>
-                                <dd @class(['min-w-0 truncate text-zinc-900 dark:text-zinc-100', 'font-mono text-xs' => $mono]) @if ($mono && $value) title="{{ $value }}" @endif>{{ filled($value) ? $value : '—' }}</dd>
+                                <dd @class(['flex min-w-0 flex-1 items-start gap-1 text-zinc-900 dark:text-zinc-100', 'font-mono text-xs leading-5 break-all' => $mono, 'break-words' => ! $mono])><span class="min-w-0">{{ filled($value) ? $value : '—' }}</span>@if ($mono && filled($value))<x-ui.copy :value="$value" class="-my-0.5 ml-auto" />@endif</dd>
                             </div>
                         @endforeach
                         @if ($statusDetails = $device->statusDetails())
@@ -207,7 +207,7 @@
                             <span class="min-w-0 flex-1">
                                 <span class="block font-mono text-sm text-zinc-900 dark:text-white">{{ $event->name }}@if ($event->value !== null) <span class="font-sans font-semibold">· {{ number_format((float) $event->value, 0, ',', ' ') }}</span>@endif</span>
                                 @if ($event->message)
-                                    <a href="{{ route('projects.messages.show', [$project, $event->message_id]) }}" class="block truncate text-xs text-zinc-500 hover:underline">{{ $event->attribution === 'direct' ? __('After a click on :message', ['message' => $event->message->label()]) : __('After receiving :message', ['message' => $event->message->label()]) }}</a>
+                                    <a href="{{ route('projects.messages.show', [$project, $event->message_id]) }}" class="block text-xs break-words text-zinc-500 hover:underline">{{ $event->attribution === 'direct' ? __('After a click on :message', ['message' => $event->message->label()]) : __('After receiving :message', ['message' => $event->message->label()]) }}</a>
                                 @endif
                             </span>
                             <span class="text-xs text-zinc-500" title="{{ $event->occurred_at->isoFormat('LLL') }}">{{ $event->occurred_at->diffForHumans() }}</span>
@@ -235,7 +235,7 @@
                             <div class="flex flex-wrap gap-1.5">
                                 @foreach ($tags as $tag)
                                     <span class="inline-flex max-w-full items-center gap-1 rounded-md bg-zinc-100 px-2 py-1 font-mono text-xs dark:bg-white/5">
-                                        <span class="text-zinc-500">{{ $tag['key'] }}</span><span class="truncate text-zinc-900 dark:text-zinc-100">{{ $tag['value'] }}</span>
+                                        <span class="text-zinc-500">{{ $tag['key'] }}</span><span class="break-all text-zinc-900 dark:text-zinc-100">{{ $tag['value'] }}</span>
                                     </span>
                                 @endforeach
                             </div>

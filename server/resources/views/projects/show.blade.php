@@ -2,7 +2,7 @@
     <div class="mb-8 flex flex-wrap items-center gap-4">
         <x-ui.project-icon :project="$project" size="lg" />
         <div class="min-w-0 flex-1">
-            <h1 class="truncate text-2xl font-semibold tracking-tight text-zinc-900 dark:text-white">{{ $project->name }}</h1>
+            <h1 class="text-2xl break-words font-semibold tracking-tight text-zinc-900 dark:text-white">{{ $project->name }}</h1>
             <p class="mt-1 text-sm text-zinc-500">{{ $role->label() }}</p>
         </div>
     </div>
@@ -83,7 +83,7 @@
                     <li>
                         <a href="{{ route('projects.messages.show', [$project, $message]) }}" class="flex items-center gap-4 px-5 py-3 transition hover:bg-zinc-50/80 sm:px-6 dark:hover:bg-white/[.02]">
                             <div class="min-w-0 flex-1">
-                                <p class="truncate text-sm font-medium text-zinc-900 dark:text-white">{{ $message->label() }}</p>
+                                <p class="truncate text-sm font-medium text-zinc-900 dark:text-white" title="{{ $message->label() }}">{{ $message->label() }}</p>
                                 <p class="truncate text-xs text-zinc-500">{{ $message->audienceLabel() }} · {{ $message->created_at->diffForHumans() }}</p>
                             </div>
                             <span class="hidden text-sm tabular-nums text-zinc-600 sm:block dark:text-zinc-300">{{ $n($message->successful) }} / {{ $n($message->recipients) }}</span>

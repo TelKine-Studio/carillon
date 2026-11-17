@@ -15,8 +15,8 @@
                 <li class="flex flex-wrap items-center gap-4 px-5 py-4 sm:px-6">
                     <x-ui.avatar :user="$member" />
                     <div class="min-w-0 flex-1">
-                        <p class="truncate text-sm font-medium text-zinc-900 dark:text-white">{{ $member->name }} @if ($member->is(auth()->user()))<span class="text-xs font-normal text-zinc-400">({{ __('you') }})</span>@endif</p>
-                        <p class="truncate text-xs text-zinc-500">{{ $member->email }}</p>
+                        <p class="text-sm font-medium break-words text-zinc-900 dark:text-white">{{ $member->name }} @if ($member->is(auth()->user()))<span class="text-xs font-normal text-zinc-400">({{ __('you') }})</span>@endif</p>
+                        <p class="text-xs break-all text-zinc-500">{{ $member->email }}</p>
                     </div>
                     @if ($canConfigure)
                         <form method="POST" action="{{ route('projects.members.update', [$project, $member]) }}">
@@ -40,8 +40,8 @@
                     <li class="flex flex-wrap items-center gap-4 px-5 py-4 sm:px-6">
                         <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-zinc-100 text-zinc-400 dark:bg-white/5"><x-ui.icon name="mail" class="size-4" /></span>
                         <div class="min-w-0 flex-1">
-                            <p class="truncate text-sm font-medium text-zinc-900 dark:text-white">{{ $invitation->name ?? $invitation->email }}</p>
-                            <p class="truncate text-xs text-zinc-500">{{ $invitation->email }} · {{ __('invited, expires :date', ['date' => $invitation->expires_at->diffForHumans()]) }}</p>
+                            <p class="text-sm font-medium break-words text-zinc-900 dark:text-white">{{ $invitation->name ?? $invitation->email }}</p>
+                            <p class="text-xs break-all text-zinc-500">{{ $invitation->email }} · {{ __('invited, expires :date', ['date' => $invitation->expires_at->diffForHumans()]) }}</p>
                         </div>
                         <x-ui.badge color="amber">{{ \App\Enums\ProjectRole::tryFrom((string) $invitation->project_role)?->label() }}</x-ui.badge>
                     </li>

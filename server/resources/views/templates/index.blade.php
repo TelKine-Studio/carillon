@@ -30,13 +30,10 @@
                             @endphp
                             <tr class="transition hover:bg-zinc-50/80 dark:hover:bg-white/[.02]">
                                 <td class="max-w-0 px-4 py-3.5 sm:px-5" style="width: 46%">
-                                    <p class="truncate font-medium text-zinc-900 dark:text-white">{{ $template->name }}</p>
+                                    <p class="font-medium break-words text-zinc-900 dark:text-white">{{ $template->name }}</p>
                                     <p class="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">@if ($title){{ $title }} · @endif{{ $body }}</p>
-                                    <p class="mt-1 flex items-center gap-1 font-mono text-[11px] text-zinc-400" x-data="{ copied: false }">
-                                        <span class="truncate">{{ $template->id }}</span>
-                                        <button type="button" class="shrink-0 hover:text-zinc-700 dark:hover:text-zinc-200" x-on:click="navigator.clipboard.writeText(@js($template->id)); copied = true; setTimeout(() => copied = false, 1500)" title="{{ __('Copy') }}">
-                                            <x-ui.icon name="copy" class="size-3" x-show="!copied" /><x-ui.icon name="check" class="size-3 text-emerald-600" x-show="copied" x-cloak />
-                                        </button>
+                                    <p class="mt-1 flex items-center gap-0.5 font-mono text-[11px] text-zinc-400">
+                                        <span class="break-all">{{ $template->id }}</span><x-ui.copy :value="$template->id" :label="__('Copy the id')" class="-my-1" />
                                     </p>
                                 </td>
                                 <td class="px-3 py-3.5 whitespace-nowrap text-zinc-700 dark:text-zinc-300"><span class="inline-flex items-center gap-1.5"><x-ui.icon :name="$email ? 'mail' : 'smartphone'" class="size-4 text-zinc-400" />{{ $email ? __('Email') : __('Push notification') }}</span></td>

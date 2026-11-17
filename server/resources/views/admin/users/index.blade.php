@@ -52,8 +52,8 @@
                 <li class="flex flex-wrap items-center gap-x-4 gap-y-2 bg-amber-50/40 px-4 py-3.5 sm:px-6 dark:bg-amber-500/[.03]">
                     <x-ui.avatar :name="$invitation->name ?? $invitation->email" class="opacity-60" />
                     <div class="min-w-0 flex-1">
-                        <p class="truncate text-sm font-medium text-zinc-900 dark:text-white">{{ $invitation->name ?? $invitation->email }}</p>
-                        <p class="truncate text-xs text-zinc-500">{{ $invitation->email }}</p>
+                        <p class="text-sm font-medium break-words text-zinc-900 dark:text-white">{{ $invitation->name ?? $invitation->email }}</p>
+                        <p class="text-xs break-all text-zinc-500">{{ $invitation->email }}</p>
                     </div>
                     <x-ui.badge :color="$invitation->role === App\Enums\Role::Admin ? 'brand' : 'zinc'" class="hidden sm:inline-flex">{{ $invitation->role->label() }}</x-ui.badge>
                     <x-ui.badge color="amber" dot title="{{ __('Link expires :date', ['date' => $invitation->expires_at->diffForHumans()]) }}">{{ __('Awaiting activation') }}</x-ui.badge>
@@ -81,8 +81,8 @@
                     <a href="{{ route('admin.users.edit', $user) }}" class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5 transition hover:bg-zinc-50/80 sm:px-6 dark:hover:bg-white/[.02]">
                         <x-ui.avatar :user="$user" />
                         <div class="min-w-0 flex-1">
-                            <p class="truncate text-sm font-medium text-zinc-900 dark:text-white">{{ $user->name }} @if ($user->is(auth()->user()))<span class="text-xs font-normal text-zinc-400">({{ __('you') }})</span>@endif</p>
-                            <p class="truncate text-xs text-zinc-500">{{ $user->email }}</p>
+                            <p class="text-sm font-medium break-words text-zinc-900 dark:text-white">{{ $user->name }} @if ($user->is(auth()->user()))<span class="text-xs font-normal text-zinc-400">({{ __('you') }})</span>@endif</p>
+                            <p class="text-xs break-all text-zinc-500">{{ $user->email }}</p>
                         </div>
                         <span class="hidden w-28 text-xs text-zinc-500 md:block" title="{{ __('Projects') }}"><x-ui.icon name="grid" class="mr-1 inline size-3.5" />{{ $user->isAdmin() ? __('All projects') : trans_choice(':count project|:count projects', $user->projects_count) }}</span>
                         <span class="hidden w-36 text-xs text-zinc-500 lg:block">{{ $user->last_login_at ? __('Seen :date', ['date' => $user->last_login_at->diffForHumans()]) : __('Never logged in') }}</span>

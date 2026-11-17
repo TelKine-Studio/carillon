@@ -49,8 +49,8 @@
                             @endphp
                             <tr class="relative transition hover:bg-zinc-50/80 dark:hover:bg-white/[.02]">
                                 <td class="max-w-0 px-4 py-3.5 sm:px-5" style="width: 50%">
-                                    <a href="{{ route('projects.journeys.show', [$project, $journey]) }}" class="block truncate font-medium text-zinc-900 after:absolute after:inset-0 dark:text-white">{{ $journey->name }}</a>
-                                    <p class="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">{{ $journey->triggerLabel() }} · {{ trans_choice(':count step|:count steps', count($journey->steps ?? [])) }}</p>
+                                    <a href="{{ route('projects.journeys.show', [$project, $journey]) }}" class="block font-medium break-words text-zinc-900 after:absolute after:inset-0 dark:text-white">{{ $journey->name }}</a>
+                                    <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{{ $journey->triggerLabel() }} · {{ trans_choice(':count step|:count steps', count($journey->steps ?? [])) }}</p>
                                 </td>
                                 <td class="px-3 py-3.5 whitespace-nowrap"><span class="inline-flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300"><span @class(['size-2 rounded-full', $dot, 'animate-pulse' => $journey->status === 'active'])></span>{{ $label }}</span></td>
                                 <td class="px-3 py-3.5 text-right font-medium text-zinc-900 tabular-nums dark:text-white">{{ $n($byStatus['active'] ?? 0) }}</td>

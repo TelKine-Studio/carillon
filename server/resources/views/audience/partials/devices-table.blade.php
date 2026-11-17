@@ -94,9 +94,9 @@
                         <td data-col="usage" class="px-3 py-2.5 text-right text-xs text-zinc-600 tabular-nums dark:text-zinc-400">{{ $subscription->usage_seconds ? $duration($subscription->usage_seconds) : '—' }}</td>
                         <td data-col="sessions" class="px-3 py-2.5 text-right text-xs text-zinc-600 tabular-nums dark:text-zinc-400">{{ number_format($subscription->sessions, 0, ',', ' ') }}</td>
                         <td data-col="first_session" class="px-3 py-2.5 text-xs text-zinc-600 tabular-nums dark:text-zinc-400">{{ $date($subscription->created_at) }}</td>
-                        <td data-col="id" class="px-3 py-2.5 font-mono text-xs text-zinc-600 dark:text-zinc-400">{{ $subscription->id }}</td>
-                        <td data-col="person" class="px-3 py-2.5 text-xs">@if ($person->external_id)<span class="font-mono text-zinc-800 dark:text-zinc-200">{{ $person->external_id }}</span>@else<span class="text-zinc-400">{{ __('Anonymous') }}</span>@endif</td>
-                        <td data-col="address" class="px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400">{{ $isAddress ? $subscription->token : '—' }}</td>
+                        <td data-col="id" class="px-3 py-2.5 font-mono text-xs text-zinc-600 dark:text-zinc-400"><span class="inline-flex items-center gap-0.5">{{ $subscription->id }}<x-ui.copy :value="$subscription->id" :label="__('Copy the id')" class="-my-1" /></span></td>
+                        <td data-col="person" class="px-3 py-2.5 text-xs">@if ($person->external_id)<span class="inline-flex items-center gap-0.5 font-mono text-zinc-800 dark:text-zinc-200">{{ $person->external_id }}<x-ui.copy :value="$person->external_id" class="-my-1" /></span>@else<span class="text-zinc-400">{{ __('Anonymous') }}</span>@endif</td>
+                        <td data-col="address" class="px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400">@if ($isAddress)<span class="inline-flex items-center gap-0.5">{{ $subscription->token }}<x-ui.copy :value="$subscription->token" class="-my-1" /></span>@else—@endif</td>
                         <td data-col="app_version" class="px-3 py-2.5 text-xs text-zinc-600 tabular-nums dark:text-zinc-400">{{ $subscription->app_version ?? '—' }}</td>
                         <td data-col="timezone" class="px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400">{{ $person->timezone ?? '—' }}</td>
                         <td data-col="country" class="px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400">{{ $person->country ?? '—' }}</td>

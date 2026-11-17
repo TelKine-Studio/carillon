@@ -24,7 +24,7 @@
         <x-slot:breadcrumb>
             <a href="{{ route('projects.messages.index', $project) }}" class="hover:text-zinc-900 dark:hover:text-white">{{ __('Messages') }}</a>
             <x-ui.icon name="chevron-right" class="size-3.5" />
-            <span class="font-mono text-xs">{{ \Illuminate\Support\Str::limit($message->id, 8, '') }}</span>
+            <span class="inline-flex items-center gap-0.5"><span class="font-mono text-xs">{{ $message->id }}</span><x-ui.copy :value="$message->id" :label="__('Copy the id')" /></span>
         </x-slot:breadcrumb>
         @can('send', $project)
             @if ($message->status === 'draft')
@@ -298,7 +298,7 @@
             <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
                 @foreach ($errors_summary as $row)
                     <li class="flex items-center justify-between gap-4 px-5 py-3 text-sm sm:px-6">
-                        <span class="min-w-0 truncate font-mono text-xs text-zinc-700 dark:text-zinc-300">{{ $row->error }}</span>
+                        <span class="min-w-0 font-mono text-xs break-all text-zinc-700 dark:text-zinc-300">{{ $row->error }}</span>
                         <span class="shrink-0 font-medium tabular-nums text-zinc-900 dark:text-white">{{ $n($row->total) }}</span>
                     </li>
                 @endforeach
@@ -318,11 +318,9 @@
                     <dl class="divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
                         <div class="grid grid-cols-[minmax(0,160px)_minmax(0,1fr)] gap-4 py-2.5">
                             <dt class="text-zinc-500">{{ __('Message ID') }}</dt>
-                            <dd class="flex min-w-0 items-center gap-2" x-data="{ copied: false }">
-                                <span class="truncate font-mono text-xs text-zinc-800 dark:text-zinc-200">{{ $message->id }}</span>
-                                <button type="button" x-on:click="navigator.clipboard.writeText(@js($message->id)); copied = true; setTimeout(() => copied = false, 1500)" class="shrink-0 rounded p-1 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-white/5 dark:hover:text-zinc-200" title="{{ __('Copy') }}">
-                                    <x-ui.icon name="copy" class="size-3.5" x-show="! copied" /><x-ui.icon name="check" class="size-3.5 text-emerald-600" x-show="copied" x-cloak />
-                                </button>
+                            <dd class="flex min-w-0 items-start gap-1">
+                                <span class="min-w-0 font-mono text-xs leading-5 break-all text-zinc-800 dark:text-zinc-200">{{ $message->id }}</span>
+                                <x-ui.copy :value="$message->id" class="-my-0.5" />
                             </dd>
                         </div>
                         @foreach ($settings as $label => $value)

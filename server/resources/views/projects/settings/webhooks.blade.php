@@ -18,7 +18,7 @@
                         <button type="button" class="flex min-w-0 flex-1 basis-64 items-start gap-3 text-left" x-on:click="open = !open" :aria-expanded="open">
                             <x-ui.icon name="chevron-right" class="mt-0.5 size-4 shrink-0 text-zinc-400 transition" ::class="open && 'rotate-90'" />
                             <span class="min-w-0">
-                                <span class="block truncate font-mono text-sm text-zinc-900 dark:text-white">{{ $webhook->url }}</span>
+                                <span class="block font-mono text-sm break-all text-zinc-900 dark:text-white">{{ $webhook->url }}</span>
                                 <span class="mt-1 block text-xs text-zinc-500">
                                     {{ trans_choice(':count event|:count events', count($webhook->events)) }}
                                     · {{ $webhook->last_delivery_at ? __('last delivery :date', ['date' => $webhook->last_delivery_at->diffForHumans()]) : __('no delivery yet') }}
@@ -100,7 +100,7 @@
                                                         <x-ui.badge :color="$delivery->successful() ? 'green' : 'red'">{{ $delivery->status ?? __('Error') }}</x-ui.badge>
                                                     </td>
                                                     <td class="py-2 pr-3 font-mono text-xs text-zinc-700 dark:text-zinc-300">{{ $delivery->event }}</td>
-                                                    <td class="max-w-56 truncate py-2 pr-3 text-xs text-zinc-500" title="{{ $delivery->error }}">{{ $delivery->error }}@if ($delivery->attempt > 1) <span class="text-zinc-400">· {{ __('attempt :n', ['n' => $delivery->attempt]) }}</span>@endif</td>
+                                                    <td class="max-w-72 py-2 pr-3 text-xs break-words text-zinc-500">{{ $delivery->error }}@if ($delivery->attempt > 1) <span class="text-zinc-400">· {{ __('attempt :n', ['n' => $delivery->attempt]) }}</span>@endif</td>
                                                     <td class="py-2 pr-3 text-right text-xs whitespace-nowrap tabular-nums text-zinc-500">{{ $delivery->duration_ms }} ms</td>
                                                     <td class="py-2 pr-3.5 text-right text-xs whitespace-nowrap text-zinc-500">{{ $delivery->created_at->diffForHumans() }}</td>
                                                 </tr>

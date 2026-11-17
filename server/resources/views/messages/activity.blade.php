@@ -42,20 +42,20 @@
                                 <span class="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 dark:bg-white/5 dark:text-zinc-400"><x-ui.icon :name="$platformIcon" class="size-3.5" /></span>
                                 <span class="min-w-0">
                                     <span class="block truncate font-medium text-zinc-900 dark:text-zinc-100">{{ $device?->test_name ?? $device?->device_model ?? $platformName }}</span>
-                                    <span class="block truncate font-mono text-[11px] text-zinc-400">{{ \Illuminate\Support\Str::limit((string) $delivery->subscription_id, 13, '…') }}@if ($device?->app_version) · v{{ $device->app_version }}@endif</span>
+                                    <span class="flex items-center gap-0.5 font-mono text-[11px] whitespace-nowrap text-zinc-400">{{ $delivery->subscription_id }}<x-ui.copy :value="$delivery->subscription_id" :label="__('Copy the id')" class="-my-1" />@if ($device?->app_version)<span class="font-sans">· v{{ $device->app_version }}</span>@endif</span>
                                 </span>
                             </span>
                         </td>
                         <td class="px-3 py-3">
                             @if ($device?->subscriber_id)
-                                <a href="{{ route('projects.subscribers.show', [$project, $device->subscriber_id]) }}" class="block max-w-48 truncate font-mono text-xs text-zinc-700 hover:text-brand-700 dark:text-zinc-300 dark:hover:text-brand-300">{{ $device->subscriber?->external_id ?? __('Anonymous') }}</a>
+                                <a href="{{ route('projects.subscribers.show', [$project, $device->subscriber_id]) }}" class="font-mono text-xs break-all text-zinc-700 hover:text-brand-700 dark:text-zinc-300 dark:hover:text-brand-300">{{ $device->subscriber?->external_id ?? __('Anonymous') }}</a>
                             @else
                                 <span class="text-zinc-400">—</span>
                             @endif
                         </td>
                         <td class="px-3 py-3">
                             @if ($showError)
-                                <span class="block max-w-56 truncate font-mono text-xs text-red-600 dark:text-red-400" title="{{ $delivery->error }}">{{ $delivery->error ?? '—' }}</span>
+                                <span class="block max-w-72 font-mono text-xs break-all text-red-600 dark:text-red-400">{{ $delivery->error ?? '—' }}</span>
                             @else
                                 <span class="text-zinc-600 dark:text-zinc-400">{{ $platformName }}</span>
                             @endif

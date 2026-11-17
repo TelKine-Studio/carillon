@@ -89,7 +89,7 @@
                     <li>
                         <a href="{{ route('projects.messages.show', [$project, $message]) }}" class="flex items-center gap-4 px-5 py-3.5 transition hover:bg-zinc-50 sm:px-6 dark:hover:bg-white/[0.03]">
                             <span class="min-w-0 flex-1">
-                                <span class="block truncate text-sm font-medium text-zinc-900 dark:text-white">{{ $message->label() }}</span>
+                                <span class="block truncate text-sm font-medium text-zinc-900 dark:text-white" title="{{ $message->label() }}">{{ $message->label() }}</span>
                                 <span class="block text-xs text-zinc-500">{{ ($message->started_at ?? $message->created_at)->isoFormat('LL') }} · {{ trans_choice(':count delivered|:count delivered', $message->successful, ['count' => $n($message->successful)]) }}</span>
                             </span>
                             <span class="shrink-0 text-right">

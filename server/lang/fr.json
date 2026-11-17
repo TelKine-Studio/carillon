@@ -2279,5 +2279,6 @@
     "Columns": "Colonnes",
     "All segments": "Tous les segments",
     "Page :page of :pages": "Page :page sur :pages",
-    "User ID": "ID utilisateur"
+    "User ID": "ID utilisateur",
+    "Copy the user id": "Copier l’ID utilisateur"
 }

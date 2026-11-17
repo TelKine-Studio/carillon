@@ -31,11 +31,11 @@
         @forelse ($activities as $activity)
             <div class="flex flex-col gap-2 border-t border-zinc-100 px-4 py-4 first:border-0 sm:px-5 lg:flex-row lg:items-center lg:gap-6 dark:border-zinc-800">
                 <div class="min-w-0 flex-1">
-                    <p class="flex min-w-0 items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-white">
-                        <span class="truncate font-mono">{{ $activity->activity_id }}</span>
+                    <p class="flex min-w-0 flex-wrap items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-white">
+                        <span class="inline-flex min-w-0 items-center gap-0.5"><span class="font-mono break-all">{{ $activity->activity_id }}</span><x-ui.copy :value="$activity->activity_id" :label="__('Copy the id')" /></span>
                         <x-ui.badge :color="$colors[$activity->status] ?? 'zinc'" dot class="shrink-0">{{ $labels[$activity->status] ?? $activity->status }}</x-ui.badge>
                     </p>
-                    <p class="mt-1 truncate text-xs text-zinc-500 dark:text-zinc-400">
+                    <p class="mt-1 text-xs break-words text-zinc-500 dark:text-zinc-400">
                         <span class="font-mono">{{ $activity->activity_type }}</span>
                         · {{ $activity->subscription?->device_model ?? 'iOS' }}
                         @if ($externalId = $activity->subscription?->subscriber?->external_id) · {{ $externalId }} @endif
