@@ -51,8 +51,10 @@ class SubscriptionController extends Controller
         if ($contact) {
             $this->throttleContacts($request);
         }
-        if (filled($data['external_id'] ?? null)) {
-            $this->verifyIdentity($project, $data['external_id'], $request->input('identity_hash'));
+        // Without a valid identity hash the device still registers (it must
+        // keep receiving notifications), but anonymously.
+        if (filled($data['external_id'] ?? null) && ! $this->verifyIdentity($project, $data['external_id'], $request->input('identity_hash'), strict: false)) {
+            unset($data['external_id']);
         }
 
         $created = false;
@@ -516,11 +518,11 @@ class SubscriptionController extends Controller
      * signs the external id with the identity secret, HMAC-SHA256 in hex, so
      * that a device cannot log in as someone else.
      */
-    protected function verifyIdentity(Project $project, string $externalId, mixed $hash): void
+    protected function verifyIdentity(Project $project, string $externalId, mixed $hash, bool $strict = true): bool
     {
         $secret = $project->identitySecret();
         if ($secret === null) {
-            return;
+            return true;
         }
 
         // Counted verification on or off: the project sees when its installed
@@ -529,7 +531,10 @@ class SubscriptionController extends Controller
             : (hash_equals(hash_hmac('sha256', $externalId, $secret), strtolower($hash)) ? 'valid' : 'invalid');
         IdentityChecks::count($project, $result);
 
-        abort_if($project->verifiesIdentity() && $result !== 'valid', 401, 'Identity verification failed: send identity_hash = HMAC-SHA256(external_id, identity secret).');
+        $allowed = ! $project->verifiesIdentity() || $result === 'valid';
+        abort_if($strict && ! $allowed, 401, 'Identity verification failed: send identity_hash = HMAC-SHA256(external_id, identity secret).');
+
+        return $allowed;
     }
 
     /** Lowercase address, or null if it is not one. */

@@ -133,7 +133,9 @@ class HardeningTest extends TestCase
         $this->postJson($this->sdk("/$device/login"), ['external_id' => 'user-9'])->assertUnauthorized();
         $this->postJson($this->sdk("/$device/login"), ['external_id' => 'user-9', 'identity_hash' => hash_hmac('sha256', 'user-10', $secret)])->assertUnauthorized();
         $this->postJson($this->sdk("/$device/login"), ['external_id' => 'user-9', 'identity_hash' => hash_hmac('sha256', 'user-9', $secret)])->assertOk()->assertJson(['external_id' => 'user-9']);
-        $this->postJson($this->sdk(), ['type' => 'android', 'token' => 'fcm-3', 'external_id' => 'user-9'])->assertUnauthorized();
+        // A registration without hash still gets the device (anonymous): it keeps receiving notifications.
+        $this->postJson($this->sdk(), ['type' => 'android', 'token' => 'fcm-3', 'external_id' => 'user-9'])->assertCreated()->assertJson(['external_id' => null]);
+        $this->postJson($this->sdk(), ['type' => 'android', 'token' => 'fcm-4', 'external_id' => 'user-9', 'identity_hash' => hash_hmac('sha256', 'user-9', $secret)])->assertCreated()->assertJson(['external_id' => 'user-9']);
 
         $this->actingAs($this->owner)->get(route('projects.settings', [$this->project, 'api-keys']))->assertOk()->assertSee('HMAC-SHA256');
     }

@@ -402,9 +402,10 @@ Turn it on when the missing ones have almost disappeared. The hash is the
 lowercase hexadecimal HMAC-SHA256 with the identity secret as key and the
 external id as message, sent as is (uppercase is accepted too).
 
-Devices already logged in keep their user when it is turned on: only new
-logins (`login`, or a registration with `external_id`) without a valid hash
-are refused.
+Devices already logged in keep their user when it is turned on. A `login`
+without a valid hash answers 401; a registration with `external_id` and no
+valid hash still registers the device, anonymously, so that old app versions
+keep receiving the notifications sent to everyone.
 
 ### Email addresses and phone numbers
 
