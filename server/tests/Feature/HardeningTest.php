@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Audience\IdentityChecks;
 use App\Enums\ProjectRole;
 use App\Models\Project;
 use App\Models\PushCredential;
@@ -12,6 +13,7 @@ use App\Models\Webhook;
 use App\Support\Settings;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Notification;
 use PragmaRX\Google2FA\Google2FA;
@@ -113,6 +115,15 @@ class HardeningTest extends TestCase
     public function test_identity_verification_signs_external_ids(): void
     {
         $this->actingAs($this->owner)->put(route('projects.identity.update', $this->project), ['rotate' => 1]);
+        $secret = Crypt::decryptString($this->project->fresh()->settings['identity_secret']);
+
+        // Off: logins pass, and are counted by hash (missing, wrong, valid).
+        $device = $this->postJson($this->sdk(), ['type' => 'android', 'token' => 'fcm-1'])->json('id');
+        $this->postJson($this->sdk("/$device/login"), ['external_id' => 'user-8'])->assertOk();
+        $this->postJson($this->sdk("/$device/login"), ['external_id' => 'user-8', 'identity_hash' => 'bad'])->assertOk();
+        $this->postJson($this->sdk("/$device/login"), ['external_id' => 'user-8', 'identity_hash' => strtoupper(hash_hmac('sha256', 'user-8', $secret))])->assertOk();
+        $this->assertEquals(['valid' => 1, 'invalid' => 1, 'missing' => 1], Arr::only(IdentityChecks::summary($this->project), ['valid', 'invalid', 'missing']));
+
         $this->actingAs($this->owner)->put(route('projects.identity.update', $this->project), ['identity_verification' => 1]);
         $project = $this->project->fresh();
         $this->assertTrue($project->verifiesIdentity());

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Sdk;
 use App\Audience\Conversions;
 use App\Audience\Events;
 use App\Audience\Identity;
+use App\Audience\IdentityChecks;
 use App\Audience\Presence;
 use App\Http\Controllers\Controller;
 use App\Journeys\JourneyRunner;
@@ -517,11 +518,18 @@ class SubscriptionController extends Controller
      */
     protected function verifyIdentity(Project $project, string $externalId, mixed $hash): void
     {
-        if (! $project->verifiesIdentity()) {
+        $secret = $project->identitySecret();
+        if ($secret === null) {
             return;
         }
-        $expected = hash_hmac('sha256', $externalId, (string) $project->identitySecret());
-        abort_unless(is_string($hash) && hash_equals($expected, strtolower($hash)), 401, 'Identity verification failed: send identity_hash = HMAC-SHA256(external_id, identity secret).');
+
+        // Counted verification on or off: the project sees when its installed
+        // apps send the hash before turning the verification on.
+        $result = ! is_string($hash) || $hash === '' ? 'missing'
+            : (hash_equals(hash_hmac('sha256', $externalId, $secret), strtolower($hash)) ? 'valid' : 'invalid');
+        IdentityChecks::count($project, $result);
+
+        abort_if($project->verifiesIdentity() && $result !== 'valid', 401, 'Identity verification failed: send identity_hash = HMAC-SHA256(external_id, identity secret).');
     }
 
     /** Lowercase address, or null if it is not one. */

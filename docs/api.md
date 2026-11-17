@@ -395,6 +395,17 @@ or `Carillon.login(id, { identityHash })` (web). Once the verification is on,
 `login` and a registration with `external_id` without a valid hash answer
 401. Generate the secret and ship the apps first, then turn it on.
 
+As soon as the secret exists, the card counts the SDK logins of the last 7
+days by hash: valid, wrong (the secret or the format is not the right one)
+and missing (app versions that do not send it yet), verification on or off.
+Turn it on when the missing ones have almost disappeared. The hash is the
+lowercase hexadecimal HMAC-SHA256 with the identity secret as key and the
+external id as message, sent as is (uppercase is accepted too).
+
+Devices already logged in keep their user when it is turned on: only new
+logins (`login`, or a registration with `external_id`) without a valid hash
+are refused.
+
 ### Email addresses and phone numbers
 
 An address or a number is not a secret. Through the SDK endpoints:

@@ -42,6 +42,22 @@
                         </span>
                         <x-ui.button size="sm" :variant="$identityOn ? 'secondary' : 'primary'" :icon="$identityOn ? 'pause' : 'shield'">{{ $identityOn ? __('Turn off') : __('Turn on') }}</x-ui.button>
                     </form>
+                    @php
+                        $checks = \App\Audience\IdentityChecks::summary($project);
+                        $checked = $checks['valid'] + $checks['invalid'] + $checks['missing'];
+                    @endphp
+                    <div class="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+                        <p class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Logins of the last 7 days') }}</p>
+                        <p class="mt-0.5 text-xs text-zinc-500">{{ __('Counted even while the verification is off: turn it on when almost every login sends a valid hash.') }}</p>
+                        <dl class="mt-3 grid grid-cols-3 gap-3 text-sm">
+                            @foreach ([['valid', __('Valid hash'), 'bg-emerald-500'], ['missing', __('Without hash'), 'bg-zinc-400'], ['invalid', __('Wrong hash'), 'bg-red-500']] as [$key, $label, $dot])
+                                <div class="min-w-0">
+                                    <dt class="flex items-center gap-1.5 text-xs text-zinc-500"><span class="size-2 rounded-full {{ $dot }}"></span>{{ $label }}</dt>
+                                    <dd class="mt-0.5 font-medium tabular-nums text-zinc-900 dark:text-white">{{ number_format($checks[$key], 0, ',', ' ') }}@if ($checked)<span class="ml-1 text-xs font-normal text-zinc-500">{{ round($checks[$key] / $checked * 100) }} %</span>@endif</dd>
+                                </div>
+                            @endforeach
+                        </dl>
+                    </div>
                     <div>
                         <p class="mb-1.5 text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Identity secret') }}</p>
                         <div class="flex flex-wrap items-center gap-1.5" x-data="{ shown: false }">
