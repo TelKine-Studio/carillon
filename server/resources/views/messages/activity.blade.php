@@ -71,10 +71,10 @@
             <span class="tabular-nums">{{ __(':from–:to of :total', ['from' => number_format($deliveries->firstItem(), 0, ',', ' '), 'to' => number_format($deliveries->lastItem(), 0, ',', ' '), 'total' => number_format($deliveries->total(), 0, ',', ' ')]) }}</span>
             <span class="flex gap-2">
                 @if ($deliveries->previousPageUrl())
-                    <a href="{{ $deliveries->previousPageUrl() }}" class="inline-flex items-center gap-1 rounded-lg border border-zinc-200 px-2.5 py-1 font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-white/5"><x-ui.icon name="arrow-left" class="size-3.5" />{{ __('Previous') }}</a>
+                    <a href="{{ $deliveries->previousPageUrl() }}" class="inline-flex h-8 items-center gap-1 rounded-md border border-zinc-300 bg-white px-2.5 text-sm font-medium text-zinc-800 transition-colors hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"><x-ui.icon name="chevron-left" class="size-3.5" />{{ __('Previous') }}</a>
                 @endif
                 @if ($deliveries->nextPageUrl())
-                    <a href="{{ $deliveries->nextPageUrl() }}" class="inline-flex items-center gap-1 rounded-lg border border-zinc-200 px-2.5 py-1 font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-white/5">{{ __('Next') }}<x-ui.icon name="arrow-right" class="size-3.5" /></a>
+                    <a href="{{ $deliveries->nextPageUrl() }}" class="inline-flex h-8 items-center gap-1 rounded-md border border-zinc-300 bg-white px-2.5 text-sm font-medium text-zinc-800 transition-colors hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800">{{ __('Next') }}<x-ui.icon name="chevron-right" class="size-3.5" /></a>
                 @endif
             </span>
         </div>

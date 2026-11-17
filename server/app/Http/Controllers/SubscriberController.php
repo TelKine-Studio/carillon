@@ -37,11 +37,12 @@ class SubscriberController extends Controller
         // Sortable columns of the tables (devices: like OneSignal).
         $sortable = ['last_active' => 'last_active_at', 'first_active' => 'created_at', 'sessions' => 'sessions', 'usage' => 'usage_seconds', 'unsubscribed' => 'unsubscribed_at'];
         $sort = array_key_exists((string) $request->query('sort'), $sortable) ? $request->query('sort') : 'last_active';
-        if ($view === 'people' && ! in_array($sort, ['last_active', 'first_active'], true)) {
+        if ($view === 'people' && $sort === 'unsubscribed') {
             $sort = 'last_active';
         }
         $direction = $request->query('dir') === 'asc' ? 'asc' : 'desc';
-        $column = $sortable[$sort];
+        // People: totals of their devices (OneSignal users).
+        $column = $view === 'people' ? (['sessions' => 'sessions_total', 'usage' => 'usage_total'][$sort] ?? $sortable[$sort]) : $sortable[$sort];
 
         // Conditions on the devices, shared by both views.
         $devices = fn (Builder $q) => $q
@@ -58,13 +59,16 @@ class SubscriberController extends Controller
         if ($view === 'people') {
             $results = $project->subscribers()
                 ->with(['subscriptions' => fn ($q) => $q->select('id', 'subscriber_id', 'type', 'enabled', 'invalid_at', 'is_test', 'device_model')->orderBy('type')])
+                ->withSum('subscriptions as sessions_total', 'sessions')
+                ->withSum('subscriptions as usage_total', 'usage_seconds')
                 ->when($platform || $state || $reason || $segment, fn (Builder $q) => $q->whereHas('subscriptions', $devices))
                 ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $q) => $q
                     // An id is a UUID: PostgreSQL refuses to compare it to any other text.
                     ->when(Str::isUuid($search), fn (Builder $q) => $q->orWhere('subscribers.id', $search)->orWhereHas('subscriptions', fn (Builder $s) => $s->whereKey($search)))
                     ->orWhereContains(['external_id', 'tags'], $search)
                     ->orWhereHas('subscriptions', fn (Builder $s) => $s->where('onesignal_id', $search)->orWhereContains(['device_model', 'test_name'], $search))))
-                ->orderByRaw("{$column} is null")
+                // Totals are aliases: PostgreSQL only sorts on them directly.
+                ->when(! str_ends_with($column, '_total'), fn (Builder $q) => $q->orderByRaw("{$column} is null"))
                 ->orderBy($column, $direction)
                 ->paginate(25)
                 ->withQueryString();

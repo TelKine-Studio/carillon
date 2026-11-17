@@ -2277,5 +2277,6 @@
     "Email or phone": "E-mail ou téléphone",
     "Timezone": "Fuseau horaire",
     "Columns": "Colonnes",
-    "All segments": "Tous les segments"
+    "All segments": "Tous les segments",
+    "Page :page of :pages": "Page :page sur :pages"
 }

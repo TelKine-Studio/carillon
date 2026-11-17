@@ -41,6 +41,7 @@
         'monitor' => '<rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>',
         'chevron-down' => '<path d="m6 9 6 6 6-6"/>',
         'chevron-right' => '<path d="m9 18 6-6-6-6"/>',
+        'chevron-left' => '<path d="m15 18-6-6 6-6"/>',
         'chevrons-up-down' => '<path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/>',
         'more' => '<circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>',
         'apple' => '<path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"/><path d="M10 2c1 .5 2 2 2 5"/>',

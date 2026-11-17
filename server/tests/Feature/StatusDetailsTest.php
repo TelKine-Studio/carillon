@@ -145,4 +145,20 @@ class StatusDetailsTest extends TestCase
         $page(['segment' => 'Android Users'])->assertSee('Pixel-Stays');
         $page(['segment' => 'iOS Users'])->assertDontSee('Pixel-Stays');
     }
+
+    public function test_people_and_test_devices_tables(): void
+    {
+        $busy = $this->device('busy', ['external_id' => 'busy-person', 'device_model' => 'Pixel-Busy']);
+        $this->device('idle', ['external_id' => 'idle-person', 'device_model' => 'Pixel-Idle']);
+        Subscription::find($busy)->forceFill(['sessions' => 40, 'usage_seconds' => 3900, 'is_test' => true, 'test_name' => 'My phone'])->save();
+
+        $page = fn (array $query) => $this->actingAs($this->owner)->get(route('projects.subscribers.index', [$this->project, ...$query]))->assertOk();
+
+        $page([])->assertSee(__('Columns'))->assertSee(__('Usage duration'))->assertSee('1 h 05');
+        $page(['sort' => 'sessions', 'dir' => 'desc'])->assertSeeInOrder(['busy-person', 'idle-person']);
+        $page(['sort' => 'usage', 'dir' => 'asc'])->assertSeeInOrder(['idle-person', 'busy-person']);
+
+        $page(['view' => 'test'])->assertSee('My phone')->assertSee('Pixel-Busy')->assertDontSee('Pixel-Idle')
+            ->assertSee(__('Rename'))->assertDontSee('@js(', false);
+    }
 }
