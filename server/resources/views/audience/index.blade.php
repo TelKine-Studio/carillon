@@ -155,7 +155,7 @@
                 <div class="relative z-10 flex items-center justify-end gap-1 pl-12 lg:pl-0">
                     @can('send', $project)
                         <x-ui.button type="button" variant="ghost" size="sm" icon="pencil"
-                            x-on:click="$dispatch('rename-test-device', { url: @js(route('projects.test-devices.update', [$project, $device->id])), name: @js($device->test_name ?? '') })">{{ __('Rename') }}</x-ui.button>
+                            x-on:click="$dispatch('rename-test-device', { url: {{ \Illuminate\Support\Js::from(route('projects.test-devices.update', [$project, $device->id])) }}, name: {{ \Illuminate\Support\Js::from($device->test_name ?? '') }} })">{{ __('Rename') }}</x-ui.button>
                         <form method="POST" action="{{ route('projects.test-devices.destroy', [$project, $device->id]) }}">
                             @csrf
                             @method('DELETE')

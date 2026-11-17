@@ -429,7 +429,7 @@ class SendingTest extends TestCase
         $this->actingAs($owner)->post(route('projects.test-devices.store', $this->project), ['identifier' => 'admin-1', 'test_name' => 'iPhone LKAO'])->assertSessionHasNoErrors();
         $this->actingAs($owner)->post(route('projects.test-devices.store', $this->project), ['identifier' => 'nobody'])->assertSessionHasErrors('identifier');
         $this->actingAs($owner)->get(route('projects.test-devices.index', $this->project))->assertRedirect(route('projects.subscribers.index', [$this->project, 'view' => 'test']));
-        $this->actingAs($owner)->get(route('projects.subscribers.index', [$this->project, 'view' => 'test']))->assertOk()->assertSee('iPhone LKAO')->assertSee(__('Add a test device'));
+        $this->actingAs($owner)->get(route('projects.subscribers.index', [$this->project, 'view' => 'test']))->assertOk()->assertSee('iPhone LKAO')->assertSee(__('Add a test device'))->assertDontSee('@js(', false);
 
         // Built-in segments, with the names of OneSignal too.
         foreach (['Test Devices' => 1, 'iOS Users' => 1, 'Android audience' => 1, 'Total Subscriptions' => 2] as $segment => $count) {
