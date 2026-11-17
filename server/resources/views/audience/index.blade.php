@@ -128,7 +128,7 @@
                 :description="$search || $platform || $state ? __('Try another search or filter.') : __('Devices appear here once your app uses the Carillon SDK with this App ID.')" />
         @endforelse
     @elseif ($view === 'test')
-        @php $testCols = 'lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_130px_110px_150px]'; @endphp
+        @php $testCols = 'lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_170px_110px_200px]'; @endphp
         <div class="hidden gap-4 rounded-t-2xl border-b border-zinc-200 bg-zinc-50 px-5 py-3 text-xs font-medium text-zinc-500 lg:grid {{ $testCols }} dark:border-zinc-800 dark:bg-white/[.03]">
             <span>{{ __('Device') }}</span><span>{{ __('Person') }}</span><span>{!! $sortLink('last_active', __('Last seen')) !!}</span><span>{{ __('State') }}</span><span></span>
         </div>
