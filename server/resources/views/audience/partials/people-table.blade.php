@@ -65,12 +65,12 @@
                     @endphp
                     <tr class="group whitespace-nowrap transition hover:bg-zinc-50/80 dark:hover:bg-white/[.02]">
                         <td class="sticky left-0 z-10 bg-white px-4 py-2.5 group-hover:bg-zinc-50 sm:px-5 dark:bg-zinc-900 dark:group-hover:bg-zinc-800/60">
-                            <a href="{{ $profile }}" class="flex max-w-64 min-w-0 items-center gap-3">
+                            <a href="{{ $profile }}" class="flex items-center gap-3">
                                 <x-ui.avatar :name="$person->external_id ?: '?'" size="sm" />
-                                <span class="truncate font-mono text-xs text-zinc-700 dark:text-zinc-300">{{ $person->id }}</span>
+                                <span class="font-mono text-xs text-zinc-700 dark:text-zinc-300">{{ $person->id }}</span>
                             </a>
                         </td>
-                        <td data-col="p_external" class="max-w-52 truncate px-3 py-2.5 text-xs">@if ($person->external_id)<span class="font-mono text-zinc-900 dark:text-zinc-100">{{ $person->external_id }}</span>@else<span class="text-zinc-400">{{ __('Anonymous') }}</span>@endif</td>
+                        <td data-col="p_external" class="px-3 py-2.5 text-xs">@if ($person->external_id)<span class="font-mono text-zinc-900 dark:text-zinc-100">{{ $person->external_id }}</span>@else<span class="text-zinc-400">{{ __('Anonymous') }}</span>@endif</td>
                         <td data-col="p_channels" class="px-3 py-2.5">
                             <span class="flex items-center gap-1.5">
                                 @foreach ($person->subscriptions as $device)

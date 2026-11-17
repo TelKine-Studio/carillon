@@ -88,15 +88,15 @@
                             </a>
                         </td>
                         <td data-col="status" class="px-3 py-2.5"><x-audience.state :subscription="$subscription" /></td>
-                        <td data-col="reason" class="max-w-64 truncate px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400" title="{{ $subscription->statusDetails() }}">{{ $subscription->statusDetails() ?? '—' }}</td>
+                        <td data-col="reason" class="px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400" title="{{ $subscription->statusDetails() }}">{{ $subscription->statusDetails() ?? '—' }}</td>
                         <td data-col="unsubscribed" class="px-3 py-2.5 text-xs text-zinc-600 tabular-nums dark:text-zinc-400">{{ $date($subscription->unsubscribed_at) ?? '—' }}</td>
                         <td data-col="last_session" class="px-3 py-2.5 text-xs text-zinc-600 tabular-nums dark:text-zinc-400">{{ $date($subscription->last_active_at) ?? '—' }}</td>
                         <td data-col="usage" class="px-3 py-2.5 text-right text-xs text-zinc-600 tabular-nums dark:text-zinc-400">{{ $subscription->usage_seconds ? $duration($subscription->usage_seconds) : '—' }}</td>
                         <td data-col="sessions" class="px-3 py-2.5 text-right text-xs text-zinc-600 tabular-nums dark:text-zinc-400">{{ number_format($subscription->sessions, 0, ',', ' ') }}</td>
                         <td data-col="first_session" class="px-3 py-2.5 text-xs text-zinc-600 tabular-nums dark:text-zinc-400">{{ $date($subscription->created_at) }}</td>
                         <td data-col="id" class="px-3 py-2.5 font-mono text-xs text-zinc-600 dark:text-zinc-400">{{ $subscription->id }}</td>
-                        <td data-col="person" class="max-w-52 truncate px-3 py-2.5 text-xs">@if ($person->external_id)<span class="font-mono text-zinc-800 dark:text-zinc-200">{{ $person->external_id }}</span>@else<span class="text-zinc-400">{{ __('Anonymous') }}</span>@endif</td>
-                        <td data-col="address" class="max-w-56 truncate px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400">{{ $isAddress ? $subscription->token : '—' }}</td>
+                        <td data-col="person" class="px-3 py-2.5 text-xs">@if ($person->external_id)<span class="font-mono text-zinc-800 dark:text-zinc-200">{{ $person->external_id }}</span>@else<span class="text-zinc-400">{{ __('Anonymous') }}</span>@endif</td>
+                        <td data-col="address" class="px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400">{{ $isAddress ? $subscription->token : '—' }}</td>
                         <td data-col="app_version" class="px-3 py-2.5 text-xs text-zinc-600 tabular-nums dark:text-zinc-400">{{ $subscription->app_version ?? '—' }}</td>
                         <td data-col="timezone" class="px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400">{{ $person->timezone ?? '—' }}</td>
                         <td data-col="country" class="px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400">{{ $person->country ?? '—' }}</td>
