@@ -81,7 +81,11 @@ class UserController extends Controller
                     'device_model' => $item['device_model'] ?? null,
                     'device_os' => $item['device_os'] ?? null,
                     'sdk' => 'import',
-                ])->save();
+                ]);
+                if (! $subscription->enabled && $subscription->status_reason === null) {
+                    $subscription->setStatus('disabled_by_api');
+                }
+                $subscription->save();
             }
             $this->locate($subscriber, $data['properties'] ?? []);
 
@@ -213,6 +217,8 @@ class UserController extends Controller
                 'device_os' => $s->device_os,
                 'sdk' => $s->sdk,
                 'session_count' => $s->sessions,
+                'status_reason' => $s->status_reason,
+                'status_detail' => $s->status_detail,
             ], fn ($value) => $value !== null))->values()->all(),
         ];
     }

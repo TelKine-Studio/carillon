@@ -72,5 +72,12 @@ class HuaweiAmazonTest extends TestCase
 
         // Refused tokens are no longer targeted.
         $this->assertSame(['amzn1.adm-registration.gone', 'hms-dead'], Subscription::query()->whereNotNull('invalid_at')->orderBy('token')->pluck('token')->all());
+
+        // Status details keep the answer of the provider.
+        $gone = Subscription::query()->where('token', 'amzn1.adm-registration.gone')->first();
+        $this->assertSame('rejected', $gone->status_reason);
+        $this->assertSame('Unregistered', $gone->status_detail);
+        $this->assertSame(__('Refused by :provider', ['provider' => 'Amazon']).' : Unregistered', $gone->statusDetails());
+        $this->assertSame('rejected', Subscription::query()->where('token', 'hms-dead')->value('status_reason'));
     }
 }

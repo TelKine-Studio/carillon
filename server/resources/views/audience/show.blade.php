@@ -175,6 +175,12 @@
                                 <dd @class(['min-w-0 truncate text-zinc-900 dark:text-zinc-100', 'font-mono text-xs' => $mono]) @if ($mono && $value) title="{{ $value }}" @endif>{{ filled($value) ? $value : '—' }}</dd>
                             </div>
                         @endforeach
+                        @if ($statusDetails = $device->statusDetails())
+                            <div class="flex min-w-0 items-center gap-4 border-t border-zinc-100 py-2.5 sm:col-span-2 dark:border-zinc-800">
+                                <dt class="w-32 shrink-0 text-zinc-500">{{ __('Status details') }}</dt>
+                                <dd class="min-w-0 text-zinc-900 dark:text-zinc-100">{{ $statusDetails }}@if ($device->status_changed_at)<span class="text-xs text-zinc-500"> · {{ $device->status_changed_at->diffForHumans() }}</span>@endif</dd>
+                            </div>
+                        @endif
                         @if ($device->latitude !== null)
                             <div class="flex min-w-0 items-center gap-4 border-t border-zinc-100 py-2.5 sm:col-span-2 dark:border-zinc-800">
                                 <dt class="w-32 shrink-0 text-zinc-500">{{ __('Location') }}</dt>

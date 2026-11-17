@@ -252,7 +252,11 @@ class OneSignalImport
             'onesignal_id' => $device['onesignal_id'] ?? $subscription->onesignal_id,
             'sessions' => max((int) $subscription->sessions, $device['sessions']),
             'last_active_at' => $device['last_active_at'] ?? $subscription->last_active_at,
-        ])->save();
+        ]);
+        if (! $device['enabled'] && $subscription->status_reason === null) {
+            $subscription->setStatus('imported_unsubscribed');
+        }
+        $subscription->save();
     }
 
     protected function date(?string $value): ?CarbonImmutable

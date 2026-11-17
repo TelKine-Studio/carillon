@@ -115,7 +115,9 @@ class EmailEventsController extends Controller
             return;
         }
 
-        $subscription->forceFill($kind === 'bounced' ? ['invalid_at' => now()] : ['enabled' => false])->save();
+        $subscription->forceFill($kind === 'bounced' ? ['invalid_at' => now()] : ['enabled' => false])
+            ->setStatus($kind === 'bounced' ? 'email_bounced' : 'email_complaint')
+            ->save();
 
         Webhooks::dispatch($project, 'subscription.unsubscribed', array_filter([
             'subscription_id' => $subscription->id,

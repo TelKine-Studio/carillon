@@ -241,7 +241,10 @@ settings).
   }
   ```
 
-- `GET /api/v1/apps/{app_id}/users/by/external_id/{external_id}`
+- `GET /api/v1/apps/{app_id}/users/by/external_id/{external_id}` — each
+  subscription carries `status_reason` and `status_detail` when it is
+  unsubscribed or unreachable (`rejected` with the answer of Apple or Google,
+  `token_reused`, `permission_denied`, `opted_out`, `email_bounced`…)
 - `PATCH /api/v1/apps/{app_id}/users/by/external_id/{external_id}` —
   `{"properties": {"tags": {"plan": "silver", "old": null}}}` (`null` removes a tag);
   `"lat"`/`"long"` set the position of the person's push devices (and the user
@@ -371,7 +374,7 @@ afterwards.
   "external_id", "tags", "lat", "long", "location_accuracy"}` →
   `{"id", "subscriber_id", "external_id", "enabled", "tags", "location"}`
   (`location: false` when the project does not collect positions)
-- `PATCH …/subscriptions/{id}` — new token, `enabled`, `session: true`,
+- `PATCH …/subscriptions/{id}` — new token, `enabled` (with `permission`: `granted`, `denied` or `not_determined`, which tells why it is disabled), `session: true`,
   `lat`/`long`, `location_shared: false` (erases the position)…
 - `POST …/subscriptions/{id}/login` — `{"external_id": "user-42"}`
 - `POST …/subscriptions/{id}/logout`

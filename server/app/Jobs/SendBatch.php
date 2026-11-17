@@ -97,7 +97,7 @@ class SendBatch implements ShouldQueue
                 'sent' => 'successful', 'failed' => 'failed', default => 'errored'
             }]++;
             if ($result->invalid) {
-                $invalid[] = $id;
+                $invalid[$id] = $result->error ? mb_substr($result->error, 0, 255) : null;
             }
         }
 
@@ -112,14 +112,18 @@ class SendBatch implements ShouldQueue
                 DB::table('message_platforms')->where('message_id', $message->id)->where('platform', $this->type)->incrementEach($counts);
             }
 
-            if ($invalid !== []) {
-                DB::table('subscriptions')->whereIn('id', $invalid)->update(['invalid_at' => $now, 'updated_at' => $now]);
+            // Grouped by answer of the provider (Unregistered, BadDeviceToken...).
+            foreach (collect($invalid)->groupBy(fn ($error) => (string) $error, true) as $error => $ids) {
+                DB::table('subscriptions')->whereIn('id', $ids->keys()->all())->update([
+                    'invalid_at' => $now, 'updated_at' => $now,
+                    'status_reason' => 'rejected', 'status_detail' => $error !== '' ? $error : null, 'status_changed_at' => $now,
+                ]);
             }
         });
 
         // Tokens refused for good (app uninstalled...).
         if ($invalid !== []) {
-            foreach (Subscription::query()->with('subscriber')->whereIn('id', $invalid)->get() as $subscription) {
+            foreach (Subscription::query()->with('subscriber')->whereIn('id', array_keys($invalid))->get() as $subscription) {
                 Webhooks::dispatch($message->project_id, 'subscription.unsubscribed', array_filter([
                     'subscription_id' => $subscription->id,
                     'subscriber_id' => $subscription->subscriber_id,

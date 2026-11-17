@@ -108,7 +108,8 @@ class SubscriptionController extends Controller
             // its old one back): the other record of it is dead.
             Subscription::query()->where('project_id', $subscription->project_id)->where('type', $subscription->type)
                 ->where('token_hash', hash('sha256', $subscription->token))->whereKeyNot($subscription->id)
-                ->update(['token' => null, 'token_hash' => null, 'invalid_at' => now(), 'updated_at' => now()]);
+                ->update(['token' => null, 'token_hash' => null, 'invalid_at' => now(), 'updated_at' => now(),
+                    'status_reason' => 'token_reused', 'status_detail' => null, 'status_changed_at' => now()]);
         }
         $wasEnabled = $subscription->enabled;
         $this->applyDevice($subscription, $data);
@@ -209,6 +210,8 @@ class SubscriptionController extends Controller
     {
         return [
             'enabled' => ['nullable', 'boolean'],
+            // Notification permission on the device: tells why it is disabled.
+            'permission' => ['nullable', Rule::in(['granted', 'denied', 'not_determined', 'provisional', 'ephemeral'])],
             'environment' => ['nullable', Rule::in(['sandbox', 'production'])],
             'language' => ['nullable', 'string', 'max:8'],
             'timezone' => ['nullable', 'timezone'],
@@ -242,6 +245,18 @@ class SubscriptionController extends Controller
         }
         $subscription->last_active_at ??= now();
         $this->applyLocation($subscription, $data);
+
+        if (array_key_exists('enabled', $data) && $data['enabled'] !== null && ! filter_var($data['enabled'], FILTER_VALIDATE_BOOLEAN)) {
+            $reason = match ($data['permission'] ?? null) {
+                'denied' => 'permission_denied',
+                'not_determined' => 'permission_not_asked',
+                'granted', 'provisional', 'ephemeral' => 'opted_out',
+                default => 'disabled_on_device',
+            };
+            if ($subscription->status_reason !== $reason) {
+                $subscription->setStatus($reason);
+            }
+        }
     }
 
     /** @param array<string, mixed> $data */

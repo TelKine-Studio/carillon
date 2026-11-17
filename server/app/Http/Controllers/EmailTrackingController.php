@@ -62,7 +62,7 @@ class EmailTrackingController extends Controller
         }
 
         if ($device->enabled) {
-            $device->forceFill(['enabled' => false])->save();
+            $device->forceFill(['enabled' => false])->setStatus('email_unsubscribed')->save();
             Webhooks::dispatch($device->project_id, 'subscription.unsubscribed', array_filter([
                 'subscription_id' => $device->id,
                 'subscriber_id' => $device->subscriber_id,

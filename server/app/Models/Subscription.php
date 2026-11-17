@@ -26,16 +26,31 @@ class Subscription extends Model
     /** Provider handling each type of device. */
     public const PROVIDERS = ['ios' => 'apns', 'android' => 'fcm', 'huawei' => 'hms', 'amazon' => 'adm', 'web' => 'webpush', 'email' => 'email', 'sms' => 'sms', 'whatsapp' => 'whatsapp'];
 
-    /** Marks a device imported from OneSignal that the Carillon SDK has not registered yet. */
     /** Decimals kept of the coordinates: 2 ≈ 1.1 km ("approximate location" for Apple). */
     public const LOCATION_DECIMALS = 2;
 
+    /** Marks a device imported from OneSignal that the Carillon SDK has not registered yet. */
     public const ONESIGNAL_SDK = 'onesignal-import';
+
+    /**
+     * Why a device is unsubscribed or unreachable (OneSignal "status details").
+     * "rejected" keeps the answer of the provider in status_detail.
+     */
+    public const REASONS = [
+        'rejected', 'token_reused', 'email_bounced', 'email_complaint', 'email_unsubscribed',
+        'permission_denied', 'permission_not_asked', 'opted_out', 'disabled_on_device',
+        'disabled_by_api', 'imported_unsubscribed',
+    ];
 
     protected static function booted(): void
     {
         static::saving(function (Subscription $subscription) {
             $subscription->token_hash = $subscription->token ? hash('sha256', $subscription->token) : null;
+
+            // Reachable again: the reason no longer applies.
+            if ($subscription->enabled && $subscription->invalid_at === null && $subscription->status_reason !== null && ! $subscription->isDirty('status_reason')) {
+                $subscription->setStatus(null);
+            }
         });
         static::saved(function (Subscription $subscription) {
             if ($subscription->subscriber_id && $subscription->last_active_at && $subscription->wasChanged('last_active_at') && ! $subscription->wasRecentlyCreated) {
@@ -56,6 +71,7 @@ class Subscription extends Model
             'longitude' => 'float',
             'location_accuracy' => 'integer',
             'located_at' => 'datetime',
+            'status_changed_at' => 'datetime',
             'sessions' => 'integer',
         ];
     }
@@ -129,5 +145,44 @@ class Subscription extends Model
             'location_accuracy' => $known && $accuracy !== null ? (int) max(round($accuracy), 1100) : null,
             'located_at' => $known ? now() : null,
         ]);
+    }
+
+    /** Records why the device is (no longer) reachable; null when it is subscribed. */
+    public function setStatus(?string $reason, ?string $detail = null): static
+    {
+        return $this->forceFill([
+            'status_reason' => $reason,
+            'status_detail' => $reason === null || $detail === null ? null : mb_substr($detail, 0, 255),
+            'status_changed_at' => now(),
+        ]);
+    }
+
+    /** Readable status details, or null for a subscribed device. */
+    public function statusDetails(): ?string
+    {
+        if ($this->enabled && $this->invalid_at === null) {
+            return null;
+        }
+
+        $provider = match ($this->type) {
+            'ios' => 'Apple', 'android' => 'Google', 'huawei' => 'Huawei', 'amazon' => 'Amazon',
+            'web' => __('the browser'), 'email' => __('the email service'), 'sms' => __('the SMS provider'), 'whatsapp' => 'WhatsApp',
+            default => $this->type,
+        };
+
+        return match ($this->status_reason) {
+            'rejected' => __('Refused by :provider', ['provider' => $provider]).($this->status_detail ? ' : '.$this->status_detail : ''),
+            'token_reused' => __('Token taken by another registration (app reinstalled)'),
+            'email_bounced' => __('Email address bounced').($this->status_detail ? ' : '.$this->status_detail : ''),
+            'email_complaint' => __('Reported as spam'),
+            'email_unsubscribed' => __('Unsubscribed with the link of an email'),
+            'permission_denied' => __('Notifications turned off on the device'),
+            'permission_not_asked' => __('Permission never asked by the app'),
+            'opted_out' => __('Unsubscribed by the app (optOut)'),
+            'disabled_on_device' => __('Disabled on the device'),
+            'disabled_by_api' => __('Disabled through the API'),
+            'imported_unsubscribed' => __('Unsubscribed in OneSignal'),
+            default => __('Reason not recorded'),
+        };
     }
 }

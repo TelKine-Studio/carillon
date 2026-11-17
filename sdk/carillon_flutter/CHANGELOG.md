@@ -1,6 +1,7 @@
 ## 0.4.0
 
 - Location: when the app already has the location permission, the SDK sends the last known position of the device (rounded to about 1 km by Carillon), at most once a day or after a move of more than 500 m. It never asks for the permission, never turns the GPS on, and works without Google Play services. iOS loads CoreLocation at run time: apps that do not use the location need no purpose string.
+- The notification permission is sent with the device, so that Carillon shows why a device is unsubscribed (turned off on the device, never asked, or opted out by the app).
 - `Carillon.location.setShared(false)` stops it for a person who refused (and erases the position known by Carillon); the project can turn it off too (Settings → General), the SDK then stops reading it.
 
 ## 0.3.0

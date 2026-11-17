@@ -218,6 +218,7 @@ class EmailChannelTest extends TestCase
 
         $state = Subscription::query()->orderBy('token')->get()->map(fn ($s) => [$s->token, $s->enabled, $s->invalid_at !== null])->all();
         $this->assertSame([['a@x.test', true, true], ['b@x.test', false, false], ['c@x.test', true, false], ['d@x.test', true, true]], $state);
+        $this->assertSame(['email_bounced', 'email_complaint', null, 'email_bounced'], Subscription::query()->orderBy('token')->pluck('status_reason')->all());
 
         Http::fake(['sns.eu-west-1.amazonaws.com/*' => Http::response('ok')]);
         $this->call('POST', $url('ses'), content: json_encode(['Type' => 'SubscriptionConfirmation', 'SubscribeURL' => 'https://sns.eu-west-1.amazonaws.com/?Action=ConfirmSubscription&Token=t']))->assertOk();

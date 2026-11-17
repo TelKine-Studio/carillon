@@ -27,6 +27,7 @@ class SubscriberController extends Controller
         $search = trim((string) $request->query('q'));
         $platform = in_array($request->query('platform'), Subscription::TYPES, true) ? $request->query('platform') : null;
         $state = in_array($request->query('state'), ['subscribed', 'unsubscribed', 'invalid'], true) ? $request->query('state') : null;
+        $reason = in_array($request->query('reason'), [...Subscription::REASONS, 'unknown'], true) ? $request->query('reason') : null;
         // Like OneSignal: one row per person (default) or per device.
         $view = in_array($request->query('view'), ['devices', 'test'], true) ? $request->query('view') : 'people';
         $sort = $request->query('sort') === 'first_active' ? 'first_active' : 'last_active';
@@ -38,12 +39,15 @@ class SubscriberController extends Controller
             ->when($platform, fn (Builder $q) => $q->where('subscriptions.type', $platform))
             ->when($state === 'subscribed', fn (Builder $q) => $q->where('subscriptions.enabled', true)->whereNull('subscriptions.invalid_at'))
             ->when($state === 'unsubscribed', fn (Builder $q) => $q->where('subscriptions.enabled', false))
-            ->when($state === 'invalid', fn (Builder $q) => $q->whereNotNull('subscriptions.invalid_at'));
+            ->when($state === 'invalid', fn (Builder $q) => $q->whereNotNull('subscriptions.invalid_at'))
+            ->when($reason === 'unknown', fn (Builder $q) => $q->whereNull('subscriptions.status_reason')
+                ->where(fn (Builder $q) => $q->where('subscriptions.enabled', false)->orWhereNotNull('subscriptions.invalid_at')))
+            ->when($reason && $reason !== 'unknown', fn (Builder $q) => $q->where('subscriptions.status_reason', $reason));
 
         if ($view === 'people') {
             $results = $project->subscribers()
                 ->with(['subscriptions' => fn ($q) => $q->select('id', 'subscriber_id', 'type', 'enabled', 'invalid_at', 'is_test', 'device_model')->orderBy('type')])
-                ->when($platform || $state, fn (Builder $q) => $q->whereHas('subscriptions', $devices))
+                ->when($platform || $state || $reason, fn (Builder $q) => $q->whereHas('subscriptions', $devices))
                 ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $q) => $q
                     // An id is a UUID: PostgreSQL refuses to compare it to any other text.
                     ->when(Str::isUuid($search), fn (Builder $q) => $q->orWhere('subscribers.id', $search)->orWhereHas('subscriptions', fn (Builder $s) => $s->whereKey($search)))
@@ -81,6 +85,7 @@ class SubscriberController extends Controller
             'search' => $search,
             'platform' => $platform,
             'state' => $state,
+            'reason' => $reason,
             'totals' => [
                 'subscribed' => (clone $base)->where('enabled', true)->whereNull('invalid_at')->count(),
                 'devices' => (clone $base)->count(),

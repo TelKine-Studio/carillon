@@ -606,6 +606,8 @@ class _Engine with WidgetsBindingObserver {
       'token': ?token,
       if (externalType != null) 'type': externalType,
       'enabled': enabled,
+      // Tells Carillon why a device is disabled (status details).
+      'permission': permission,
       'environment': await platform.environment(),
       ...await _device(),
       ...await _location(),

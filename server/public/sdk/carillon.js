@@ -154,6 +154,8 @@
         var body = Object.assign(device(), {
           token: JSON.stringify(subscription.toJSON()),
           enabled: granted && !store.get('opted_out'),
+          // Why the browser is disabled (status details in Carillon).
+          permission: permission(),
         });
         var id = store.get('subscription');
 

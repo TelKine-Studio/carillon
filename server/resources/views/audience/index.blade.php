@@ -20,7 +20,7 @@
         // Sortable column header: a click sorts, a second click reverses.
         $sortLink = function (string $key, string $label) use ($project, $sort, $direction) {
             $active = $sort === $key;
-            $url = route('projects.subscribers.index', [$project, ...array_filter(request()->only(['q', 'platform', 'state', 'view'])), 'sort' => $key, 'dir' => $active && $direction === 'desc' ? 'asc' : 'desc']);
+            $url = route('projects.subscribers.index', [$project, ...array_filter(request()->only(['q', 'platform', 'state', 'reason', 'view'])), 'sort' => $key, 'dir' => $active && $direction === 'desc' ? 'asc' : 'desc']);
             $arrow = $active ? ($direction === 'desc' ? '↓' : '↑') : '↕';
 
             return new \Illuminate\Support\HtmlString('<a data-live-link href="'.e($url).'" class="inline-flex items-center gap-1 whitespace-nowrap hover:text-zinc-900 dark:hover:text-white'.($active ? ' text-zinc-900 dark:text-white' : '').'">'.e($label).' <span aria-hidden="true" class="'.($active ? '' : 'opacity-40').'">'.$arrow.'</span></a>');
@@ -30,7 +30,7 @@
     <div x-data="liveList('audience-results')" data-live-also="audience-tabs audience-view audience-actions">
     <nav id="audience-tabs" class="scrollbar-none mb-4 flex gap-1 overflow-x-auto border-b border-zinc-200 dark:border-zinc-800" aria-label="{{ __('View') }}">
         @foreach ($views as $key => [$label, $count])
-            <a data-live-link href="{{ route('projects.subscribers.index', [$project, ...array_filter(request()->only(['q', 'platform', 'state'])), 'view' => $key === 'people' ? null : $key]) }}" @if ($view === $key) aria-current="page" @endif
+            <a data-live-link href="{{ route('projects.subscribers.index', [$project, ...array_filter(request()->only(['q', 'platform', 'state', 'reason'])), 'view' => $key === 'people' ? null : $key]) }}" @if ($view === $key) aria-current="page" @endif
                 @class(['-mb-px inline-flex shrink-0 items-center gap-1.5 border-b-2 px-2.5 py-2.5 text-sm font-medium whitespace-nowrap transition',
                     'border-brand-600 text-zinc-900 dark:border-brand-400 dark:text-white' => $view === $key,
                     'border-transparent text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white' => $view !== $key])>
@@ -49,6 +49,7 @@
             <div class="grid grid-cols-2 gap-3 sm:flex">
                 <x-ui.select name="platform" size="sm" class="sm:w-40" :value="$platform" :options="['' => __('All platforms'), 'ios' => 'iOS', 'android' => 'Android', 'huawei' => 'Huawei', 'amazon' => 'Amazon', 'web' => 'Web', 'email' => __('Email'), 'sms' => 'SMS', 'whatsapp' => 'WhatsApp']" />
                 <x-ui.select name="state" size="sm" class="sm:w-44" :value="$state" :options="['' => __('All states'), 'subscribed' => __('Subscribed'), 'unsubscribed' => __('Unsubscribed'), 'invalid' => __('Unreachable')]" />
+                <x-ui.select name="reason" size="sm" class="col-span-2 sm:w-52" :value="$reason" :options="['' => __('All status details'), 'rejected' => __('Refused by the provider'), 'token_reused' => __('Token taken by another registration'), 'permission_denied' => __('Turned off on the device'), 'permission_not_asked' => __('Permission never asked'), 'opted_out' => __('Unsubscribed by the app'), 'disabled_on_device' => __('Disabled on the device'), 'email_bounced' => __('Email bounced'), 'email_complaint' => __('Reported as spam'), 'email_unsubscribed' => __('Email unsubscribe link'), 'disabled_by_api' => __('Disabled through the API'), 'imported_unsubscribed' => __('Unsubscribed in OneSignal'), 'unknown' => __('Reason not recorded')]" />
             </div>
         </form>
         <div id="audience-actions" class="contents">
@@ -124,8 +125,8 @@
                 </span>
             </div>
         @empty
-            <x-ui.empty icon="users" :title="$search || $platform || $state ? __('Nobody matches') : __('No device yet')"
-                :description="$search || $platform || $state ? __('Try another search or filter.') : __('Devices appear here once your app uses the Carillon SDK with this App ID.')" />
+            <x-ui.empty icon="users" :title="$search || $platform || $state || $reason ? __('Nobody matches') : __('No device yet')"
+                :description="$search || $platform || $state || $reason ? __('Try another search or filter.') : __('Devices appear here once your app uses the Carillon SDK with this App ID.')" />
         @endforelse
     @elseif ($view === 'test')
         {{-- Same columns as the devices, with the name of the test device first (like OneSignal). --}}
@@ -167,7 +168,7 @@
                     @if (count($person->tags ?? []) > 3)<span class="text-[11px] text-zinc-400">+{{ count($person->tags) - 3 }}</span>@endif
                 </div>
                 <p class="hidden text-xs text-zinc-500 lg:block" title="{{ $device->last_active_at?->isoFormat('LLL') }}">{{ $device->last_active_at?->diffForHumans() ?? '—' }}</p>
-                <span class="pl-12 lg:pl-0"><x-audience.state :subscription="$device" /></span>
+                <span class="min-w-0 pl-12 lg:pl-0"><x-audience.state :subscription="$device" details /></span>
                 <span class="absolute top-3 right-3 z-10 lg:static">
                     <x-ui.dropdown width="w-60">
                         <x-slot:trigger>
@@ -189,23 +190,23 @@
                 </span>
             </div>
         @empty
-            <x-ui.empty icon="smartphone" :title="$search || $platform || $state ? __('Nobody matches') : __('No test device yet')"
-                :description="$search || $platform || $state ? __('Try another search or filter.') : __('They receive the tests sent from the composer, and the segment “Test Devices”. Add your own phone with its device id or the external id of your account in the app.')" />
+            <x-ui.empty icon="smartphone" :title="$search || $platform || $state || $reason ? __('Nobody matches') : __('No test device yet')"
+                :description="$search || $platform || $state || $reason ? __('Try another search or filter.') : __('They receive the tests sent from the composer, and the segment “Test Devices”. Add your own phone with its device id or the external id of your account in the app.')" />
         @endforelse
     @else
-        <div class="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_150px_110px] gap-4 rounded-t-2xl border-b border-zinc-200 bg-zinc-50 px-5 py-3 text-xs font-medium text-zinc-500 dark:bg-white/[.03] lg:grid dark:border-zinc-800">
-            <span>{{ __('Device') }}</span><span>{{ __('Person') }}</span><span>{{ __('Tags') }}</span><span>{!! $sortLink('last_active', __('Last seen')) !!}</span><span>{{ __('State') }}</span>
+        <div class="hidden grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)_minmax(0,1fr)_130px_110px_minmax(0,1.3fr)] gap-4 rounded-t-2xl border-b border-zinc-200 bg-zinc-50 px-5 py-3 text-xs font-medium text-zinc-500 dark:bg-white/[.03] lg:grid dark:border-zinc-800">
+            <span>{{ __('Device') }}</span><span>{{ __('Person') }}</span><span>{{ __('Tags') }}</span><span>{!! $sortLink('last_active', __('Last seen')) !!}</span><span>{{ __('State') }}</span><span>{{ __('Status details') }}</span>
         </div>
         @forelse ($results as $subscription)
             @php $person = $subscription->subscriber; @endphp
-            <a href="{{ route('projects.subscribers.show', [$project, $person]) }}" class="grid gap-3 border-t border-zinc-100 px-4 py-3.5 transition first:border-0 hover:bg-zinc-50/80 sm:px-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_150px_110px] lg:items-center lg:gap-4 dark:border-zinc-800 dark:hover:bg-white/[.02]">
+            <a href="{{ route('projects.subscribers.show', [$project, $person]) }}" class="grid gap-3 border-t border-zinc-100 px-4 py-3.5 transition first:border-0 hover:bg-zinc-50/80 sm:px-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)_minmax(0,1fr)_130px_110px_minmax(0,1.3fr)] lg:items-center lg:gap-4 dark:border-zinc-800 dark:hover:bg-white/[.02]">
                 <div class="flex min-w-0 items-center gap-3">
                     <x-audience.device :subscription="$subscription" />
                     <div class="min-w-0">
                         <p class="truncate text-sm font-medium text-zinc-900 dark:text-white">{{ in_array($subscription->type, ['email', 'sms', 'whatsapp'], true) ? $subscription->token : ($subscription->device_model ?: ucfirst($subscription->type)) }}</p>
                         <p class="truncate text-xs text-zinc-500">{{ collect([$subscription->device_os, $subscription->app_version ? 'v'.$subscription->app_version : null])->filter()->implode(' · ') ?: '—' }}</p>
                     </div>
-                    <span class="ml-auto lg:hidden"><x-audience.state :subscription="$subscription" /></span>
+                    <span class="ml-auto min-w-0 lg:hidden"><x-audience.state :subscription="$subscription" details /></span>
                 </div>
                 <p class="min-w-0 truncate text-sm">
                     @if ($person->external_id)
@@ -222,10 +223,11 @@
                 </div>
                 <p class="text-xs text-zinc-500">{{ $subscription->last_active_at?->diffForHumans() ?? '—' }}</p>
                 <span class="hidden lg:block"><x-audience.state :subscription="$subscription" /></span>
+                <p class="hidden min-w-0 truncate text-xs text-zinc-500 lg:block dark:text-zinc-400" title="{{ $subscription->statusDetails() }}">{{ $subscription->statusDetails() ?? '—' }}</p>
             </a>
         @empty
-            <x-ui.empty icon="users" :title="$search || $platform || $state ? __('Nobody matches') : __('No device yet')"
-                :description="$search || $platform || $state ? __('Try another search or filter.') : __('Devices appear here once your app uses the Carillon SDK with this project’s App ID.')" />
+            <x-ui.empty icon="users" :title="$search || $platform || $state || $reason ? __('Nobody matches') : __('No device yet')"
+                :description="$search || $platform || $state || $reason ? __('Try another search or filter.') : __('Devices appear here once your app uses the Carillon SDK with this project’s App ID.')" />
         @endforelse
     @endif
         @if ($results->hasPages())
