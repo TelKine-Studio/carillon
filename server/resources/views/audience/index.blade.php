@@ -41,16 +41,16 @@
     <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
         <form method="GET" data-live class="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
             <span id="audience-view">@if ($view !== 'people')<input type="hidden" name="view" value="{{ $view }}">@endif</span>
-            <div class="relative flex-1">
+            <div class="relative min-w-56 flex-1">
                 <x-ui.icon name="search" class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-zinc-400" />
                 <x-ui.icon name="refresh" class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-zinc-400" x-show="loading" x-cloak />
                 <input type="search" name="q" value="{{ $search }}" autocomplete="off" placeholder="{{ __('External id, tag value, id…') }}" class="form-control pl-9">
             </div>
             <div class="grid grid-cols-2 gap-3 sm:flex">
-                <x-ui.select name="platform" size="sm" class="sm:w-40" :value="$platform" :options="['' => __('All platforms'), 'ios' => 'iOS', 'android' => 'Android', 'huawei' => 'Huawei', 'amazon' => 'Amazon', 'web' => 'Web', 'email' => __('Email'), 'sms' => 'SMS', 'whatsapp' => 'WhatsApp']" />
-                <x-ui.select name="state" size="sm" class="sm:w-44" :value="$state" :options="['' => __('All states'), 'subscribed' => __('Subscribed'), 'unsubscribed' => __('Unsubscribed'), 'never' => __('Never subscribed'), 'invalid' => __('Unreachable')]" />
-                <x-ui.select name="reason" size="sm" class="col-span-2 sm:w-52" :value="$reason" :options="['' => __('All status details'), 'rejected' => __('Refused by the provider'), 'token_reused' => __('Token taken by another registration'), 'permission_denied' => __('Turned off on the device'), 'permission_not_asked' => __('Permission never asked'), 'opted_out' => __('Unsubscribed by the app'), 'disabled_on_device' => __('Disabled on the device'), 'email_bounced' => __('Email bounced'), 'email_complaint' => __('Reported as spam'), 'email_unsubscribed' => __('Email unsubscribe link'), 'disabled_by_api' => __('Disabled through the API'), 'imported_unsubscribed' => __('Unsubscribed in OneSignal'), 'unknown' => __('Reason not recorded')]" />
-                <x-ui.select name="segment" size="sm" class="col-span-2 sm:w-48" :value="$segment" :options="['' => __('All segments'), ...collect($segments)->mapWithKeys(fn ($name) => [$name => __($name)])->all()]" />
+                <x-ui.select name="platform" size="sm" class="sm:w-36" :value="$platform" :options="['' => __('All platforms'), 'ios' => 'iOS', 'android' => 'Android', 'huawei' => 'Huawei', 'amazon' => 'Amazon', 'web' => 'Web', 'email' => __('Email'), 'sms' => 'SMS', 'whatsapp' => 'WhatsApp']" />
+                <x-ui.select name="state" size="sm" class="sm:w-36" :value="$state" :options="['' => __('All states'), 'subscribed' => __('Subscribed'), 'unsubscribed' => __('Unsubscribed'), 'never' => __('Never subscribed'), 'invalid' => __('Unreachable')]" />
+                <x-ui.select name="reason" size="sm" class="sm:w-40" :value="$reason" :options="['' => __('All status details'), 'rejected' => __('Refused by the provider'), 'token_reused' => __('Token taken by another registration'), 'permission_denied' => __('Turned off on the device'), 'permission_not_asked' => __('Permission never asked'), 'opted_out' => __('Unsubscribed by the app'), 'disabled_on_device' => __('Disabled on the device'), 'email_bounced' => __('Email bounced'), 'email_complaint' => __('Reported as spam'), 'email_unsubscribed' => __('Email unsubscribe link'), 'disabled_by_api' => __('Disabled through the API'), 'imported_unsubscribed' => __('Unsubscribed in OneSignal'), 'unknown' => __('Reason not recorded')]" />
+                <x-ui.select name="segment" size="sm" class="sm:w-40" :value="$segment" :options="['' => __('All segments'), ...collect($segments)->mapWithKeys(fn ($name) => [$name => __($name)])->all()]" />
             </div>
         </form>
         <div id="audience-actions" class="contents">
