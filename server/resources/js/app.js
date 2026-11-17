@@ -139,14 +139,73 @@ Alpine.data('journeyEditor', (config) => ({
     steps: config.steps,
     uid: config.steps.length,
     labels: config.labels,
-    add(type) {
-        this.steps.push({ uid: ++this.uid, type, amount: 1, unit: 'days', template_id: '', title: '', subject: '', body: '', url: '', key: '', operator: 'is', value: '', check: 'tag', event: '', hours: '', otherwise: 'exit', goto: '', on_timeout: 'exit' });
+    kinds: config.kinds,
+    texts: config.texts,
+    inApps: config.inApps,
+    add(type, at = this.steps.length) {
+        this.steps.forEach((step) => (step.open = false));
+        this.steps.splice(at, 0, {
+            uid: ++this.uid, type, amount: 1, unit: 'days', template_id: '', title: '', subject: '', body: '', url: '', key: '', operator: 'is', value: '',
+            check: 'tag', event: '', hours: '', otherwise: 'exit', goto_uid: null, on_timeout: 'exit', percent: 50, b_target: 'goto', b_goto_uid: null,
+            whatsapp_template: '', whatsapp_language: 'fr', whatsapp_variables: '', in_app_message_id: '', open: true,
+        });
+    },
+    remove(index) {
+        const [removed] = this.steps.splice(index, 1);
+        this.steps.forEach((step) => {
+            if (step.goto_uid === removed.uid) step.goto_uid = null;
+            if (step.b_goto_uid === removed.uid) step.b_goto_uid = null;
+        });
     },
     move(index, offset) {
         const target = index + offset;
         if (target < 0 || target >= this.steps.length) return;
         const [step] = this.steps.splice(index, 1);
         this.steps.splice(target, 0, step);
+    },
+    // Jumps point at a step: its number follows when steps move.
+    number(uid) {
+        const index = this.steps.findIndex((step) => step.uid === Number(uid));
+        return index === -1 ? '' : index + 1;
+    },
+    stepOptions(uid) {
+        return this.steps.filter((step) => step.uid !== uid).map((step) => ({ uid: step.uid, label: `${this.number(step.uid)} · ${this.labels[step.type]}` }));
+    },
+    branchTarget(step) {
+        const target = step.type === 'split' ? (step.b_target === 'goto' ? step.b_goto_uid : null) : (step.otherwise === 'goto' ? step.goto_uid : null);
+        const number = target ? this.number(target) : '';
+        return number ? this.texts.step.replace(':number', number) : this.texts.exit;
+    },
+    duration(step) {
+        return `${step.amount} ${this.texts.units[step.unit] ?? ''}`;
+    },
+    summary(step) {
+        const t = this.texts;
+        switch (step.type) {
+            case 'wait':
+                return t.wait_for.replace(':duration', this.duration(step));
+            case 'wait_event':
+                return t.wait_event.replace(':event', step.event || '…').replace(':duration', this.duration(step));
+            case 'condition':
+                if (step.check === 'clicked') return step.operator === 'is' ? t.clicked : t.not_clicked;
+                if (step.check === 'event') return (step.operator === 'is' ? t.did : t.did_not).replace(':event', step.event || '…');
+                return (step.operator === 'is' ? t.if_tag : t.if_not_tag).replace(':key', step.key || '…').replace(':value', step.value || t.any);
+            case 'split':
+                return `A ${step.percent} % · B ${100 - step.percent} %`;
+            case 'in_app':
+                return this.inApps[step.in_app_message_id] ?? t.no_in_app;
+            case 'exit':
+                return t.exit_text;
+            case 'whatsapp':
+                return step.whatsapp_template ? t.template.replace(':name', step.whatsapp_template) : step.body || t.empty;
+            case 'email':
+                return step.template_id ? t.from_template : step.subject || t.empty;
+            default:
+                return step.template_id ? t.from_template : [step.title, step.body].filter(Boolean).join(' · ') || t.empty;
+        }
+    },
+    triggerSummary() {
+        return this.$root.querySelector(`[data-trigger-label="${this.trigger.type}"]`)?.textContent.trim() ?? '';
     },
 }));
 

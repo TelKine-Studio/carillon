@@ -60,6 +60,52 @@ class JourneyController extends Controller
                     ['type' => 'push', 'title' => __('A little something for you'), 'body' => __('Open the app to discover it.')],
                 ],
             ],
+            'welcome_ab' => [
+                'name' => __('Welcome, A/B test'),
+                'trigger' => ['type' => 'new_device'],
+                'steps' => [
+                    ['type' => 'wait', 'amount' => 10, 'unit' => 'minutes'],
+                    ['type' => 'split', 'percent' => 50, 'b_target' => 'goto', 'b_step' => 4],
+                    ['type' => 'push', 'title' => __('Welcome!'), 'body' => __('Thanks for installing the app. Here is what you can do…')],
+                    ['type' => 'exit'],
+                    ['type' => 'push', 'title' => __('Glad to see you here'), 'body' => __('Start with the most useful feature: it takes one minute.')],
+                ],
+            ],
+            'abandoned' => [
+                'name' => __('Abandoned cart'),
+                'trigger' => ['type' => 'event', 'event' => 'cart_add'],
+                'reentry' => true,
+                'steps' => [
+                    ['type' => 'wait', 'amount' => 1, 'unit' => 'hours'],
+                    ['type' => 'condition', 'check' => 'event', 'event' => 'purchase', 'operator' => 'is_not', 'otherwise' => 'exit'],
+                    ['type' => 'push', 'title' => __('You forgot something'), 'body' => __('Your cart is waiting for you.')],
+                    ['type' => 'wait', 'amount' => 1, 'unit' => 'days'],
+                    ['type' => 'condition', 'check' => 'event', 'event' => 'purchase', 'operator' => 'is_not', 'otherwise' => 'exit'],
+                    ['type' => 'push', 'title' => __('Still thinking about it?'), 'body' => __('A little extra to help you decide.')],
+                ],
+            ],
+            'post_purchase' => [
+                'name' => __('After a purchase'),
+                'trigger' => ['type' => 'event', 'event' => 'purchase'],
+                'reentry' => true,
+                'steps' => [
+                    ['type' => 'wait', 'amount' => 1, 'unit' => 'hours'],
+                    ['type' => 'push', 'title' => __('Thank you!'), 'body' => __('Your order is confirmed.')],
+                    ['type' => 'wait', 'amount' => 3, 'unit' => 'days'],
+                    ['type' => 'push', 'title' => __('How was it?'), 'body' => __('Tell us in one tap, and discover what goes well with it.')],
+                ],
+            ],
+            'winback_ab' => [
+                'name' => __('Win back, A/B test'),
+                'trigger' => ['type' => 'inactive', 'days' => 14],
+                'reentry' => true,
+                'steps' => [
+                    ['type' => 'split', 'percent' => 50, 'b_target' => 'goto', 'b_step' => 3],
+                    ['type' => 'push', 'title' => __('We miss you'), 'body' => __('Come back and see what is new.')],
+                    ['type' => 'exit'],
+                    ['type' => 'push', 'title' => __('A little something for you'), 'body' => __('Open the app to discover it.')],
+                ],
+            ],
             default => ['trigger' => ['type' => 'new_device'], 'steps' => [['type' => 'push', 'title' => '', 'body' => '']]],
         });
 
@@ -116,6 +162,8 @@ class JourneyController extends Controller
             'waiting' => $waiting,
             'sent' => $sent,
             'recent' => (clone $entries)->with('subscriber')->latest()->limit(10)->get(),
+            'inApps' => $project->inAppMessages()->pluck('name', 'id'),
+            'inAppGiven' => DB::table('in_app_targets')->where('journey_id', $journey->id)->selectRaw('in_app_message_id, count(*) as total')->groupBy('in_app_message_id')->pluck('total', 'in_app_message_id'),
         ]);
     }
 
@@ -155,6 +203,8 @@ class JourneyController extends Controller
             'journey' => $journey,
             'segments' => $project->segments()->orderBy('name')->pluck('name'),
             'templates' => $project->templates()->orderBy('name')->get(['id', 'name', 'options']),
+            'inAppMessages' => $project->inAppMessages()->orderBy('name')->get(['id', 'name', 'status', 'journey_only']),
+            'whatsapp' => $project->credential('whatsapp')?->isUsable() ?? false,
         ]);
     }
 
@@ -188,6 +238,13 @@ class JourneyController extends Controller
             'steps.*.otherwise' => ['nullable', Rule::in(['exit', 'goto'])],
             'steps.*.goto' => ['nullable', 'integer', 'min:1', 'max:30'],
             'steps.*.on_timeout' => ['nullable', Rule::in(['continue', 'exit'])],
+            'steps.*.percent' => ['nullable', 'integer', 'min:1', 'max:99'],
+            'steps.*.b_target' => ['nullable', Rule::in(['exit', 'goto'])],
+            'steps.*.b_goto' => ['nullable', 'integer', 'min:1', 'max:30'],
+            'steps.*.whatsapp_template' => ['nullable', 'string', 'max:512'],
+            'steps.*.whatsapp_language' => ['nullable', 'string', 'max:16'],
+            'steps.*.whatsapp_variables' => ['nullable', 'string', 'max:2000'],
+            'steps.*.in_app_message_id' => ['nullable', 'uuid'],
             'window_enabled' => ['boolean'],
             'window_from' => ['nullable', 'integer', 'between:0,23'],
             'window_to' => ['nullable', 'integer', 'between:0,23'],
@@ -210,6 +267,22 @@ class JourneyController extends Controller
                     // Shown from 1, stored from 0.
                     'else_step' => ($step['otherwise'] ?? 'exit') === 'goto' && filled($step['goto'] ?? null) ? (int) $step['goto'] - 1 : null,
                 ], fn ($value) => $value !== null),
+                'split' => array_filter([
+                    'type' => 'split',
+                    'percent' => (int) ($step['percent'] ?? 50),
+                    'b_target' => $step['b_target'] ?? 'goto',
+                    // Shown from 1, stored from 0.
+                    'b_step' => ($step['b_target'] ?? 'goto') === 'goto' && filled($step['b_goto'] ?? null) ? (int) $step['b_goto'] - 1 : null,
+                ], fn ($value) => $value !== null),
+                'exit' => ['type' => 'exit'],
+                'in_app' => ['type' => 'in_app', 'in_app_message_id' => (string) ($step['in_app_message_id'] ?? '')],
+                'whatsapp' => array_filter([
+                    'type' => 'whatsapp',
+                    'whatsapp_template' => $step['whatsapp_template'] ?? null,
+                    'whatsapp_language' => $step['whatsapp_language'] ?? null,
+                    'whatsapp_variables' => $step['whatsapp_variables'] ?? null,
+                    'body' => $step['body'] ?? null,
+                ], fn ($value) => $value !== null && $value !== ''),
                 default => array_filter([
                     'type' => $step['type'],
                     'template_id' => $step['template_id'] ?? null,
@@ -228,6 +301,15 @@ class JourneyController extends Controller
                     unset($sent['template_id']);
                     $steps[array_key_last($steps)] = $sent;
                 }
+            }
+            if ($sent['type'] === 'whatsapp' && empty($sent['whatsapp_template']) && empty($sent['body'])) {
+                throw ValidationException::withMessages(["steps.{$index}.body" => __('Step :number: choose an approved WhatsApp template, or write a text (only delivered within 24 hours of a message from the person).', ['number' => $index + 1])]);
+            }
+            if ($sent['type'] === 'in_app' && ! $project->inAppMessages()->whereKey($sent['in_app_message_id'])->exists()) {
+                throw ValidationException::withMessages(["steps.{$index}.in_app_message_id" => __('Step :number: choose an in-app message.', ['number' => $index + 1])]);
+            }
+            if ($sent['type'] === 'split' && ($sent['b_target'] ?? 'goto') === 'goto' && (! isset($sent['b_step']) || $sent['b_step'] >= count($data['steps']) || $sent['b_step'] === $index)) {
+                throw ValidationException::withMessages(["steps.{$index}.b_goto" => __('Step :number: choose the step where branch B goes.', ['number' => $index + 1])]);
             }
             if (in_array($sent['type'], ['push', 'email', 'sms'], true) && empty($sent['template_id']) && empty($sent['body'])) {
                 throw ValidationException::withMessages(["steps.{$index}.body" => __('Step :number: write the message or choose a template.', ['number' => $index + 1])]);

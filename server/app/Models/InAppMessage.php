@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /** A banner or pop-up shown inside the open app, displayed by the SDK. */
-#[Fillable(['project_id', 'created_by', 'name', 'status', 'layout', 'title', 'body', 'image_url', 'buttons', 'variant_b', 'trigger', 'segment', 'frequency', 'frequency_days', 'starts_at', 'ends_at'])]
+#[Fillable(['project_id', 'created_by', 'name', 'status', 'layout', 'title', 'body', 'image_url', 'buttons', 'variant_b', 'trigger', 'segment', 'frequency', 'frequency_days', 'starts_at', 'ends_at', 'journey_only'])]
 class InAppMessage extends Model
 {
     use HasUuids;
@@ -21,6 +21,7 @@ class InAppMessage extends Model
     {
         return [
             'buttons' => 'array',
+            'journey_only' => 'boolean',
             'variant_b' => 'array',
             'trigger' => 'array',
             'starts_at' => 'datetime',

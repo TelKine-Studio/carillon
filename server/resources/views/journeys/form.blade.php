@@ -3,7 +3,18 @@
     $trigger = old('trigger', $journey->trigger ?? ['type' => 'new_device']);
     $steps = old('steps', $journey->steps ?? []);
     $config = [
-        'labels' => ['push' => __('Send a notification'), 'email' => __('Send an email'), 'sms' => __('Send an SMS'), 'wait' => __('Wait'), 'wait_event' => __('Wait for an event'), 'condition' => __('Condition')],
+        'labels' => ['push' => __('Send a notification'), 'email' => __('Send an email'), 'sms' => __('Send an SMS'), 'whatsapp' => __('Send a WhatsApp message'), 'in_app' => __('Show an in-app message'), 'wait' => __('Wait'), 'wait_event' => __('Wait for an event'), 'condition' => __('Condition'), 'split' => __('A/B split'), 'exit' => __('End of the journey')],
+        'texts' => [
+            'units' => ['minutes' => __('minutes'), 'hours' => __('hours'), 'days' => __('days')],
+            'exit' => __('leave the journey'), 'next' => __('next step'), 'step' => __('step :number'),
+            'yes' => __('Yes'), 'no' => __('No'), 'from_template' => __('From a template'), 'empty' => __('Not written yet'),
+            'wait_for' => __('Wait :duration'), 'wait_event' => __('Until :event, at most :duration'),
+            'if_tag' => __(':key is :value'), 'if_not_tag' => __(':key is not :value'), 'any' => __('set'),
+            'clicked' => __('Clicked a message of the journey'), 'not_clicked' => __('Did not click'),
+            'did' => __('Did :event'), 'did_not' => __('Did not do :event'),
+            'no_in_app' => __('Choose an in-app message'), 'exit_text' => __('The person completes the journey here.'), 'template' => __('Template :name'),
+        ],
+        'inApps' => $inAppMessages->mapWithKeys(fn ($m) => [$m->id => $m->name])->all(),
         'trigger' => ['type' => $trigger['type'] ?? 'new_device', 'days' => $trigger['days'] ?? 7, 'key' => $trigger['key'] ?? '', 'value' => $trigger['value'] ?? '', 'event' => $trigger['event'] ?? ''],
         'steps' => collect($steps)->map(fn ($s, $i) => [
             'uid' => $i + 1,
@@ -24,6 +35,16 @@
             'otherwise' => $s['otherwise'] ?? 'exit',
             'goto' => isset($s['else_step']) ? $s['else_step'] + 1 : ($s['goto'] ?? ''),
             'on_timeout' => $s['on_timeout'] ?? 'exit',
+            'percent' => $s['percent'] ?? 50,
+            'b_target' => $s['b_target'] ?? 'goto',
+            // Jumps point at a step (its uid), not at a number: inserting or moving steps keeps them right.
+            'goto_uid' => isset($s['else_step']) ? $s['else_step'] + 1 : (filled($s['goto'] ?? null) ? (int) $s['goto'] : null),
+            'b_goto_uid' => isset($s['b_step']) ? $s['b_step'] + 1 : (filled($s['b_goto'] ?? null) ? (int) $s['b_goto'] : null),
+            'whatsapp_template' => $s['whatsapp_template'] ?? '',
+            'whatsapp_language' => $s['whatsapp_language'] ?? 'fr',
+            'whatsapp_variables' => $s['whatsapp_variables'] ?? '',
+            'in_app_message_id' => $s['in_app_message_id'] ?? '',
+            'open' => false,
         ])->values()->all(),
     ];
     // Written in two parts: Blade would read the braces as an echo.
@@ -32,14 +53,21 @@
     $pushTemplates = $templates->filter(fn ($t) => ! in_array($t->option('target_channel'), ['email', 'sms'], true));
     $templateOptions = ['' => __('Write the message here')] + $pushTemplates->mapWithKeys(fn ($t) => [$t->id => $t->name])->all();
     $emailTemplateOptions = ['' => __('Write the email here')] + $emailTemplates->mapWithKeys(fn ($t) => [$t->id => $t->name])->all();
+    // Step kinds, grouped like the block menu of OneSignal: [icon, label, colors of the tile].
     $kinds = [
-        'push' => ['bell', __('Notification')],
-        'email' => ['mail', __('Email')],
-        'sms' => ['message', 'SMS'],
-        'wait' => ['clock', __('Wait')],
-        'wait_event' => ['activity', __('Wait for an event')],
-        'condition' => ['sliders', __('Condition')],
+        'push' => ['bell', __('Notification'), 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-300'],
+        'email' => ['mail', __('Email'), 'bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300'],
+        'sms' => ['message', 'SMS', 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300'],
+        'whatsapp' => ['chat', 'WhatsApp', 'bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-300'],
+        'in_app' => ['image', __('In-app message'), 'bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300'],
+        'wait' => ['clock', __('Wait'), 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300'],
+        'wait_event' => ['activity', __('Wait for an event'), 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300'],
+        'condition' => ['sliders', __('Condition'), 'bg-zinc-100 text-zinc-600 dark:bg-white/5 dark:text-zinc-300'],
+        'split' => ['columns', __('A/B split'), 'bg-zinc-100 text-zinc-600 dark:bg-white/5 dark:text-zinc-300'],
+        'exit' => ['check-circle', __('End of the journey'), 'bg-zinc-100 text-zinc-600 dark:bg-white/5 dark:text-zinc-300'],
     ];
+    $groups = [__('Messages') => ['push', 'email', 'sms', 'whatsapp', 'in_app'], __('Timing') => ['wait', 'wait_event'], __('Branches') => ['condition', 'split', 'exit']];
+    $config['kinds'] = collect($kinds)->map(fn ($k) => ['icon' => $k[0], 'tile' => $k[2]])->all();
 @endphp
 <x-layouts.app :title="($editing ? $journey->name : __('New journey')).' · '.$project->name">
     <x-ui.page-header :title="$editing ? $journey->name : __('New journey')" :description="__('People enter when the trigger happens, then go through the steps from top to bottom.')">
@@ -74,7 +102,7 @@
                             class="flex gap-3 rounded-xl border p-4 text-left transition"
                             :class="trigger.type === '{{ $type }}' ? 'border-brand-500 bg-brand-50/50 ring-4 ring-brand-500/10 dark:bg-brand-500/10' : 'border-zinc-200 hover:border-zinc-300 dark:border-zinc-800 dark:hover:border-zinc-700'">
                             <x-ui.icon :name="$icon" class="mt-0.5 size-5 shrink-0 text-brand-600 dark:text-brand-300" />
-                            <span><span class="block text-sm font-semibold text-zinc-900 dark:text-white">{{ $label }}</span><span class="mt-0.5 block text-sm text-zinc-500 dark:text-zinc-400">{{ $text }}</span></span>
+                            <span><span data-trigger-label="{{ $type }}" class="block text-sm font-semibold text-zinc-900 dark:text-white">{{ $label }}</span><span class="mt-0.5 block text-sm text-zinc-500 dark:text-zinc-400">{{ $text }}</span></span>
                         </button>
                     @endforeach
                 </div>
@@ -95,147 +123,77 @@
                 @error('trigger.event')<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror
             </x-ui.card>
 
-            {{-- Steps --}}
+            {{-- Steps, drawn as a flow like the journeys of OneSignal: a node per step, "+" between them. --}}
             <section>
-                <h2 class="mb-3 text-[15px] font-semibold text-zinc-900 dark:text-zinc-50">{{ __('Steps') }}</h2>
-                <ol class="space-y-0">
-                    <template x-for="(step, index) in steps" :key="step.uid">
-                        <li>
-                            <div class="mx-auto h-5 w-px bg-zinc-200 dark:bg-zinc-800" x-show="index > 0"></div>
-                            <div class="card p-4 sm:p-5">
-                                <input type="hidden" :name="`steps[${index}][type]`" :value="step.type">
-                                <div class="mb-4 flex items-center gap-3">
-                                    <span class="inline-flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-xs font-bold text-zinc-600 dark:bg-white/5 dark:text-zinc-300" x-text="index + 1"></span>
-                                    <span class="flex-1 text-sm font-semibold text-zinc-900 dark:text-white" x-text="labels[step.type]"></span>
-                                    <button type="button" class="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-30 dark:hover:bg-white/5" x-on:click="move(index, -1)" :disabled="index === 0" title="{{ __('Move up') }}"><x-ui.icon name="chevron-down" class="size-4 rotate-180" /></button>
-                                    <button type="button" class="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-30 dark:hover:bg-white/5" x-on:click="move(index, 1)" :disabled="index === steps.length - 1" title="{{ __('Move down') }}"><x-ui.icon name="chevron-down" class="size-4" /></button>
-                                    <button type="button" class="rounded-md p-1.5 text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10" x-on:click="steps.splice(index, 1)" title="{{ __('Remove') }}"><x-ui.icon name="trash" class="size-4" /></button>
+                <div class="mb-3 flex items-baseline justify-between gap-3">
+                    <h2 class="text-[15px] font-semibold text-zinc-900 dark:text-zinc-50">{{ __('Steps') }}</h2>
+                    <p class="text-xs text-zinc-500">{{ __('Click a step to edit it.') }}</p>
+                </div>
+                <div class="rounded-lg border border-zinc-200 bg-[radial-gradient(circle,var(--color-zinc-200)_1px,transparent_1px)] [background-size:16px_16px] px-3 py-6 sm:px-6 dark:border-zinc-800 dark:bg-[radial-gradient(circle,var(--color-zinc-800)_1px,transparent_1px)]">
+                    <div class="mx-auto max-w-2xl">
+                        {{-- Start --}}
+                        <div class="mx-auto flex w-fit items-center gap-2 rounded-full border border-brand-200 bg-white px-3.5 py-1.5 text-sm font-medium text-zinc-900 shadow-(--shadow-soft) dark:border-brand-500/30 dark:bg-zinc-900 dark:text-white">
+                            <span class="inline-flex size-6 items-center justify-center rounded-full bg-brand-600 text-white"><x-ui.icon name="zap" class="size-3.5" /></span>
+                            <span x-text="triggerSummary()"></span>
+                        </div>
+
+                        <template x-for="(step, index) in steps" :key="step.uid">
+                            <div>
+                                {{-- Connector with the insert button --}}
+                                <div class="relative flex h-12 justify-center" x-data="{ menu: false }" x-on:click.outside="menu = false">
+                                    <span class="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-zinc-300 dark:bg-zinc-700"></span>
+                                    <button type="button" x-on:click="menu = ! menu" class="relative z-10 my-auto inline-flex size-6 items-center justify-center rounded-full border border-zinc-300 bg-white text-zinc-500 transition hover:border-brand-500 hover:text-brand-600 dark:border-zinc-700 dark:bg-zinc-900" title="{{ __('Insert a step here') }}"><x-ui.icon name="plus" class="size-3.5" /></button>
+                                    @include('journeys.partials.step-menu', ['at' => 'index'])
                                 </div>
 
-                                {{-- Wait --}}
-                                <div x-show="step.type === 'wait'" class="flex flex-wrap items-center gap-3">
-                                    <input type="number" min="1" max="1000" :name="`steps[${index}][amount]`" x-model="step.amount" class="form-control w-24" :disabled="step.type !== 'wait'" aria-label="{{ __('Duration') }}">
-                                    <input type="hidden" :name="`steps[${index}][unit]`" :value="step.unit" :disabled="step.type !== 'wait'">
-                                    <div class="inline-flex gap-0.5 rounded-lg bg-zinc-200/60 p-1 dark:bg-white/[0.06]">
-                                        @foreach (['minutes' => __('minutes'), 'hours' => __('hours'), 'days' => __('days')] as $unit => $unitLabel)
-                                            <button type="button" x-on:click="step.unit = '{{ $unit }}'" class="rounded-md px-3 py-1.5 text-sm font-medium transition"
-                                                :class="step.unit === '{{ $unit }}' ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'">{{ $unitLabel }}</button>
-                                        @endforeach
-                                    </div>
-                                </div>
-
-                                {{-- Wait for an event --}}
-                                <div x-show="step.type === 'wait_event'" class="space-y-3">
-                                    <div class="flex flex-wrap items-center gap-3">
-                                        <span class="text-sm text-zinc-600 dark:text-zinc-300">{{ __('Continue as soon as the person does') }}</span>
-                                        <input :name="`steps[${index}][event]`" x-model="step.event" class="form-control w-40 font-mono" placeholder="purchase" :disabled="step.type !== 'wait_event'" aria-label="{{ __('Event name') }}">
-                                    </div>
-                                    <div class="flex flex-wrap items-center gap-3">
-                                        <span class="text-sm text-zinc-600 dark:text-zinc-300">{{ __('Waiting at most') }}</span>
-                                        <input type="number" min="1" max="1000" :name="`steps[${index}][amount]`" x-model="step.amount" class="form-control w-24" :disabled="step.type !== 'wait_event'" aria-label="{{ __('Duration') }}">
-                                        <input type="hidden" :name="`steps[${index}][unit]`" :value="step.unit" :disabled="step.type !== 'wait_event'">
-                                        <div class="inline-flex gap-0.5 rounded-lg bg-zinc-200/60 p-1 dark:bg-white/[0.06]">
-                                            @foreach (['minutes' => __('minutes'), 'hours' => __('hours'), 'days' => __('days')] as $unit => $unitLabel)
-                                                <button type="button" x-on:click="step.unit = '{{ $unit }}'" class="rounded-md px-3 py-1.5 text-sm font-medium transition"
-                                                    :class="step.unit === '{{ $unit }}' ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'">{{ $unitLabel }}</button>
+                                {{-- Node --}}
+                                <div class="card overflow-hidden transition" :class="step.open && 'ring-2 ring-brand-500/40'">
+                                    <input type="hidden" :name="`steps[${index}][type]`" :value="step.type">
+                                    <div class="flex cursor-pointer items-center gap-3 px-4 py-3" x-on:click="step.open = ! step.open">
+                                        <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg" :class="kinds[step.type].tile">
+                                            @foreach ($kinds as $kind => [$icon])
+                                                <span x-show="step.type === '{{ $kind }}'" class="contents"><x-ui.icon :name="$icon" class="size-4" /></span>
                                             @endforeach
-                                        </div>
+                                        </span>
+                                        <span class="min-w-0 flex-1">
+                                            <span class="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-white"><span class="text-xs font-medium text-zinc-400 tabular-nums" x-text="index + 1"></span><span x-text="labels[step.type]"></span></span>
+                                            <span class="block text-xs break-words text-zinc-500" x-text="summary(step)"></span>
+                                        </span>
+                                        <span class="flex shrink-0 items-center" x-on:click.stop>
+                                            <button type="button" class="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-30 dark:hover:bg-white/5" x-on:click="move(index, -1)" :disabled="index === 0" title="{{ __('Move up') }}"><x-ui.icon name="chevron-down" class="size-4 rotate-180" /></button>
+                                            <button type="button" class="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-30 dark:hover:bg-white/5" x-on:click="move(index, 1)" :disabled="index === steps.length - 1" title="{{ __('Move down') }}"><x-ui.icon name="chevron-down" class="size-4" /></button>
+                                            <button type="button" class="rounded-md p-1.5 text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10" x-on:click="remove(index)" title="{{ __('Remove') }}"><x-ui.icon name="trash" class="size-4" /></button>
+                                        </span>
                                     </div>
-                                    <div class="flex flex-wrap items-center gap-3">
-                                        <span class="text-sm text-zinc-600 dark:text-zinc-300">{{ __('Then, without the event:') }}</span>
-                                        <input type="hidden" :name="`steps[${index}][on_timeout]`" :value="step.on_timeout" :disabled="step.type !== 'wait_event'">
-                                        <div class="inline-flex gap-0.5 rounded-lg bg-zinc-200/60 p-1 dark:bg-white/[0.06]">
-                                            @foreach (['exit' => __('leave the journey'), 'continue' => __('continue anyway')] as $value => $valueLabel)
-                                                <button type="button" x-on:click="step.on_timeout = '{{ $value }}'" class="rounded-md px-3 py-1.5 text-sm font-medium transition"
-                                                    :class="step.on_timeout === '{{ $value }}' ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'">{{ $valueLabel }}</button>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                </div>
 
-                                {{-- Notification / email --}}
-                                <div x-show="['push', 'email', 'sms'].includes(step.type)" class="space-y-4">
-                                    @if ($pushTemplates->isNotEmpty())
-                                        <div x-show="step.type === 'push'">
-                                            <x-ui.select name="template-choice" :options="$templateOptions" x-bind:name="`steps[${index}][template_id]`" x-model="step.template_id" x-bind:disabled="step.type !== 'push'" :label="__('Content')" />
-                                        </div>
-                                    @endif
-                                    @if ($emailTemplates->isNotEmpty())
-                                        <div x-show="step.type === 'email'">
-                                            <x-ui.select name="email-template-choice" :options="$emailTemplateOptions" x-bind:name="`steps[${index}][template_id]`" x-model="step.template_id" x-bind:disabled="step.type !== 'email'" :label="__('Content')" />
-                                        </div>
-                                    @endif
-                                    <div x-show="! step.template_id" class="space-y-4">
-                                        <div x-show="step.type === 'push'"><label class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Title') }} <span class="font-normal text-zinc-400">{{ __('Optional') }}</span></label><input :name="`steps[${index}][title]`" x-model="step.title" maxlength="200" class="form-control mt-1.5" :disabled="step.type !== 'push'"></div>
-                                        <div x-show="step.type === 'email'"><label class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Subject') }}</label><input :name="`steps[${index}][subject]`" x-model="step.subject" maxlength="200" class="form-control mt-1.5" :disabled="step.type !== 'email'"></div>
-                                        <div>
-                                            <label class="text-sm font-medium text-zinc-800 dark:text-zinc-200" x-text="step.type === 'email' ? @js(__('Content (HTML)')) : @js(__('Message'))"></label>
-                                            <textarea :name="`steps[${index}][body]`" x-model="step.body" :rows="step.type === 'email' ? 6 : 3" class="form-control mt-1.5" :class="step.type === 'email' && 'font-mono text-xs'"></textarea>
-                                            <p class="mt-1.5 text-xs text-zinc-500">{{ __('Personalize with :example', ['example' => $tagExample]) }}</p>
-                                        </div>
-                                        <div x-show="step.type === 'push'"><label class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Link') }} <span class="font-normal text-zinc-400">{{ __('Optional') }}</span></label><input type="url" :name="`steps[${index}][url]`" x-model="step.url" class="form-control mt-1.5" placeholder="https://" :disabled="step.type !== 'push'"></div>
-                                    </div>
-                                </div>
-
-                                {{-- Condition --}}
-                                <div x-show="step.type === 'condition'" class="space-y-3">
-                                    <input type="hidden" :name="`steps[${index}][check]`" :value="step.check" :disabled="step.type !== 'condition'">
-                                    <input type="hidden" :name="`steps[${index}][operator]`" :value="step.operator" :disabled="step.type !== 'condition'">
-                                    <div class="inline-flex flex-wrap gap-0.5 rounded-lg bg-zinc-200/60 p-1 dark:bg-white/[0.06]">
-                                        @foreach (['tag' => __('A tag'), 'clicked' => __('A click'), 'event' => __('An event')] as $check => $checkLabel)
-                                            <button type="button" x-on:click="step.check = '{{ $check }}'" class="rounded-md px-3 py-1.5 text-sm font-medium transition"
-                                                :class="step.check === '{{ $check }}' ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'">{{ $checkLabel }}</button>
-                                        @endforeach
-                                    </div>
-                                    <div class="flex flex-wrap items-center gap-3">
-                                        <span class="text-sm text-zinc-600 dark:text-zinc-300">{{ __('Continue if') }}</span>
-                                        <template x-if="step.check === 'tag'">
-                                            <span class="contents">
-                                                <span class="text-sm text-zinc-600 dark:text-zinc-300">{{ __('the tag') }}</span>
-                                                <input :name="`steps[${index}][key]`" x-model="step.key" class="form-control w-36 font-mono" placeholder="plan" aria-label="{{ __('Tag') }}">
+                                    {{-- Branches of a condition or a split --}}
+                                    <template x-if="step.type === 'condition' || step.type === 'split'">
+                                        <div class="flex flex-wrap gap-2 border-t border-dashed border-zinc-200 px-4 py-2.5 text-xs dark:border-zinc-800">
+                                            <span class="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-1 font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                                                <span x-text="step.type === 'split' ? `A · ${step.percent} %` : texts.yes"></span><x-ui.icon name="arrow-right" class="size-3 rotate-90" /><span x-text="index === steps.length - 1 ? texts.exit : texts.next"></span>
                                             </span>
-                                        </template>
-                                        <span class="text-sm text-zinc-600 dark:text-zinc-300" x-show="step.check !== 'tag'">{{ __('the person') }}</span>
-                                        <div class="inline-flex gap-0.5 rounded-lg bg-zinc-200/60 p-1 dark:bg-white/[0.06]">
-                                            <button type="button" x-on:click="step.operator = 'is'" class="rounded-md px-3 py-1.5 text-sm font-medium transition" :class="step.operator === 'is' ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'"
-                                                x-text="step.check === 'tag' ? @js(__('is')) : (step.check === 'clicked' ? @js(__('clicked a message of the journey')) : @js(__('did the event')))"></button>
-                                            <button type="button" x-on:click="step.operator = 'is_not'" class="rounded-md px-3 py-1.5 text-sm font-medium transition" :class="step.operator === 'is_not' ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'"
-                                                x-text="step.check === 'tag' ? @js(__('is not')) : (step.check === 'clicked' ? @js(__('did not click')) : @js(__('did not do the event')))"></button>
-                                        </div>
-                                        <template x-if="step.check === 'tag'">
-                                            <input :name="`steps[${index}][value]`" x-model="step.value" class="form-control w-36 font-mono" placeholder="{{ __('any value') }}" aria-label="{{ __('Value') }}">
-                                        </template>
-                                        <template x-if="step.check === 'event'">
-                                            <span class="contents">
-                                                <input :name="`steps[${index}][event]`" x-model="step.event" class="form-control w-36 font-mono" placeholder="purchase" aria-label="{{ __('Event name') }}">
-                                                <span class="text-sm text-zinc-600 dark:text-zinc-300">{{ __('in the last') }}</span>
-                                                <input type="number" min="1" max="8760" :name="`steps[${index}][hours]`" x-model="step.hours" class="form-control w-20" placeholder="—" aria-label="{{ __('Hours') }}">
-                                                <span class="text-sm text-zinc-600 dark:text-zinc-300">{{ __('hours (empty: since entering)') }}</span>
+                                            <span class="inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-2 py-1 font-medium text-zinc-700 dark:bg-white/5 dark:text-zinc-300">
+                                                <span x-text="step.type === 'split' ? `B · ${100 - step.percent} %` : texts.no"></span><x-ui.icon name="arrow-right" class="size-3" /><span x-text="branchTarget(step)"></span>
                                             </span>
-                                        </template>
-                                    </div>
-                                    <div class="flex flex-wrap items-center gap-3 border-t border-dashed border-zinc-200 pt-3 dark:border-zinc-800">
-                                        <span class="text-sm text-zinc-600 dark:text-zinc-300">{{ __('Otherwise') }}</span>
-                                        <input type="hidden" :name="`steps[${index}][otherwise]`" :value="step.otherwise" :disabled="step.type !== 'condition'">
-                                        <div class="inline-flex gap-0.5 rounded-lg bg-zinc-200/60 p-1 dark:bg-white/[0.06]">
-                                            @foreach (['exit' => __('leave the journey'), 'goto' => __('go to step')] as $value => $valueLabel)
-                                                <button type="button" x-on:click="step.otherwise = '{{ $value }}'" class="rounded-md px-3 py-1.5 text-sm font-medium transition"
-                                                    :class="step.otherwise === '{{ $value }}' ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'">{{ $valueLabel }}</button>
-                                            @endforeach
                                         </div>
-                                        <input type="number" min="1" :max="steps.length" x-show="step.otherwise === 'goto'" :name="`steps[${index}][goto]`" x-model="step.goto" class="form-control w-20" :disabled="step.type !== 'condition' || step.otherwise !== 'goto'" aria-label="{{ __('Step') }}">
+                                    </template>
+
+                                    {{-- Settings of the step --}}
+                                    <div x-show="step.open" x-collapse class="border-t border-zinc-100 bg-zinc-50/50 px-4 py-4 dark:border-zinc-800 dark:bg-white/[.02]">
+                                        @include('journeys.partials.step-fields')
                                     </div>
                                 </div>
                             </div>
-                        </li>
-                    </template>
-                </ol>
+                        </template>
 
-                <div class="mt-4 flex flex-wrap items-center gap-2" :class="steps.length && 'border-t border-dashed border-zinc-200 pt-4 dark:border-zinc-800'">
-                    <span class="mr-1 text-sm text-zinc-500">{{ __('Add a step:') }}</span>
-                    @foreach ($kinds as $kind => [$icon, $label])
-                        <x-ui.button type="button" variant="secondary" size="sm" :icon="$icon" x-on:click="add('{{ $kind }}')">{{ $label }}</x-ui.button>
-                    @endforeach
+                        {{-- End, with the last insert button --}}
+                        <div class="relative flex h-12 justify-center" x-data="{ menu: false }" x-on:click.outside="menu = false">
+                            <span class="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-zinc-300 dark:bg-zinc-700"></span>
+                            <button type="button" x-on:click="menu = ! menu" class="relative z-10 my-auto inline-flex size-6 items-center justify-center rounded-full border border-zinc-300 bg-white text-zinc-500 transition hover:border-brand-500 hover:text-brand-600 dark:border-zinc-700 dark:bg-zinc-900" title="{{ __('Add a step') }}"><x-ui.icon name="plus" class="size-3.5" /></button>
+                            @include('journeys.partials.step-menu', ['at' => 'steps.length'])
+                        </div>
+                        <div class="mx-auto flex w-fit items-center gap-2 rounded-full border border-zinc-200 bg-white px-3.5 py-1.5 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900"><x-ui.icon name="check-circle" class="size-4" />{{ __('End of the journey') }}</div>
+                    </div>
                 </div>
                 @foreach ($errors->get('steps*') as $messages)
                     @foreach ($messages as $message)<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@endforeach

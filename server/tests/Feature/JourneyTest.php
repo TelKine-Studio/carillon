@@ -16,6 +16,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -297,5 +298,75 @@ class JourneyTest extends TestCase
         $this->travel(5)->minutes();
         $this->patchJson("$base/subscriptions/{$bob->id}", ['enabled' => true])->assertOk();
         $this->getJson(route('projects.live', $this->project))->assertJsonPath('online', 1)->assertJsonPath('people', 1);
+    }
+
+    public function test_ab_split_exit_and_in_app_steps(): void
+    {
+        $inApp = InAppMessage::create(['project_id' => $this->project->id, 'name' => 'Promo', 'status' => 'active', 'layout' => 'modal', 'title' => 'Promo', 'body' => 'Hi',
+            'trigger' => ['type' => 'app_open'], 'frequency' => 'once', 'journey_only' => true]);
+
+        $this->actingAs($this->owner)->post(route('projects.journeys.store', $this->project), [
+            'name' => 'AB',
+            'trigger' => ['type' => 'new_device'],
+            'steps' => [
+                ['type' => 'split', 'percent' => 50, 'b_target' => 'goto', 'b_goto' => 4],
+                ['type' => 'push', 'title' => 'A', 'body' => 'Branch A'],
+                ['type' => 'exit'],
+                ['type' => 'in_app', 'in_app_message_id' => $inApp->id],
+            ],
+        ])->assertSessionHasNoErrors();
+        $journey = Journey::firstOrFail();
+        $this->assertSame(3, $journey->steps[0]['b_step']);
+        $journey->forceFill(['status' => 'active'])->save();
+
+        $devices = collect(range(1, 40))->map(fn ($i) => $this->device("t{$i}"));
+        app(JourneyRunner::class)->run();
+
+        $entries = $journey->entries()->get();
+        $this->assertCount(40, $entries);
+        $a = $entries->filter(fn ($entry) => JourneyRunner::takesBranchA($entry, 50));
+        $this->assertGreaterThan(5, $a->count());
+        $this->assertLessThan(35, $a->count());
+        // Everybody completed: A at the end step, B after the in-app step.
+        $this->assertSame(40, $journey->entries()->where('status', 'completed')->count());
+
+        // Branch A got the notification, branch B the in-app message.
+        $message = Message::where('journey_id', $journey->id)->firstOrFail();
+        $this->assertSame($a->count(), (int) $message->recipients);
+        $this->assertSame(40 - $a->count(), DB::table('in_app_targets')->where('in_app_message_id', $inApp->id)->count());
+
+        // Kept for journeys: only the people of branch B see it.
+        $b = $entries->reject(fn ($entry) => JourneyRunner::takesBranchA($entry, 50))->first();
+        $deviceB = Subscription::where('subscriber_id', $b->subscriber_id)->first();
+        $deviceA = Subscription::where('subscriber_id', $a->first()->subscriber_id)->first();
+        $list = fn (Subscription $device) => collect($this->getJson("/api/v1/sdk/apps/{$this->project->app_id}/subscriptions/{$device->id}/in-app-messages")->assertOk()->json('in_app_messages'))->pluck('id')->all();
+        $this->assertContains($inApp->id, $list($deviceB));
+        $this->assertNotContains($inApp->id, $list($deviceA));
+
+        // The page of the journey and the editor show the new steps.
+        $this->actingAs($this->owner)->get(route('projects.journeys.show', [$this->project, $journey]))->assertOk()->assertSee(__('A/B split'))->assertSee('Promo');
+        $this->actingAs($this->owner)->get(route('projects.journeys.edit', [$this->project, $journey]))->assertOk()->assertDontSee('@js(', false);
+    }
+
+    public function test_quick_journeys_and_whatsapp_step(): void
+    {
+        foreach (['welcome', 'welcome_ab', 'abandoned', 'post_purchase', 'winback', 'winback_ab'] as $recipe) {
+            $this->actingAs($this->owner)->get(route('projects.journeys.create', [$this->project, 'recipe' => $recipe]))->assertOk();
+        }
+        $this->actingAs($this->owner)->get(route('projects.journeys.index', $this->project))->assertOk()->assertSee(__('Turn one-time campaigns into always-on journeys'));
+
+        // WhatsApp needs an approved template or a text.
+        $this->actingAs($this->owner)->post(route('projects.journeys.store', $this->project), [
+            'name' => 'WA', 'trigger' => ['type' => 'new_device'], 'steps' => [['type' => 'whatsapp']],
+        ])->assertSessionHasErrors('steps.0.body');
+        $this->actingAs($this->owner)->post(route('projects.journeys.store', $this->project), [
+            'name' => 'WA', 'trigger' => ['type' => 'new_device'], 'steps' => [['type' => 'whatsapp', 'whatsapp_template' => 'order_update', 'whatsapp_language' => 'fr', 'whatsapp_variables' => 'Awa, 5000 F']],
+        ])->assertSessionHasNoErrors();
+        $this->assertSame('order_update', Journey::where('name', 'WA')->first()->steps[0]['whatsapp_template']);
+
+        // A split must say where branch B goes.
+        $this->actingAs($this->owner)->post(route('projects.journeys.store', $this->project), [
+            'name' => 'Bad', 'trigger' => ['type' => 'new_device'], 'steps' => [['type' => 'split', 'percent' => 50, 'b_target' => 'goto'], ['type' => 'push', 'body' => 'x']],
+        ])->assertSessionHasErrors('steps.0.b_goto');
     }
 }

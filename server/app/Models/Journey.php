@@ -13,7 +13,10 @@ class Journey extends Model
 {
     public const TRIGGERS = ['new_device', 'inactive', 'tag', 'event'];
 
-    public const STEPS = ['wait', 'wait_event', 'push', 'email', 'sms', 'condition'];
+    public const STEPS = ['wait', 'wait_event', 'push', 'email', 'sms', 'whatsapp', 'in_app', 'condition', 'split', 'exit'];
+
+    /** Steps sending a message (they wait for the sending hours of the journey). */
+    public const SENDS = ['push', 'email', 'sms', 'whatsapp'];
 
     protected function casts(): array
     {

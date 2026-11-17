@@ -59,6 +59,10 @@ class InAppController extends Controller
     /** The person is in the segment of the message (or it has none). */
     protected function targets(InAppMessage $message, Subscription $subscription, Audience $audience): bool
     {
+        // Kept for journeys: only the people a journey step gave it to.
+        if ($message->journey_only && ! DB::table('in_app_targets')->where('in_app_message_id', $message->id)->where('subscriber_id', $subscription->subscriber_id)->exists()) {
+            return false;
+        }
         if (! $message->segment) {
             return true;
         }

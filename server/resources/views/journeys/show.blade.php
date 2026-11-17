@@ -7,7 +7,8 @@
         default => ['zinc', __('Draft')],
     };
     $units = ['minutes' => [':count minute|:count minutes'], 'hours' => [':count hour|:count hours'], 'days' => [':count day|:count days']];
-    $icons = ['push' => 'bell', 'email' => 'mail', 'sms' => 'message', 'wait' => 'clock', 'wait_event' => 'activity', 'condition' => 'sliders'];
+    $icons = ['push' => 'bell', 'email' => 'mail', 'sms' => 'message', 'whatsapp' => 'chat', 'in_app' => 'image', 'wait' => 'clock', 'wait_event' => 'activity', 'condition' => 'sliders', 'split' => 'columns', 'exit' => 'check-circle'];
+    $tiles = ['push' => 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-300', 'email' => 'bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300', 'sms' => 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300', 'whatsapp' => 'bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-300', 'in_app' => 'bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300', 'wait' => 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300', 'wait_event' => 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300'];
 @endphp
 <x-layouts.app :title="$journey->name.' · '.$project->name">
     <x-ui.page-header :title="$journey->name">
@@ -59,7 +60,7 @@
                     <li class="mx-auto h-5 w-px bg-zinc-200 dark:bg-zinc-800"></li>
                     <li class="card p-4">
                         <div class="flex items-start gap-3">
-                            <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600 dark:bg-white/5 dark:text-zinc-300"><x-ui.icon :name="$icons[$step['type']] ?? 'circle-dot'" class="size-4" /></span>
+                            <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg {{ $tiles[$step['type']] ?? 'bg-zinc-100 text-zinc-600 dark:bg-white/5 dark:text-zinc-300' }}"><x-ui.icon :name="$icons[$step['type']] ?? 'circle-dot'" class="size-4" /></span>
                             <div class="min-w-0 flex-1">
                                 <p class="text-sm font-semibold text-zinc-900 dark:text-white">
                                     @switch($step['type'])
@@ -76,11 +77,24 @@
                                         @case('wait_event') {{ __('Wait for :event (at most :duration)', ['event' => $step['event'] ?? '', 'duration' => trans_choice($units[$step['unit'] ?? 'days'][0], $step['amount'] ?? 1, ['count' => $step['amount'] ?? 1])]) }} @break
                                         @case('email') {{ __('Email') }} · {{ $step['subject'] ?? '' }} @break
                                         @case('sms') SMS @break
+                                        @case('whatsapp') WhatsApp @if (! empty($step['whatsapp_template']))· {{ $step['whatsapp_template'] }}@endif @break
+                                        @case('in_app') {{ __('In-app message') }} · {{ $inApps[$step['in_app_message_id'] ?? ''] ?? '—' }} @break
+                                        @case('exit') {{ __('End of the journey') }} @break
+                                        @case('split')
+                                            {{ __('A/B split') }}
+                                            <span class="mt-1.5 flex flex-wrap gap-2 text-xs font-normal">
+                                                <span class="rounded-md bg-emerald-50 px-2 py-0.5 font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">A · {{ (int) ($step['percent'] ?? 50) }} % → {{ __('next step') }}</span>
+                                                <span class="rounded-md bg-zinc-100 px-2 py-0.5 font-medium text-zinc-700 dark:bg-white/5 dark:text-zinc-300">B · {{ 100 - (int) ($step['percent'] ?? 50) }} % → {{ ($step['b_target'] ?? 'goto') === 'goto' && isset($step['b_step']) ? __('step :number', ['number' => $step['b_step'] + 1]) : __('leave the journey') }}</span>
+                                            </span>
+                                            @break
                                         @default {{ __('Notification') }}@if (! empty($step['title'])) · {{ $step['title'] }}@endif
                                     @endswitch
                                 </p>
-                                @if (in_array($step['type'], ['push', 'email', 'sms'], true))
-                                    <p class="mt-0.5 line-clamp-2 text-sm text-zinc-500">{{ ! empty($step['template_id']) ? __('From a template') : strip_tags($step['body'] ?? '') }}</p>
+                                @if ($step['type'] === 'in_app')
+                                    <p class="mt-2 text-xs text-zinc-500"><strong class="font-semibold text-zinc-800 dark:text-zinc-200">{{ $n($inAppGiven[$step['in_app_message_id'] ?? ''] ?? 0) }}</strong> {{ __('users received it for their next opening') }}</p>
+                                @endif
+                                @if (in_array($step['type'], ['push', 'email', 'sms', 'whatsapp'], true))
+                                    <p class="mt-0.5 line-clamp-2 text-sm text-zinc-500">{{ ! empty($step['template_id']) ? __('From a template') : strip_tags($step['body'] ?? ($step['whatsapp_template'] ?? '')) }}</p>
                                     @php($stats = $sent[$index] ?? null)
                                     <p class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
                                         <span><strong class="font-semibold text-zinc-800 dark:text-zinc-200">{{ $n($stats->delivered ?? 0) }}</strong> {{ __('delivered') }}</span>

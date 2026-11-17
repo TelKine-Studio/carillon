@@ -128,6 +128,7 @@ class InAppMessageController extends Controller
             'variant_b_body' => ['nullable', 'required_if:ab_enabled,1', 'string', 'max:600'],
             'segment' => ['nullable', 'string', 'max:255'],
             'frequency' => ['required', Rule::in(InAppMessage::FREQUENCIES)],
+            'journey_only' => ['boolean'],
             'frequency_days' => ['nullable', 'required_if:frequency,every_days', 'integer', 'min:1', 'max:365'],
             'ends_at' => ['nullable', 'date', 'after:now'],
         ]);
@@ -159,6 +160,7 @@ class InAppMessageController extends Controller
                 : null,
             'segment' => ($data['segment'] ?? null) ?: null,
             'frequency' => $data['frequency'],
+            'journey_only' => $request->boolean('journey_only'),
             'frequency_days' => $data['frequency'] === 'every_days' ? (int) $data['frequency_days'] : null,
             'ends_at' => $data['ends_at'] ?? null,
         ];

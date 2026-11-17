@@ -26,9 +26,14 @@ Automations that run on their own:
 
 - **Triggers**: a new device, inactivity for N days, a tag that changes, an
   event of your app or server.
-- **Steps**: wait, wait for an event (with a timeout), send a push, an email
-  or an SMS, conditions on a tag, a click or an event, with a branch
-  ("otherwise, go to step N").
+- **Steps**: wait, wait for an event (with a timeout), send a push, an email,
+  an SMS or a WhatsApp message (approved template or text), show an in-app
+  message at the next opening (messages can be kept for journeys only),
+  conditions on a tag, a click or an event, an **A/B split** (each person
+  always in the same branch) and an end step to close a branch.
+- **Visual editor**: the steps drawn as a flow, a "+" between them to insert
+  one, branches shown on conditions and splits; quick journeys by goal
+  (onboarding, promotional, re-engagement).
 - **Sending hours**: messages due at night wait for the morning, in the time
   zone of each person.
 - Re-entry, segment filter, statistics per step.

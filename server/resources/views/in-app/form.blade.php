@@ -111,6 +111,8 @@
                         </div>
                     </div>
                     <x-ui.select name="segment" :label="__('To')" :value="old('segment', $message->segment)" :options="$segmentOptions" />
+                    <input type="hidden" name="journey_only" value="0">
+                    <x-ui.toggle name="journey_only" :checked="(bool) old('journey_only', $message->journey_only)" :label="__('Kept for journeys')" :description="__('Shown only to the people a journey step gives it to, at their next opening of the app.')" />
                     <div>
                         <p class="mb-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('How often') }}</p>
                         <input type="hidden" name="frequency" :value="frequency">

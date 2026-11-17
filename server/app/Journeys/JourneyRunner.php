@@ -164,6 +164,7 @@ class JourneyRunner
 
         $steps = array_values($journey->steps ?? []);
         $sends = [];
+        $inApps = [];
 
         foreach ($entries as $entry) {
             // Instant steps run one after the other; a wait stops the person.
@@ -220,7 +221,41 @@ class JourneyRunner
                     break;
                 }
 
-                if (in_array($step['type'], ['push', 'email', 'sms'], true)) {
+                // End of a branch: the person completes the journey here.
+                if ($step['type'] === 'exit') {
+                    $entry->forceFill(['status' => 'completed', 'completed_at' => now(), 'next_run_at' => null])->save();
+                    break;
+                }
+
+                // A/B split: a stable share of the people takes branch A (the
+                // next step), the others branch B (another step, or the exit).
+                if ($step['type'] === 'split') {
+                    if (self::takesBranchA($entry, (int) ($step['percent'] ?? 50))) {
+                        $entry->step++;
+
+                        continue;
+                    }
+                    $target = $step['b_step'] ?? null;
+                    if (is_int($target) && isset($steps[$target]) && $target !== $entry->step) {
+                        $entry->step = $target;
+
+                        continue;
+                    }
+                    $entry->forceFill(['status' => 'exited', 'completed_at' => now(), 'next_run_at' => null])->save();
+                    break;
+                }
+
+                // In-app message: shown at the next opening of the app.
+                if ($step['type'] === 'in_app') {
+                    if (filled($step['in_app_message_id'] ?? null)) {
+                        $inApps[$step['in_app_message_id']][] = $entry->subscriber_id;
+                    }
+                    $entry->step++;
+
+                    continue;
+                }
+
+                if (in_array($step['type'], Journey::SENDS, true)) {
                     // Outside the hours allowed by the journey: wait for the next window.
                     if ($opens = $this->nextWindow($journey, $entry->subscriber)) {
                         $entry->forceFill(['next_run_at' => $opens])->save();
@@ -241,6 +276,32 @@ class JourneyRunner
 
         foreach ($sends as $index => $subscribers) {
             $this->send($journey, $index, $steps[$index], array_values(array_unique($subscribers)));
+        }
+
+        foreach ($inApps as $messageId => $subscribers) {
+            $this->giveInApp($journey, (string) $messageId, array_values(array_unique($subscribers)));
+        }
+    }
+
+    /** Same person, same branch: the share is taken from the id of the entry. */
+    public static function takesBranchA(JourneyEntry $entry, int $percent): bool
+    {
+        return crc32('carillon-split-'.$entry->id) % 100 < max(1, min(99, $percent));
+    }
+
+    /** @param list<string> $subscribers */
+    protected function giveInApp(Journey $journey, string $messageId, array $subscribers): void
+    {
+        if (! DB::table('in_app_messages')->where('id', $messageId)->where('project_id', $journey->project_id)->exists()) {
+            return;
+        }
+        $now = now();
+        foreach (array_chunk($subscribers, 500) as $chunk) {
+            DB::table('in_app_targets')->upsert(
+                array_map(fn ($id) => ['in_app_message_id' => $messageId, 'subscriber_id' => $id, 'journey_id' => $journey->id, 'created_at' => $now, 'updated_at' => $now], $chunk),
+                ['in_app_message_id', 'subscriber_id'],
+                ['journey_id', 'updated_at'],
+            );
         }
     }
 
@@ -320,7 +381,7 @@ class JourneyRunner
             ->whereIn('subscriber_id', array_unique($subscribers))
             ->where('enabled', true)
             ->whereNull('invalid_at')
-            ->when(in_array($step['type'], ['email', 'sms'], true), fn ($q) => $q->where('type', $step['type']), fn ($q) => $q->whereIn('type', Subscription::PUSH_TYPES))
+            ->when(in_array($step['type'], ['email', 'sms', 'whatsapp'], true), fn ($q) => $q->where('type', $step['type']), fn ($q) => $q->whereIn('type', Subscription::PUSH_TYPES))
             ->pluck('id')
             ->all();
 
@@ -330,7 +391,15 @@ class JourneyRunner
 
         $content = filled($step['template_id'] ?? null)
             ? ['template_id' => $step['template_id']]
-            : ($step['type'] === 'sms'
+            : ($step['type'] === 'whatsapp'
+                ? array_filter([
+                    'target_channel' => 'whatsapp',
+                    'whatsapp_template' => $step['whatsapp_template'] ?? null,
+                    'whatsapp_language' => $step['whatsapp_language'] ?? null,
+                    'whatsapp_variables' => array_values(array_filter(array_map('trim', explode(',', (string) ($step['whatsapp_variables'] ?? ''))), fn ($v) => $v !== '')) ?: null,
+                    'contents' => filled($step['body'] ?? null) ? ['en' => (string) $step['body']] : null,
+                ])
+                : ($step['type'] === 'sms'
                 ? ['target_channel' => 'sms', 'contents' => ['en' => (string) ($step['body'] ?? '')]]
                 : ($email
                 ? ['target_channel' => 'email', 'email_subject' => $step['subject'] ?? '', 'email_body' => $step['body'] ?? '']
@@ -338,7 +407,7 @@ class JourneyRunner
                     'headings' => filled($step['title'] ?? null) ? ['en' => $step['title']] : null,
                     'contents' => ['en' => (string) ($step['body'] ?? '')],
                     'url' => $step['url'] ?? null,
-                ])));
+                ]))));
 
         try {
             foreach (array_chunk($devices, CreateMessage::MAX_IDS) as $chunk) {
