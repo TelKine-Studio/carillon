@@ -52,7 +52,7 @@
             :description="$filtered ? __('Try another search or filter.') : __('Devices appear here once your app uses the Carillon SDK with this project’s App ID.')" />
     @endif
 @else
-    <div class="overflow-x-auto" :data-hidden="hidden.join(' ')">
+    <div class="relative overflow-x-auto" :data-hidden="hidden.join(' ')">
         <table class="w-full min-w-max text-sm">
             <thead>
                 <tr class="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium whitespace-nowrap text-zinc-500 dark:border-zinc-800 dark:bg-white/[.03]">
