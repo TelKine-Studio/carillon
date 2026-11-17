@@ -460,13 +460,13 @@ class SendingTest extends TestCase
     {
         $owner = $this->project->members()->first();
         $id = $this->device('ios', 'phone-a', ['external_id' => 'ada']);
-        $this->device('android', 'phone-b', ['external_id' => 'bob']);
+        $this->device('android', 'phone-b', ['external_id' => 'bob-ext-77']);
         $person = Subscription::find($id)->subscriber_id;
 
         $this->actingAs($owner)->get(route('projects.subscribers.index', $this->project))
             ->assertOk()->assertSee($person)->assertSee('ada')->assertSee('Channels');
-        $this->actingAs($owner)->get(route('projects.subscribers.index', [$this->project, 'sort' => 'first_active', 'dir' => 'asc']))->assertOk()->assertSeeInOrder(['ada', 'bob']);
-        $this->actingAs($owner)->get(route('projects.subscribers.index', [$this->project, 'view' => 'devices', 'q' => $person]))->assertOk()->assertSee('ada')->assertDontSee('bob');
+        $this->actingAs($owner)->get(route('projects.subscribers.index', [$this->project, 'sort' => 'first_active', 'dir' => 'asc']))->assertOk()->assertSeeInOrder(['ada', 'bob-ext-77']);
+        $this->actingAs($owner)->get(route('projects.subscribers.index', [$this->project, 'view' => 'devices', 'q' => $person]))->assertOk()->assertSee('ada')->assertDontSee('bob-ext-77');
         $this->actingAs($owner)->get(route('projects.subscribers.show', [$this->project, $person]))->assertOk()->assertSee('Push token')->assertSee('phone-a');
 
         // "Add as test devices" from the menu of a person.
