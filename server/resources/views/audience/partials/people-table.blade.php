@@ -49,7 +49,7 @@
         <table class="w-full min-w-max text-sm">
             <thead>
                 <tr class="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium whitespace-nowrap text-zinc-500 dark:border-zinc-800 dark:bg-white/[.03]">
-                    <th class="sticky left-0 z-10 bg-zinc-50 px-4 py-2.5 font-medium sm:px-5 dark:bg-zinc-900">{{ __('Person') }}</th>
+                    <th class="sticky left-0 z-10 bg-zinc-50 px-4 py-2.5 font-medium sm:px-5 dark:bg-zinc-900">{{ __('User ID') }}</th>
                     @foreach ($columns as $key => $columnLabel)
                         <th data-col="{{ $key }}" class="px-3 py-2.5 font-medium">{!! isset($sorts[$key]) ? $sortLink($sorts[$key], $columnLabel) : e($columnLabel) !!}</th>
                     @endforeach
