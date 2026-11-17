@@ -28,6 +28,12 @@
 </style>
 <div class="flex items-center justify-between gap-3 border-b border-zinc-100 px-4 py-2 sm:px-5 dark:border-zinc-800">
     <p class="text-xs text-zinc-500 tabular-nums">{{ trans_choice(':count device|:count devices', $results->total(), ['count' => number_format($results->total(), 0, ',', ' ')]) }}</p>
+    <div class="flex items-center gap-2">
+    @if ($test)
+        @can('send', $project)
+            <x-ui.button type="button" size="sm" icon="plus" x-on:click="$dispatch('open-modal', 'add-test-device')">{{ __('Add a test device') }}</x-ui.button>
+        @endcan
+    @endif
     <x-ui.dropdown width="w-64">
         <x-slot:trigger>
             <x-ui.button type="button" variant="ghost" size="sm" icon="columns">{{ __('Columns') }}</x-ui.button>
@@ -41,6 +47,7 @@
             @endforeach
         </div>
     </x-ui.dropdown>
+    </div>
 </div>
 @php $filtered = $search || $platform || $state || $reason || $segment; @endphp
 @if ($results->isEmpty())

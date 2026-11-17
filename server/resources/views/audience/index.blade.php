@@ -54,11 +54,7 @@
             </div>
         </form>
         <div id="audience-actions" class="contents">
-            @if ($view === 'test')
-                @can('send', $project)
-                    <x-ui.button type="button" icon="plus" class="shrink-0" x-on:click="$dispatch('open-modal', 'add-test-device')">{{ __('Add a test device') }}</x-ui.button>
-                @endcan
-            @endif
+
         </div>
     </div>
 
