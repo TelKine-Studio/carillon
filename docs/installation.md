@@ -41,6 +41,12 @@ Create a *Docker Compose* resource from this repository with
 variables and give a domain to the `carillon` service (port 80). Coolify
 handles HTTPS.
 
+Keep *Advanced → Predefined network* on **Isolated network only** (the
+default). On the shared network of Coolify, the name `postgres` may also be
+another app's database: Carillon then reaches it from time to time and
+answers with errors 500 ("password authentication failed for user
+carillon" in the logs).
+
 ## HTTPS
 
 Put Carillon behind HTTPS before going live: browsers only allow web push on

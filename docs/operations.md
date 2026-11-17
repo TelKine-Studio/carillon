@@ -69,3 +69,9 @@ Per-device delivery details are kept 90 days by default (*Settings → General
 - **Web push asks nothing**: the site must be served over HTTPS, and the
   permission must be asked after a click of the visitor.
 - **Logs**: `docker compose logs -f carillon`.
+
+### Errors 500 from time to time, "password authentication failed"
+
+Carillon sometimes reaches another PostgreSQL than its own: on Coolify,
+switch *Advanced → Predefined network* to **Isolated network only** and
+redeploy (see [Installation](installation.md#coolify)).
