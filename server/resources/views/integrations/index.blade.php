@@ -1,5 +1,5 @@
 @php
-    $byKind = collect($catalog)->filter(fn ($card) => isset($card['kind']))->keyBy('kind');
+    $byKind = collect($catalog)->filter(fn ($card) => ($card['kind'] ?? null) === $card['key'])->keyBy('kind');
     $directions = ['in' => __('Inbound'), 'out' => __('Outbound')];
     $connectedKinds = $integrations->pluck('kind')->unique()->all();
     $connections = $integrations->count() + $webhooks->count();

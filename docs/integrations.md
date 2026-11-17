@@ -101,3 +101,7 @@ Cloudflare R2 (`https://<account>.r2.cloudflarestorage.com`, region `auto`),
 MinIO, SeaweedFS, Scaleway, OVH… (path-style URLs on). The access key only
 needs `PutObject` on the bucket. **Test** writes a small `.carillon-test`
 file; **Export yesterday** exports the day before at once.
+
+---
+
+Logos: [Simple Icons](https://simpleicons.org) and [gilbarbara/logos](https://github.com/gilbarbara/logos) (CC0). The names and logos belong to their owners and only show which service a card connects to.

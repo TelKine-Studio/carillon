@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\ProjectRole;
+use App\Integrations\Catalog;
 use App\Integrations\S3Export;
 use App\Integrations\SqlSync;
 use App\Integrations\Streams;
@@ -51,7 +52,10 @@ class IntegrationTest extends TestCase
     {
         $this->actingAs($this->owner)->get(route('projects.integrations.index', $this->project))
             ->assertOk()->assertSee('PostHog')->assertSee('Segment')->assertSee('PostgreSQL')->assertSee('Slack')->assertSee('n8n, Make, Zapier')
-            ->assertSee(route('projects.integrations.create', [$this->project, 'posthog']));
+            ->assertSee(route('projects.integrations.create', [$this->project, 'posthog']))
+            ->assertSee('<svg class="size-full"', false);
+        $this->assertNull(Catalog::logo('../../.env'));
+        $this->assertStringContainsString('<svg', Catalog::logo('slack'));
 
         foreach (['posthog', 'mixpanel', 'amplitude', 'slack', 'discord', 's3', 'segment', 'rudderstack', 'postgres', 'mysql'] as $card) {
             $this->actingAs($this->owner)->get(route('projects.integrations.create', [$this->project, $card]))->assertOk();
