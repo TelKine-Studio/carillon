@@ -145,7 +145,7 @@
 
             {{-- Audience --}}
             @unless ($templateMode)
-            <x-ui.card :title="__('Audience')" icon="users">
+            <x-ui.card class="composer-step" :title="__('Audience')" icon="users">
                 <div class="grid grid-cols-3 gap-1 rounded-lg bg-zinc-100 p-1 text-sm dark:bg-white/5">
                     @foreach (['segments' => __('Segments'), 'users' => __('Users'), 'devices' => __('Devices')] as $key => $label)
                         <label class="cursor-pointer">
@@ -220,7 +220,7 @@
             @endunless
 
             {{-- Email --}}
-            <x-ui.card :title="__('Email')" icon="mail" x-show="channel === 'email'" x-cloak>
+            <x-ui.card class="composer-step" :title="__('Email')" icon="mail" x-show="channel === 'email'" x-cloak>
                 <div class="space-y-5">
                     <x-ui.input name="email_subject" :label="__('Subject')" x-model="emailSubject" maxlength="255" :placeholder="__('e.g. Our new collection is here')" />
                     <x-ui.input name="email_preheader" :label="__('Preview text')" x-model="emailPreheader" maxlength="255" :hint="__('Shown after the subject in the inbox.')" optional />
@@ -333,7 +333,7 @@
             </x-ui.card>
 
             {{-- WhatsApp --}}
-            <x-ui.card :title="__('WhatsApp')" icon="chat" x-show="channel === 'whatsapp'" x-cloak>
+            <x-ui.card class="composer-step" :title="__('WhatsApp')" icon="chat" x-show="channel === 'whatsapp'" x-cloak>
                 <div class="space-y-4" x-data="whatsAppComposer(@js($config['whatsapp']), @js($project->credential('whatsapp')?->isUsable() ? route('projects.whatsapp.templates', $project) : null))">
                     <input type="hidden" name="whatsapp_mode" :value="mode">
                     <div class="grid grid-cols-2 gap-1 rounded-lg bg-zinc-100 p-1 text-sm dark:bg-white/5">
@@ -378,7 +378,7 @@
             </x-ui.card>
 
             {{-- SMS --}}
-            <x-ui.card :title="__('SMS')" icon="message" x-show="channel === 'sms'" x-cloak>
+            <x-ui.card class="composer-step" :title="__('SMS')" icon="message" x-show="channel === 'sms'" x-cloak>
                 <div class="space-y-1.5">
                     <div class="flex items-center justify-between gap-3">
                         <label for="sms_body" class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Text') }}</label>
@@ -400,7 +400,7 @@
             </x-ui.card>
 
             {{-- Message --}}
-            <x-ui.card :title="__('Message')" icon="message" x-show="channel === 'push'">
+            <x-ui.card class="composer-step" :title="__('Message')" icon="message" x-show="channel === 'push'">
                 <x-slot:actions>
                     <div x-data="{ open: false }" class="relative" x-show="unusedLanguages.length">
                         <x-ui.button type="button" variant="secondary" size="sm" icon="plus" x-on:click="open = !open">{{ __('Language') }}</x-ui.button>
@@ -444,7 +444,7 @@
             </x-ui.card>
 
             {{-- Media and actions --}}
-            <x-ui.card :title="__('Image and actions')" icon="image" x-show="channel === 'push'">
+            <x-ui.card class="composer-step" :title="__('Image and actions')" icon="image" x-show="channel === 'push'">
                 <div class="space-y-5">
                     <x-ui.input name="big_picture" type="url" :label="__('Image')" placeholder="https://…/image.jpg" x-model="image" :hint="__('Large image of the notification (JPEG or PNG, ideally 2:1).')" optional />
                     <x-ui.input name="icon" type="url" :label="__('Icon')" placeholder="https://…/logo.png" x-model="icon" :hint="$project->icon_path ? __('Logo next to the text on Android and the web (square PNG). By default, the icon of the project. iOS always shows the icon of the app.') : __('Logo next to the text on Android and the web (square PNG). iOS always shows the icon of the app; add an icon to the project to use it by default.')" optional />
@@ -485,7 +485,7 @@
             {{-- A/B test --}}
             @unless ($templateMode)
                 <div x-show="channel === 'push'">
-                    <x-ui.card :title="__('A/B test')" :description="__('Try two versions on a sample of the audience, then send the best one to the rest.')" icon="activity">
+                    <x-ui.card class="composer-step" :title="__('A/B test')" :description="__('Try two versions on a sample of the audience, then send the best one to the rest.')" icon="activity">
                         <x-slot:actions>
                             <x-ui.toggle name="ab_enabled" x-model="ab" :checked="(bool) old('ab_enabled')" :label="__('Enable')" />
                         </x-slot:actions>
@@ -502,7 +502,7 @@
             @endunless
 
             {{-- Delivery --}}
-            <x-ui.card :title="$templateMode ? __('Options') : __('Delivery')" icon="clock">
+            <x-ui.card class="composer-step" :title="$templateMode ? __('Options') : __('Delivery')" icon="clock">
                 @unless ($templateMode)
                 <div class="grid gap-2">
                     @foreach (['now' => [__('Send now'), __('Delivered within seconds.')], 'later' => [__('Schedule'), __('At a date and time of your choice.')], 'timezone' => [__('Local time'), __('At the same hour for everyone, in their time zone.')], 'smart' => [__('Smart time'), __('Each person at the hour they usually use the app, within 24 hours.')]] as $key => [$label, $text])

@@ -2199,5 +2199,6 @@
     "Failures": "Échecs",
     "Received at": "Reçu le",
     "Clicked at": "Cliqué le",
-    "Sent at": "Envoyé le"
+    "Sent at": "Envoyé le",
+    "Started sending": "Début de l’envoi"
 }

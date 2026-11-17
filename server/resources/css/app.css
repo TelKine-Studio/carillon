@@ -427,3 +427,13 @@ span.flatpickr-weekday {
 .retention-cell {
     background: color-mix(in oklab, var(--color-brand-700) var(--level), transparent);
 }
+
+/* Composer: numbered steps (1. Audience, 2. Message…), hidden steps are not
+   counted, so the numbers follow the chosen channel. */
+main {
+    counter-reset: composer-step;
+}
+.composer-step > header h2::before {
+    counter-increment: composer-step;
+    content: counter(composer-step) '. ';
+}
