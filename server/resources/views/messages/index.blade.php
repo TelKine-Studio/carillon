@@ -60,9 +60,9 @@
                             <th class="px-4 py-3 font-medium sm:px-5">{{ __('Name') }}</th>
                             <th class="px-3 py-3 font-medium">{{ __('Status') }}</th>
                             <th class="px-3 py-3 font-medium">{{ __('Audience') }}</th>
-                            <th class="px-3 py-3 font-medium">{{ __('Started sending') }}</th>
+                            <th class="px-3 py-3 font-medium whitespace-nowrap">{{ __('Started sending') }}</th>
                             <th class="px-3 py-3 text-right font-medium">{{ __('Delivered') }}</th>
-                            <th class="px-4 py-3 text-right font-medium sm:px-5">{{ __('Click-through rate') }}</th>
+                            <th class="px-4 py-3 text-right font-medium whitespace-nowrap sm:px-5">{{ __('Click-through rate') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -72,7 +72,7 @@
                                 $when = $message->status === 'scheduled' ? $message->send_after : ($message->started_at ?? null);
                             @endphp
                             <tr class="group relative transition hover:bg-zinc-50/80 dark:hover:bg-white/[.02]">
-                                <td class="max-w-0 px-4 py-3.5 sm:px-5" style="width: 42%">
+                                <td class="max-w-0 px-4 py-3.5 sm:px-5" style="width: 38%">
                                     <a href="{{ $href }}" class="flex min-w-0 items-center gap-2 font-medium text-zinc-900 after:absolute after:inset-0 dark:text-white">
                                         <span class="truncate">{{ $message->label() }}</span>
                                         @if ($message->is_test)<x-ui.badge color="violet" class="shrink-0">{{ __('Test') }}</x-ui.badge>@endif
@@ -92,7 +92,7 @@
                                     <span class="block text-xs text-zinc-400">{{ $message->author?->name ?? ($message->api_key_id ? __('API') : '') }}</span>
                                 </td>
                                 <td class="px-3 py-3.5 text-right font-medium text-zinc-900 tabular-nums dark:text-white">{{ number_format($message->successful, 0, ',', ' ') }}</td>
-                                <td class="px-4 py-3.5 text-right font-medium text-zinc-900 tabular-nums sm:px-5 dark:text-white">{{ $message->rate($message->clicked) !== null ? number_format($message->rate($message->clicked), 2, ',', ' ').' %' : '—' }}</td>
+                                <td class="px-4 py-3.5 text-right font-medium whitespace-nowrap text-zinc-900 tabular-nums sm:px-5 dark:text-white">{{ $message->rate($message->clicked) !== null ? number_format($message->rate($message->clicked), 2, ',', ' ').' %' : '—' }}</td>
                             </tr>
                         @endforeach
                     </tbody>
