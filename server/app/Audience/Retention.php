@@ -21,6 +21,7 @@ final class Retention
         $start = $now->startOfWeek()->subWeeks($weeks - 1);
 
         $cohort = [];
+        $active = [];
         $sizes = array_fill(0, $weeks, 0);
         DB::table('subscribers')
             ->where('project_id', $project->id)
@@ -28,14 +29,14 @@ final class Retention
             ->select(['id', 'first_seen_at'])
             ->orderBy('id')
             ->lazy(2000)
-            ->each(function ($row) use (&$cohort, &$sizes, $start) {
+            ->each(function ($row) use (&$cohort, &$sizes, &$active, $start) {
                 $index = intdiv((int) round($start->diffInDays(CarbonImmutable::parse($row->first_seen_at)->startOfDay())), 7);
                 $cohort[$row->id] = $index;
                 $sizes[$index]++;
+                $active[$index][0][$row->id] = true; // the week they were first seen
             });
 
         // Distinct people active in each week after their first one.
-        $active = [];
         DB::table('activity_days')
             ->where('project_id', $project->id)
             ->where('day', '>=', $start->toDateString())

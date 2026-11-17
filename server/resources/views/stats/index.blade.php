@@ -47,7 +47,6 @@
                 $cards = [
                     ['active', __('Sessions'), $n($kpis['active']), $trend($kpis['active'], $kpis['previous']['active']), __('People who used the app, day by day.'), 'bars', $charts['active'], __('No session in this period.'), 'retention'],
                     ['engagement', __('Engagement trends'), $pct($kpis['ctr']), $trend($kpis['ctr'], $kpis['previous']['ctr']), __('Click rate of the push notifications.'), [
-                        ['label' => __('Delivered'), 'color' => $colors['gray'], 'points' => $charts['delivered']],
                         ['label' => __('Clicked'), 'color' => $colors['brand'], 'points' => $charts['clicked']],
                         ['label' => __('Unsubscribes'), 'color' => $colors['red'], 'points' => $charts['unsubscribed']],
                     ], null, __('No message sent in this period.'), 'engagement'],

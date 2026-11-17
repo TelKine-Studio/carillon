@@ -36,7 +36,7 @@ class Subscriber extends Model
 
         // Each day of activity counts once, for retention cohorts.
         static::saved(function (Subscriber $subscriber) {
-            if ($subscriber->wasRecentlyCreated) {
+            if ($subscriber->first_seen_at && ($subscriber->wasRecentlyCreated || $subscriber->wasChanged('first_seen_at'))) {
                 Activity::record($subscriber->id, $subscriber->project_id, $subscriber->first_seen_at);
             }
             if ($subscriber->last_active_at && ($subscriber->wasRecentlyCreated || $subscriber->wasChanged('last_active_at'))) {
