@@ -108,7 +108,7 @@ class SubscriptionController extends Controller
             // its old one back): the other record of it is dead.
             Subscription::query()->where('project_id', $subscription->project_id)->where('type', $subscription->type)
                 ->where('token_hash', hash('sha256', $subscription->token))->whereKeyNot($subscription->id)
-                ->update(['token' => null, 'token_hash' => null, 'invalid_at' => now(), 'updated_at' => now(),
+                ->update(['token' => null, 'token_hash' => null, 'invalid_at' => now(), 'updated_at' => now(), 'unsubscribed_at' => now(),
                     'status_reason' => 'token_reused', 'status_detail' => null, 'status_changed_at' => now()]);
         }
         $wasEnabled = $subscription->enabled;

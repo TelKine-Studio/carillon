@@ -4,8 +4,10 @@
 <span class="inline-flex min-w-0 flex-col items-start gap-1">
     @if ($subscription->invalid_at)
         <x-ui.badge color="red" :title="$reason">{{ __('Unreachable') }}</x-ui.badge>
+    @elseif (! $subscription->enabled && ! $subscription->subscribed_at)
+        <x-ui.badge color="zinc" :title="$reason">{{ __('Never subscribed') }}</x-ui.badge>
     @elseif (! $subscription->enabled)
-        <x-ui.badge color="zinc" :title="$reason">{{ __('Unsubscribed') }}</x-ui.badge>
+        <x-ui.badge color="amber" :title="$reason">{{ __('Unsubscribed') }}</x-ui.badge>
     @else
         <x-ui.badge color="green" dot>{{ __('Subscribed') }}</x-ui.badge>
     @endif

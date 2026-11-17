@@ -2270,5 +2270,12 @@
     "Permission never asked": "Autorisation jamais demandée",
     "Unsubscribed by the app": "Désinscrit par l’app",
     "Email bounced": "E-mail en échec définitif",
-    "Email unsubscribe link": "Lien de désabonnement de l’e-mail"
+    "Email unsubscribe link": "Lien de désabonnement de l’e-mail",
+    "Never subscribed": "Jamais abonné",
+    "Last unsubscribed": "Dernière désinscription",
+    "Usage duration": "Durée d’utilisation",
+    "Email or phone": "E-mail ou téléphone",
+    "Timezone": "Fuseau horaire",
+    "Columns": "Colonnes",
+    "All segments": "Tous les segments"
 }

@@ -115,7 +115,7 @@ class SendBatch implements ShouldQueue
             // Grouped by answer of the provider (Unregistered, BadDeviceToken...).
             foreach (collect($invalid)->groupBy(fn ($error) => (string) $error, true) as $error => $ids) {
                 DB::table('subscriptions')->whereIn('id', $ids->keys()->all())->update([
-                    'invalid_at' => $now, 'updated_at' => $now,
+                    'invalid_at' => $now, 'updated_at' => $now, 'unsubscribed_at' => $now,
                     'status_reason' => 'rejected', 'status_detail' => $error !== '' ? $error : null, 'status_changed_at' => $now,
                 ]);
             }

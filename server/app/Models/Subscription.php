@@ -47,6 +47,15 @@ class Subscription extends Model
         static::saving(function (Subscription $subscription) {
             $subscription->token_hash = $subscription->token ? hash('sha256', $subscription->token) : null;
 
+            // First subscription ("never subscribed" until then), last unsubscription.
+            if ($subscription->enabled && $subscription->invalid_at === null) {
+                $subscription->subscribed_at ??= now();
+            }
+            if (($subscription->isDirty('enabled') && ! $subscription->enabled && $subscription->getOriginal('enabled'))
+                || ($subscription->isDirty('invalid_at') && $subscription->invalid_at !== null)) {
+                $subscription->unsubscribed_at = now();
+            }
+
             // Reachable again: the reason no longer applies.
             if ($subscription->enabled && $subscription->invalid_at === null && $subscription->status_reason !== null && ! $subscription->isDirty('status_reason')) {
                 $subscription->setStatus(null);
@@ -72,6 +81,9 @@ class Subscription extends Model
             'location_accuracy' => 'integer',
             'located_at' => 'datetime',
             'status_changed_at' => 'datetime',
+            'subscribed_at' => 'datetime',
+            'unsubscribed_at' => 'datetime',
+            'usage_seconds' => 'integer',
             'sessions' => 'integer',
         ];
     }

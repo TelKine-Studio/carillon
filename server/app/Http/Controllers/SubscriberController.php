@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Actions\CreateMessage;
+use App\Audience\Audience;
 use App\Audience\Duplicates;
 use App\Journeys\JourneyRunner;
 use App\Models\CustomEvent;
 use App\Models\Delivery;
 use App\Models\Project;
+use App\Models\Segment;
 use App\Models\Subscriber;
 use App\Models\Subscription;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,19 +28,28 @@ class SubscriberController extends Controller
 
         $search = trim((string) $request->query('q'));
         $platform = in_array($request->query('platform'), Subscription::TYPES, true) ? $request->query('platform') : null;
-        $state = in_array($request->query('state'), ['subscribed', 'unsubscribed', 'invalid'], true) ? $request->query('state') : null;
+        $state = in_array($request->query('state'), ['subscribed', 'unsubscribed', 'never', 'invalid'], true) ? $request->query('state') : null;
+        $segments = [...array_values(array_diff(Segment::BUILT_IN, ['All', 'Subscribed Users'])), ...$project->segments()->orderBy('name')->pluck('name')->all()];
+        $segment = in_array($request->query('segment'), $segments, true) ? $request->query('segment') : null;
         $reason = in_array($request->query('reason'), [...Subscription::REASONS, 'unknown'], true) ? $request->query('reason') : null;
         // Like OneSignal: one row per person (default) or per device.
         $view = in_array($request->query('view'), ['devices', 'test'], true) ? $request->query('view') : 'people';
-        $sort = $request->query('sort') === 'first_active' ? 'first_active' : 'last_active';
+        // Sortable columns of the tables (devices: like OneSignal).
+        $sortable = ['last_active' => 'last_active_at', 'first_active' => 'created_at', 'sessions' => 'sessions', 'usage' => 'usage_seconds', 'unsubscribed' => 'unsubscribed_at'];
+        $sort = array_key_exists((string) $request->query('sort'), $sortable) ? $request->query('sort') : 'last_active';
+        if ($view === 'people' && ! in_array($sort, ['last_active', 'first_active'], true)) {
+            $sort = 'last_active';
+        }
         $direction = $request->query('dir') === 'asc' ? 'asc' : 'desc';
-        $column = $sort === 'first_active' ? 'created_at' : 'last_active_at';
+        $column = $sortable[$sort];
 
         // Conditions on the devices, shared by both views.
         $devices = fn (Builder $q) => $q
             ->when($platform, fn (Builder $q) => $q->where('subscriptions.type', $platform))
             ->when($state === 'subscribed', fn (Builder $q) => $q->where('subscriptions.enabled', true)->whereNull('subscriptions.invalid_at'))
-            ->when($state === 'unsubscribed', fn (Builder $q) => $q->where('subscriptions.enabled', false))
+            ->when($state === 'unsubscribed', fn (Builder $q) => $q->where('subscriptions.enabled', false)->whereNull('subscriptions.invalid_at')->whereNotNull('subscriptions.subscribed_at'))
+            ->when($state === 'never', fn (Builder $q) => $q->where('subscriptions.enabled', false)->whereNull('subscriptions.invalid_at')->whereNull('subscriptions.subscribed_at'))
+            ->when($segment, fn (Builder $q) => $q->whereIn('subscriptions.id', app(Audience::class)->query($project, ['segments' => [$segment], 'any_permission' => true])->select('subscriptions.id')))
             ->when($state === 'invalid', fn (Builder $q) => $q->whereNotNull('subscriptions.invalid_at'))
             ->when($reason === 'unknown', fn (Builder $q) => $q->whereNull('subscriptions.status_reason')
                 ->where(fn (Builder $q) => $q->where('subscriptions.enabled', false)->orWhereNotNull('subscriptions.invalid_at')))
@@ -47,7 +58,7 @@ class SubscriberController extends Controller
         if ($view === 'people') {
             $results = $project->subscribers()
                 ->with(['subscriptions' => fn ($q) => $q->select('id', 'subscriber_id', 'type', 'enabled', 'invalid_at', 'is_test', 'device_model')->orderBy('type')])
-                ->when($platform || $state || $reason, fn (Builder $q) => $q->whereHas('subscriptions', $devices))
+                ->when($platform || $state || $reason || $segment, fn (Builder $q) => $q->whereHas('subscriptions', $devices))
                 ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $q) => $q
                     // An id is a UUID: PostgreSQL refuses to compare it to any other text.
                     ->when(Str::isUuid($search), fn (Builder $q) => $q->orWhere('subscribers.id', $search)->orWhereHas('subscriptions', fn (Builder $s) => $s->whereKey($search)))
@@ -86,6 +97,8 @@ class SubscriberController extends Controller
             'platform' => $platform,
             'state' => $state,
             'reason' => $reason,
+            'segment' => $segment,
+            'segments' => $segments,
             'totals' => [
                 'subscribed' => (clone $base)->where('enabled', true)->whereNull('invalid_at')->count(),
                 'devices' => (clone $base)->count(),

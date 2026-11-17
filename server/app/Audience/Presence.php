@@ -21,7 +21,12 @@ final class Presence
         if ($subscription->seen_at && $subscription->seen_at->greaterThan(now()->subSeconds(45))) {
             return;
         }
-        DB::table('subscriptions')->where('id', $subscription->id)->update(['seen_at' => now()]);
+        // Time in the app: the gap since the previous heartbeat, when the app stayed open.
+        $gap = $subscription->seen_at ? (int) $subscription->seen_at->diffInSeconds(now(), true) : 0;
+        DB::table('subscriptions')->where('id', $subscription->id)->update([
+            'seen_at' => now(),
+            'usage_seconds' => DB::raw('usage_seconds + '.($gap > 0 && $gap <= self::WINDOW ? $gap : 0)),
+        ]);
     }
 
     /** @return array{online: int, platforms: array<string, int>, people: int} */

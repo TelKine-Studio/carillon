@@ -331,6 +331,30 @@ Alpine.data('messageActivity', (url) => ({
     },
 }));
 
+/**
+ * Columns of a table the viewer chose to hide, remembered in this browser:
+ * cells carry data-col, the table wrapper binds data-hidden.
+ */
+Alpine.data('columnPicker', (storageKey) => ({
+    hidden: [],
+    init() {
+        try {
+            this.hidden = JSON.parse(localStorage.getItem(storageKey) ?? '[]') ?? [];
+        } catch {
+            this.hidden = [];
+        }
+    },
+    shown(column) {
+        return !this.hidden.includes(column);
+    },
+    toggle(column) {
+        this.hidden = this.shown(column) ? [...this.hidden, column] : this.hidden.filter((name) => name !== column);
+        try {
+            localStorage.setItem(storageKey, JSON.stringify(this.hidden));
+        } catch {}
+    },
+}));
+
 Alpine.data('liveList', (target) => ({
     loading: false,
     syncing: false,

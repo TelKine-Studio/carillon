@@ -109,4 +109,40 @@ class StatusDetailsTest extends TestCase
         $this->assertSame(['rejected', 'UNREGISTERED'], [$dead->fresh()->status_reason, $dead->fresh()->status_detail]);
         $this->assertSame('token_reused', $reused->fresh()->status_reason);
     }
+
+    public function test_never_subscribed_last_unsubscribed_and_usage_like_onesignal(): void
+    {
+        $never = $this->device('never', ['enabled' => false, 'permission' => 'not_determined', 'device_model' => 'Pixel-Never']);
+        $left = $this->device('left', ['enabled' => true, 'permission' => 'granted', 'device_model' => 'Pixel-Left']);
+        $this->device('stays', ['enabled' => true, 'permission' => 'granted', 'device_model' => 'Pixel-Stays']);
+
+        $this->assertNull(Subscription::find($never)->subscribed_at);
+        $this->assertNotNull(Subscription::find($left)->subscribed_at);
+
+        $this->travel(5)->minutes();
+        $this->patchJson($this->sdk($left), ['enabled' => false, 'permission' => 'denied'])->assertOk();
+        $this->assertNotNull(Subscription::find($left)->unsubscribed_at);
+        $this->assertNotNull(Subscription::find($left)->subscribed_at);
+
+        // Heartbeats every minute while the app is open add up.
+        $this->postJson($this->sdk($left).'/heartbeat')->assertOk();
+        $this->travel(60)->seconds();
+        $this->postJson($this->sdk($left).'/heartbeat')->assertOk();
+        $this->travel(60)->seconds();
+        $this->postJson($this->sdk($left).'/heartbeat')->assertOk();
+        $this->assertGreaterThanOrEqual(120, Subscription::find($left)->usage_seconds);
+        // A gap longer than the presence window is not usage.
+        $this->travel(1)->hours();
+        $before = Subscription::find($left)->usage_seconds;
+        $this->postJson($this->sdk($left).'/heartbeat')->assertOk();
+        $this->assertSame($before, Subscription::find($left)->usage_seconds);
+
+        $page = fn (array $query) => $this->actingAs($this->owner)->get(route('projects.subscribers.index', [$this->project, 'view' => 'devices', ...$query]))->assertOk();
+        $page([])->assertSee(__('Never subscribed'))->assertSee(__('Usage duration'))->assertSee(__('Last unsubscribed'))->assertSee('2 min');
+        $page(['state' => 'never'])->assertSee('Pixel-Never')->assertDontSee('Pixel-Left')->assertDontSee('Pixel-Stays');
+        $page(['state' => 'unsubscribed'])->assertSee('Pixel-Left')->assertDontSee('Pixel-Never');
+        $page(['sort' => 'usage', 'dir' => 'desc'])->assertSeeInOrder(['Pixel-Left', 'Pixel-']);
+        $page(['segment' => 'Android Users'])->assertSee('Pixel-Stays');
+        $page(['segment' => 'iOS Users'])->assertDontSee('Pixel-Stays');
+    }
 }

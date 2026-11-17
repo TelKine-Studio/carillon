@@ -20,7 +20,7 @@
         // Sortable column header: a click sorts, a second click reverses.
         $sortLink = function (string $key, string $label) use ($project, $sort, $direction) {
             $active = $sort === $key;
-            $url = route('projects.subscribers.index', [$project, ...array_filter(request()->only(['q', 'platform', 'state', 'reason', 'view'])), 'sort' => $key, 'dir' => $active && $direction === 'desc' ? 'asc' : 'desc']);
+            $url = route('projects.subscribers.index', [$project, ...array_filter(request()->only(['q', 'platform', 'state', 'reason', 'segment', 'view'])), 'sort' => $key, 'dir' => $active && $direction === 'desc' ? 'asc' : 'desc']);
             $arrow = $active ? ($direction === 'desc' ? '↓' : '↑') : '↕';
 
             return new \Illuminate\Support\HtmlString('<a data-live-link href="'.e($url).'" class="inline-flex items-center gap-1 whitespace-nowrap hover:text-zinc-900 dark:hover:text-white'.($active ? ' text-zinc-900 dark:text-white' : '').'">'.e($label).' <span aria-hidden="true" class="'.($active ? '' : 'opacity-40').'">'.$arrow.'</span></a>');
@@ -30,7 +30,7 @@
     <div x-data="liveList('audience-results')" data-live-also="audience-tabs audience-view audience-actions">
     <nav id="audience-tabs" class="scrollbar-none mb-4 flex gap-1 overflow-x-auto border-b border-zinc-200 dark:border-zinc-800" aria-label="{{ __('View') }}">
         @foreach ($views as $key => [$label, $count])
-            <a data-live-link href="{{ route('projects.subscribers.index', [$project, ...array_filter(request()->only(['q', 'platform', 'state', 'reason'])), 'view' => $key === 'people' ? null : $key]) }}" @if ($view === $key) aria-current="page" @endif
+            <a data-live-link href="{{ route('projects.subscribers.index', [$project, ...array_filter(request()->only(['q', 'platform', 'state', 'reason', 'segment'])), 'view' => $key === 'people' ? null : $key]) }}" @if ($view === $key) aria-current="page" @endif
                 @class(['-mb-px inline-flex shrink-0 items-center gap-1.5 border-b-2 px-2.5 py-2.5 text-sm font-medium whitespace-nowrap transition',
                     'border-brand-600 text-zinc-900 dark:border-brand-400 dark:text-white' => $view === $key,
                     'border-transparent text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white' => $view !== $key])>
@@ -48,8 +48,9 @@
             </div>
             <div class="grid grid-cols-2 gap-3 sm:flex">
                 <x-ui.select name="platform" size="sm" class="sm:w-40" :value="$platform" :options="['' => __('All platforms'), 'ios' => 'iOS', 'android' => 'Android', 'huawei' => 'Huawei', 'amazon' => 'Amazon', 'web' => 'Web', 'email' => __('Email'), 'sms' => 'SMS', 'whatsapp' => 'WhatsApp']" />
-                <x-ui.select name="state" size="sm" class="sm:w-44" :value="$state" :options="['' => __('All states'), 'subscribed' => __('Subscribed'), 'unsubscribed' => __('Unsubscribed'), 'invalid' => __('Unreachable')]" />
+                <x-ui.select name="state" size="sm" class="sm:w-44" :value="$state" :options="['' => __('All states'), 'subscribed' => __('Subscribed'), 'unsubscribed' => __('Unsubscribed'), 'never' => __('Never subscribed'), 'invalid' => __('Unreachable')]" />
                 <x-ui.select name="reason" size="sm" class="col-span-2 sm:w-52" :value="$reason" :options="['' => __('All status details'), 'rejected' => __('Refused by the provider'), 'token_reused' => __('Token taken by another registration'), 'permission_denied' => __('Turned off on the device'), 'permission_not_asked' => __('Permission never asked'), 'opted_out' => __('Unsubscribed by the app'), 'disabled_on_device' => __('Disabled on the device'), 'email_bounced' => __('Email bounced'), 'email_complaint' => __('Reported as spam'), 'email_unsubscribed' => __('Email unsubscribe link'), 'disabled_by_api' => __('Disabled through the API'), 'imported_unsubscribed' => __('Unsubscribed in OneSignal'), 'unknown' => __('Reason not recorded')]" />
+                <x-ui.select name="segment" size="sm" class="col-span-2 sm:w-48" :value="$segment" :options="['' => __('All segments'), ...collect($segments)->mapWithKeys(fn ($name) => [$name => __($name)])->all()]" />
             </div>
         </form>
         <div id="audience-actions" class="contents">
@@ -61,6 +62,7 @@
         </div>
     </div>
 
+    <div x-data="columnPicker('carillon.audience.columns')">
     <div id="audience-results" class="card transition-opacity" :class="loading && 'is-loading'">
     @if ($view === 'people')
         <div class="hidden gap-4 rounded-t-2xl border-b border-zinc-200 bg-zinc-50 px-5 py-3 text-xs font-medium text-zinc-500 lg:grid dark:bg-white/[.03] lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_130px_110px_130px_36px] xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.1fr)_130px_110px_130px_minmax(0,1fr)_36px] dark:border-zinc-800">
@@ -194,45 +196,115 @@
                 :description="$search || $platform || $state || $reason ? __('Try another search or filter.') : __('They receive the tests sent from the composer, and the segment “Test Devices”. Add your own phone with its device id or the external id of your account in the app.')" />
         @endforelse
     @else
-        <div class="hidden grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)_minmax(0,1fr)_160px_110px_minmax(0,1.3fr)] gap-4 rounded-t-2xl border-b border-zinc-200 bg-zinc-50 px-5 py-3 text-xs font-medium text-zinc-500 dark:bg-white/[.03] lg:grid dark:border-zinc-800">
-            <span>{{ __('Device') }}</span><span>{{ __('Person') }}</span><span>{{ __('Tags') }}</span><span>{!! $sortLink('last_active', __('Last seen')) !!}</span><span>{{ __('State') }}</span><span>{{ __('Status details') }}</span>
-        </div>
-        @forelse ($results as $subscription)
-            @php $person = $subscription->subscriber; @endphp
-            <a href="{{ route('projects.subscribers.show', [$project, $person]) }}" class="grid gap-3 border-t border-zinc-100 px-4 py-3.5 transition first:border-0 hover:bg-zinc-50/80 sm:px-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)_minmax(0,1fr)_160px_110px_minmax(0,1.3fr)] lg:items-center lg:gap-4 dark:border-zinc-800 dark:hover:bg-white/[.02]">
-                <div class="flex min-w-0 items-center gap-3">
-                    <x-audience.device :subscription="$subscription" />
-                    <div class="min-w-0">
-                        <p class="truncate text-sm font-medium text-zinc-900 dark:text-white">{{ in_array($subscription->type, ['email', 'sms', 'whatsapp'], true) ? $subscription->token : ($subscription->device_model ?: ucfirst($subscription->type)) }}</p>
-                        <p class="truncate text-xs text-zinc-500">{{ collect([$subscription->device_os, $subscription->app_version ? 'v'.$subscription->app_version : null])->filter()->implode(' · ') ?: '—' }}</p>
-                    </div>
-                    <span class="ml-auto min-w-0 lg:hidden"><x-audience.state :subscription="$subscription" details /></span>
-                </div>
-                <p class="min-w-0 truncate text-sm">
-                    @if ($person->external_id)
-                        <span class="font-mono text-xs text-zinc-800 dark:text-zinc-200">{{ $person->external_id }}</span>
-                    @else
-                        <span class="text-zinc-400">{{ __('Anonymous') }}</span>
-                    @endif
-                </p>
-                <div class="flex min-w-0 flex-wrap gap-1">
-                    @foreach (array_slice($person->tags ?? [], 0, 3, true) as $key => $value)
-                        <span class="inline-flex max-w-full truncate rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] text-zinc-600 dark:bg-white/5 dark:text-zinc-400">{{ $key }}={{ $value }}</span>
+        @php
+            $columns = [
+                'status' => __('State'), 'reason' => __('Status details'), 'unsubscribed' => __('Last unsubscribed'),
+                'last_session' => __('Last session'), 'usage' => __('Usage duration'), 'sessions' => __('Sessions'),
+                'first_session' => __('First session'), 'id' => __('Device id'), 'person' => __('Person'),
+                'address' => __('Email or phone'), 'app_version' => __('App version'), 'timezone' => __('Timezone'),
+                'country' => __('Country'), 'language' => __('Language'), 'tags' => __('Tags'),
+            ];
+            $sorts = ['unsubscribed' => 'unsubscribed', 'last_session' => 'last_active', 'usage' => 'usage', 'sessions' => 'sessions', 'first_session' => 'first_active'];
+            $duration = function (int $seconds): string {
+                if ($seconds < 60) {
+                    return $seconds.' s';
+                }
+                if ($seconds < 3600) {
+                    return intdiv($seconds, 60).' min';
+                }
+
+                return intdiv($seconds, 3600).' h '.str_pad((string) intdiv($seconds % 3600, 60), 2, '0', STR_PAD_LEFT);
+            };
+            $languageName = fn (?string $code) => $code ? (class_exists(\Locale::class) ? ucfirst(\Locale::getDisplayLanguage($code, app()->getLocale())) : strtoupper($code)) : null;
+            $date = fn ($at) => $at?->isoFormat('DD/MM/YY HH:mm');
+        @endphp
+        <style>
+            @foreach (array_keys($columns) as $key)
+                [data-hidden~="{{ $key }}"] [data-col="{{ $key }}"] { display: none; }
+            @endforeach
+        </style>
+        <div class="flex items-center justify-between gap-3 border-b border-zinc-100 px-4 py-2 sm:px-5 dark:border-zinc-800">
+            <p class="text-xs text-zinc-500 tabular-nums">{{ trans_choice(':count device|:count devices', $results->total(), ['count' => number_format($results->total(), 0, ',', ' ')]) }}</p>
+            <x-ui.dropdown width="w-64">
+                <x-slot:trigger>
+                    <x-ui.button type="button" variant="ghost" size="sm" icon="columns">{{ __('Columns') }}</x-ui.button>
+                </x-slot:trigger>
+                <div class="max-h-80 overflow-y-auto p-1" x-on:click.stop>
+                    @foreach ($columns as $key => $columnLabel)
+                        <label class="flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-white/5">
+                            <input type="checkbox" class="size-3.5 rounded border-zinc-300 text-brand-600 focus:ring-brand-500/30 dark:border-zinc-600" :checked="shown('{{ $key }}')" x-on:change="toggle('{{ $key }}')">
+                            {{ $columnLabel }}
+                        </label>
                     @endforeach
-                    @if (count($person->tags ?? []) > 3)<span class="text-[11px] text-zinc-400">+{{ count($person->tags) - 3 }}</span>@endif
                 </div>
-                <p class="text-xs text-zinc-500">{{ $subscription->last_active_at?->diffForHumans() ?? '—' }}</p>
-                <span class="hidden lg:block"><x-audience.state :subscription="$subscription" /></span>
-                <p class="hidden min-w-0 truncate text-xs text-zinc-500 lg:block dark:text-zinc-400" title="{{ $subscription->statusDetails() }}">{{ $subscription->statusDetails() ?? '—' }}</p>
-            </a>
-        @empty
-            <x-ui.empty icon="users" :title="$search || $platform || $state || $reason ? __('Nobody matches') : __('No device yet')"
-                :description="$search || $platform || $state || $reason ? __('Try another search or filter.') : __('Devices appear here once your app uses the Carillon SDK with this project’s App ID.')" />
-        @endforelse
+            </x-ui.dropdown>
+        </div>
+        @if ($results->isEmpty())
+            <x-ui.empty icon="users" :title="$search || $platform || $state || $reason || $segment ? __('Nobody matches') : __('No device yet')"
+                :description="$search || $platform || $state || $reason || $segment ? __('Try another search or filter.') : __('Devices appear here once your app uses the Carillon SDK with this project’s App ID.')" />
+        @else
+            <div class="overflow-x-auto" :data-hidden="hidden.join(' ')">
+                <table class="w-full min-w-max text-sm">
+                    <thead>
+                        <tr class="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium whitespace-nowrap text-zinc-500 dark:border-zinc-800 dark:bg-white/[.03]">
+                            <th class="sticky left-0 z-10 bg-zinc-50 px-4 py-2.5 font-medium sm:px-5 dark:bg-zinc-900">{{ __('Device') }}</th>
+                            @foreach ($columns as $key => $columnLabel)
+                                <th data-col="{{ $key }}" class="px-3 py-2.5 font-medium">{!! isset($sorts[$key]) ? $sortLink($sorts[$key], $columnLabel) : e($columnLabel) !!}</th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                        @foreach ($results as $subscription)
+                            @php
+                                $person = $subscription->subscriber;
+                                $profile = route('projects.subscribers.show', [$project, $person]);
+                                $isAddress = in_array($subscription->type, ['email', 'sms', 'whatsapp'], true);
+                            @endphp
+                            <tr class="group whitespace-nowrap transition hover:bg-zinc-50/80 dark:hover:bg-white/[.02]">
+                                <td class="sticky left-0 z-10 bg-white px-4 py-2.5 group-hover:bg-zinc-50 sm:px-5 dark:bg-zinc-900 dark:group-hover:bg-zinc-800/60">
+                                    <a href="{{ $profile }}" class="flex max-w-60 min-w-0 items-center gap-3">
+                                        <x-audience.device :subscription="$subscription" />
+                                        <span class="min-w-0">
+                                            <span class="block truncate font-medium text-zinc-900 dark:text-white">{{ $isAddress ? ucfirst($subscription->type) : ($subscription->device_model ?: ucfirst($subscription->type)) }}</span>
+                                            <span class="block truncate text-xs text-zinc-500">{{ $isAddress ? '' : ($subscription->device_os ?: '—') }}</span>
+                                        </span>
+                                    </a>
+                                </td>
+                                <td data-col="status" class="px-3 py-2.5"><x-audience.state :subscription="$subscription" /></td>
+                                <td data-col="reason" class="max-w-64 truncate px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400" title="{{ $subscription->statusDetails() }}">{{ $subscription->statusDetails() ?? '—' }}</td>
+                                <td data-col="unsubscribed" class="px-3 py-2.5 text-xs text-zinc-600 tabular-nums dark:text-zinc-400">{{ $date($subscription->unsubscribed_at) ?? '—' }}</td>
+                                <td data-col="last_session" class="px-3 py-2.5 text-xs text-zinc-600 tabular-nums dark:text-zinc-400">{{ $date($subscription->last_active_at) ?? '—' }}</td>
+                                <td data-col="usage" class="px-3 py-2.5 text-right text-xs text-zinc-600 tabular-nums dark:text-zinc-400">{{ $subscription->usage_seconds ? $duration($subscription->usage_seconds) : '—' }}</td>
+                                <td data-col="sessions" class="px-3 py-2.5 text-right text-xs text-zinc-600 tabular-nums dark:text-zinc-400">{{ number_format($subscription->sessions, 0, ',', ' ') }}</td>
+                                <td data-col="first_session" class="px-3 py-2.5 text-xs text-zinc-600 tabular-nums dark:text-zinc-400">{{ $date($subscription->created_at) }}</td>
+                                <td data-col="id" class="px-3 py-2.5 font-mono text-xs text-zinc-600 dark:text-zinc-400">{{ $subscription->id }}</td>
+                                <td data-col="person" class="max-w-52 truncate px-3 py-2.5 text-xs">@if ($person->external_id)<span class="font-mono text-zinc-800 dark:text-zinc-200">{{ $person->external_id }}</span>@else<span class="text-zinc-400">{{ __('Anonymous') }}</span>@endif</td>
+                                <td data-col="address" class="max-w-56 truncate px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400">{{ $isAddress ? $subscription->token : '—' }}</td>
+                                <td data-col="app_version" class="px-3 py-2.5 text-xs text-zinc-600 tabular-nums dark:text-zinc-400">{{ $subscription->app_version ?? '—' }}</td>
+                                <td data-col="timezone" class="px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400">{{ $person->timezone ?? '—' }}</td>
+                                <td data-col="country" class="px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400">{{ $person->country ?? '—' }}</td>
+                                <td data-col="language" class="px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400">{{ $languageName($person->language) ?? '—' }}</td>
+                                <td data-col="tags" class="px-3 py-2.5">
+                                    <span class="flex max-w-72 gap-1 overflow-hidden">
+                                        @forelse (array_slice($person->tags ?? [], 0, 3, true) as $key => $value)
+                                            <span class="inline-flex shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] text-zinc-600 dark:bg-white/5 dark:text-zinc-400">{{ $key }}={{ \Illuminate\Support\Str::limit((string) $value, 18) }}</span>
+                                        @empty
+                                            <span class="text-xs text-zinc-400">—</span>
+                                        @endforelse
+                                        @if (count($person->tags ?? []) > 3)<span class="text-[11px] text-zinc-400">+{{ count($person->tags) - 3 }}</span>@endif
+                                    </span>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
     @endif
         @if ($results->hasPages())
             <div data-live-pages class="border-t border-zinc-100 px-4 py-3 sm:px-5 dark:border-zinc-800">{{ $results->links() }}</div>
         @endif
+    </div>
     </div>
     </div>
     @can('send', $project)
