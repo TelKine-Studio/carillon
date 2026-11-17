@@ -91,7 +91,7 @@
                             @if ($webhook->deliveries->isEmpty())
                                 <p class="text-sm text-zinc-500">{{ __('No attempt yet. Send a test event to check your endpoint.') }}</p>
                             @else
-                                <div class="overflow-x-auto rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+                                <div class="scrollbar-none overflow-x-auto rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
                                     <table class="w-full min-w-[480px] text-sm">
                                         <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
                                             @foreach ($webhook->deliveries as $delivery)

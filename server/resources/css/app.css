@@ -65,7 +65,22 @@
     }
 }
 
+/* Scroll without a bar (code blocks, one-line commands): trackpad, wheel
+   and touch still scroll. */
+@utility scrollbar-none {
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
 @layer base {
+    /* Thin, discreet scrollbars instead of the system's (tables, lists). */
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in oklab, var(--color-zinc-500) 35%, transparent) transparent;
+    }
+
     html {
         @apply antialiased;
         -webkit-tap-highlight-color: transparent;
