@@ -42,7 +42,9 @@ class ReportsTest extends TestCase
         });
         Notification::assertNotSentTo($quiet, WeeklyReport::class);
 
-        $this->actingAs($owner)->get(route('projects.messages.show', [$project, $message]))->assertOk()->assertSee('Converted')->assertSee('20,0 %', false);
+        $this->actingAs($owner)->get(route('projects.messages.show', [$project, $message]))->assertOk()->assertSee('People who converted')->assertSee('20,0 %', false)
+            ->assertSee('Audience activity')->assertSee('Message settings');
+        $this->get(route('projects.messages.activity', [$project, $message, 'tab' => 'clicked']))->assertOk()->assertSee('Nobody here');
         $this->get(route('projects.stats', $project))->assertOk()->assertSee('From the notification to the conversion');
 
         // The preference lives in the profile.

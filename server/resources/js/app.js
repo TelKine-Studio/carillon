@@ -304,6 +304,33 @@ Alpine.data('dropdownMenu', (floating = true) => ({
 // form (search typed with a short pause, selects at once) and the page links
 // fetch the same page in the background and swap only the results. The
 // address follows, so the back button and a reload give the same list.
+// Audience activity of a message: one tab of devices at a time, loaded on demand.
+Alpine.data('messageActivity', (url) => ({
+    tab: 'delivered',
+    html: '',
+    loading: false,
+    init() {
+        this.open('delivered');
+    },
+    async open(tab, page = null) {
+        this.tab = tab;
+        this.loading = true;
+        try {
+            const target = page ?? `${url}?tab=${encodeURIComponent(tab)}`;
+            const response = await fetch(target, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (response.ok) this.html = await response.text();
+        } finally {
+            this.loading = false;
+        }
+    },
+    page(event) {
+        const link = event.target.closest('[data-activity-pages] a[href]');
+        if (!link) return;
+        event.preventDefault();
+        this.open(this.tab, link.href);
+    },
+}));
+
 Alpine.data('liveList', (target) => ({
     loading: false,
     syncing: false,

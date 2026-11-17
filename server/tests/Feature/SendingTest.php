@@ -138,6 +138,13 @@ class SendingTest extends TestCase
         // A second send skips the disabled devices.
         $this->api()->postJson('/api/v1/notifications', ['included_segments' => ['All'], 'contents' => ['en' => 'Again']])
             ->assertJsonPath('recipients', 2);
+
+        // The report lists the devices of each outcome.
+        $owner = $this->project->members()->first();
+        $this->actingAs($owner)->get(route('projects.messages.show', [$this->project, $id]))->assertOk()
+            ->assertSee('Deliveries by platform')->assertSee('Audience activity');
+        $this->get(route('projects.messages.activity', [$this->project, $id, 'tab' => 'delivered']))->assertOk()->assertSee('iOS')->assertSee('Android');
+        $this->get(route('projects.messages.activity', [$this->project, $id, 'tab' => 'refused']))->assertOk()->assertSee('Unregistered');
     }
 
     public function test_devices_still_running_the_onesignal_sdk_receive_the_onesignal_format(): void

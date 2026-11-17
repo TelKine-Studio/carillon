@@ -8,11 +8,14 @@ use App\Audience\Activity;
 use App\Audience\Audience;
 use App\Http\ComposerInput;
 use App\Jobs\DispatchMessage;
+use App\Models\ApiKey;
 use App\Models\CustomEvent;
+use App\Models\Delivery;
 use App\Models\Message;
 use App\Models\Project;
 use App\Models\Subscription;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -236,6 +239,8 @@ class MessageController extends Controller
                 ->groupBy('name'),
             // Devices of the old app (OneSignal SDK): neither receptions nor clicks come back.
             'legacy' => $message->deliveries()->whereHas('subscription', fn ($q) => $q->where('sdk', Subscription::ONESIGNAL_SDK))->count(),
+            'activity' => $this->activityCounts($message),
+            'apiKey' => $message->api_key_id ? ApiKey::query()->whereKey($message->api_key_id)->value('name') : null,
             'errors_summary' => $message->deliveries()
                 ->whereNotNull('error')
                 ->select('error', DB::raw('count(*) as total'))
@@ -243,6 +248,56 @@ class MessageController extends Controller
                 ->orderByDesc('total')
                 ->limit(8)
                 ->get(),
+        ]);
+    }
+
+    /** Tabs of the audience activity, with the query of each. */
+    public const ACTIVITY = ['delivered', 'received', 'not_received', 'clicked', 'not_clicked', 'refused', 'failed'];
+
+    /** @return Builder<Delivery> */
+    protected function activityQuery(Message $message, string $tab): Builder
+    {
+        $query = Delivery::query()->where('message_id', $message->id);
+
+        return match ($tab) {
+            'received' => $query->whereNotNull('received_at'),
+            // Devices of the old app never confirm: they are left out.
+            'not_received' => $query->where('status', 'sent')->whereNull('received_at')
+                ->whereHas('subscription', fn ($q) => $q->where(fn ($q) => $q->whereNull('sdk')->orWhere('sdk', '!=', Subscription::ONESIGNAL_SDK))),
+            'clicked' => $query->whereNotNull('clicked_at'),
+            'not_clicked' => $query->where('status', 'sent')->whereNull('clicked_at'),
+            'refused' => $query->where('status', 'failed'),
+            'failed' => $query->where('status', 'errored'),
+            default => $query->where('status', 'sent'),
+        };
+    }
+
+    /** @return array<string, int> */
+    protected function activityCounts(Message $message): array
+    {
+        return collect(self::ACTIVITY)->mapWithKeys(fn (string $tab) => [$tab => $this->activityQuery($message, $tab)->count()])->all();
+    }
+
+    /** One tab of the audience activity: the devices, 25 at a time. */
+    public function activity(Request $request, Project $project, Message $message): View
+    {
+        $this->authorize('view', $project);
+        abort_unless($message->project_id === $project->id, 404);
+        $tab = in_array($request->query('tab'), self::ACTIVITY, true) ? $request->query('tab') : 'delivered';
+
+        return view('messages.activity', [
+            'project' => $project,
+            'message' => $message,
+            'tab' => $tab,
+            'deliveries' => $this->activityQuery($message, $tab)
+                ->with('subscription:id,subscriber_id,type,device_model,app_version,test_name', 'subscription.subscriber:id,external_id')
+                ->orderByDesc(match ($tab) {
+                    'received' => 'received_at',
+                    'clicked' => 'clicked_at',
+                    default => 'id',
+                })
+                ->paginate(25, pageName: 'page')
+                ->withQueryString(),
         ]);
     }
 
