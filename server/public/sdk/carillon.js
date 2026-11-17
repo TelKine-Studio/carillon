@@ -176,6 +176,7 @@
               '/subscriptions',
               Object.assign({ type: 'web' }, body, {
                 external_id: store.get('external_id') || undefined,
+                identity_hash: (store.get('external_id') && store.get('identity_hash')) || undefined,
                 tags: Object.keys(tags).length ? tags : undefined,
               })
             ).then(function (created) {
@@ -296,7 +297,8 @@
       inAppListeners.forEach(function (listener) {
         listener(message.id, button);
       });
-      if (button.action === 'url' && button.url) window.location.href = button.url;
+      // Only web links (and app schemes): never javascript: or data: in the page of the site.
+      if (button.action === 'url' && button.url && !/^\s*(javascript|data|vbscript|file):/i.test(String(button.url).replace(/[\u0000-\u001f]/g, ''))) window.location.href = button.url;
     });
     }
 
@@ -481,15 +483,22 @@
         });
     },
 
-    login: function (externalId) {
+    // options.identityHash: HMAC-SHA256 of the external id computed by your
+    // server, required when the project turns identity verification on.
+    login: function (externalId, options) {
+      var hash = options && options.identityHash ? String(options.identityHash) : null;
       store.set('external_id', String(externalId));
+      store.set('identity_hash', hash);
       return withSubscription(function (id) {
-        return api('POST', '/subscriptions/' + id + '/login', { external_id: String(externalId) }).then(absorb);
+        var body = { external_id: String(externalId) };
+        if (hash) body.identity_hash = hash;
+        return api('POST', '/subscriptions/' + id + '/login', body).then(absorb);
       });
     },
 
     logout: function () {
       store.set('external_id', null);
+      store.set('identity_hash', null);
       return withSubscription(function (id) {
         return api('POST', '/subscriptions/' + id + '/logout', {}).then(absorb);
       });

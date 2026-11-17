@@ -30,6 +30,8 @@ class Settings
         'messages.retention_days' => 90,
 
         'security.require_2fa_admins' => false,
+        // Webhooks and integrations may reach private addresses (a database next to Carillon…).
+        'security.private_network' => false,
         'sso.enabled' => false,
         'sso.label' => null,
         'sso.issuer' => null,

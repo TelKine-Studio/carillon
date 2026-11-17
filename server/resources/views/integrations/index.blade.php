@@ -76,7 +76,7 @@
                                             <span class="flex min-w-0 items-center gap-3">
                                                 @include('integrations.partials.logo', ['card' => ['monogram' => '', 'icon' => 'link'], 'size' => 'size-8'])
                                                 <span class="min-w-0">
-                                                    <a href="{{ route('projects.settings', [$project, 'webhooks']) }}" class="block font-mono text-[13px] break-all text-zinc-900 after:absolute after:inset-0 hover:text-brand-700 dark:text-zinc-100 dark:hover:text-brand-300">{{ $webhook->url }}</a>
+                                                    <a href="{{ route('projects.settings', [$project, 'webhooks']) }}" class="block font-mono text-[13px] break-all text-zinc-900 after:absolute after:inset-0 hover:text-brand-700 dark:text-zinc-100 dark:hover:text-brand-300">{{ auth()->user()->can('configure', $project) ? $webhook->url : parse_url($webhook->url, PHP_URL_SCHEME).'://'.parse_url($webhook->url, PHP_URL_HOST).'/…' }}</a>
                                                     <span class="block text-xs text-zinc-500">{{ __('Webhook') }} · {{ trans_choice(':count event|:count events', count($webhook->events ?? [])) }}</span>
                                                 </span>
                                             </span>

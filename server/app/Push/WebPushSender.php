@@ -36,6 +36,11 @@ class WebPushSender implements Sender
 
                 continue;
             }
+            if (! WebPushEndpoint::allowed($data['endpoint'])) {
+                $results[$subscription->id] = Result::invalid('Endpoint not allowed');
+
+                continue;
+            }
 
             $byEndpoint[$data['endpoint']] = $subscription->id;
             $webPush->queueNotification(

@@ -79,16 +79,22 @@ class SsoController extends Controller
             return $this->fail(__('The identity provider did not return a verified email address.'));
         }
 
-        if ($profile->json('email_verified') === false) {
+        $email = Str::lower($profile->json('email'));
+        $domains = collect(explode(',', (string) $this->settings->get('sso.allowed_domains')))->map(fn ($d) => Str::lower(trim($d)))->filter();
+
+        // The email finds the Carillon account: it must be proven by the
+        // provider (email_verified), or belong to an allowed domain of the
+        // organisation when the provider does not say (Microsoft Entra ID…).
+        $verified = $profile->json('email_verified');
+        $verified = $verified === true || $verified === 'true'
+            || ($verified === null && $domains->isNotEmpty() && $domains->contains(Str::after($email, '@')));
+        if (! $verified) {
             return $this->fail(__('Your email address is not verified by the identity provider.'));
         }
 
-        $email = Str::lower($profile->json('email'));
         $user = User::query()->where('email', $email)->first();
 
         if (! $user) {
-            $domains = collect(explode(',', (string) $this->settings->get('sso.allowed_domains')))->map(fn ($d) => Str::lower(trim($d)))->filter();
-
             if (! $this->settings->boolean('sso.auto_create') || ($domains->isNotEmpty() && ! $domains->contains(Str::after($email, '@')))) {
                 return $this->fail(__('No account exists for :email. Ask an administrator to add you.', ['email' => $email]));
             }
@@ -106,6 +112,14 @@ class SsoController extends Controller
 
         if (! $user->is_active) {
             return $this->fail(__('This account has been disabled.'));
+        }
+
+        // Single sign-on does not skip the two-factor code of the account.
+        if ($user->hasTwoFactor()) {
+            $request->session()->regenerate();
+            $request->session()->put(['login.id' => $user->id, 'login.remember' => true]);
+
+            return redirect()->route('two-factor.challenge');
         }
 
         Auth::login($user, remember: true);

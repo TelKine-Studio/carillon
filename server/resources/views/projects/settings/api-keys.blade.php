@@ -19,6 +19,53 @@
             @endforeach
         </dl>
     </x-ui.card>
+    @if ($canConfigure)
+        @php $identityOn = $project->verifiesIdentity(); $identitySecret = $project->identitySecret(); @endphp
+        <x-ui.card :title="__('Identity verification')" :description="__('Without it, any device that knows the App ID can log in as any external id and receive the notifications of that user. With it, your server signs each external id and the SDK sends that signature.')" icon="shield">
+            <div class="space-y-4">
+                @if (! $identitySecret)
+                    <form method="POST" action="{{ route('projects.identity.update', $project) }}">
+                        @csrf
+                        @method('PUT')
+                        <input type="hidden" name="rotate" value="1">
+                        <p class="mb-3 text-sm text-zinc-500 dark:text-zinc-400">{{ __('First generate the secret and update your server and your apps; then turn the verification on.') }}</p>
+                        <x-ui.button size="sm" icon="key">{{ __('Generate the identity secret') }}</x-ui.button>
+                    </form>
+                @else
+                <form method="POST" action="{{ route('projects.identity.update', $project) }}" class="flex flex-wrap items-center justify-between gap-3">
+                        @csrf
+                        @method('PUT')
+                        <input type="hidden" name="identity_verification" value="{{ $identityOn ? 0 : 1 }}">
+                        <span class="inline-flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+                            <span @class(['size-2 rounded-full', 'bg-emerald-500' => $identityOn, 'bg-zinc-300 dark:bg-zinc-600' => ! $identityOn])></span>
+                            {{ $identityOn ? __('On: logins without a valid hash are refused') : __('Off') }}
+                        </span>
+                        <x-ui.button size="sm" :variant="$identityOn ? 'secondary' : 'primary'" :icon="$identityOn ? 'pause' : 'shield'">{{ $identityOn ? __('Turn off') : __('Turn on') }}</x-ui.button>
+                    </form>
+                    <div>
+                        <p class="mb-1.5 text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ __('Identity secret') }}</p>
+                        <div class="flex flex-wrap items-center gap-1.5" x-data="{ shown: false }">
+                            <code class="min-w-0 font-mono text-[13px] break-all text-zinc-900 dark:text-zinc-100" x-text="shown ? {{ \Illuminate\Support\Js::from($identitySecret) }} : '••••••••••••••••••••••••'">••••••••••••••••••••••••</code>
+                            <button type="button" class="text-xs font-medium text-brand-700 hover:text-brand-800 dark:text-brand-300" x-on:click="shown = ! shown" x-text="shown ? @js(__('Hide')) : @js(__('Show'))">{{ __('Show') }}</button>
+                            <x-ui.copy :value="$identitySecret" />
+                        </div>
+                        <p class="mt-1.5 text-xs text-zinc-500">{{ __('Keep it on your server only. Never put it in an app.') }}</p>
+                    </div>
+                    <x-ui.code :label="__('On your server')">identity_hash = hex(HMAC-SHA256(key = identity secret, message = external_id))
+// PHP:  hash_hmac('sha256', $externalId, $secret)
+// Node: crypto.createHmac('sha256', secret).update(externalId).digest('hex')</x-ui.code>
+                    <x-ui.code :label="__('In the app')">Carillon.login('user-42', identityHash: hashFromYourServer);   // Flutter
+Carillon.login('user-42', { identityHash: hashFromYourServer });  // Web</x-ui.code>
+                    <form method="POST" action="{{ route('projects.identity.update', $project) }}" data-confirm-title="{{ __('Generate a new identity secret?') }}" data-confirm="{{ __('Hashes made with the current secret stop working at once.') }}" data-confirm-action="{{ __('Generate') }}">
+                        @csrf
+                        @method('PUT')
+                        <input type="hidden" name="rotate" value="1">
+                        <x-ui.button variant="secondary" size="sm" icon="refresh">{{ __('New secret') }}</x-ui.button>
+                    </form>
+                @endif
+            </div>
+        </x-ui.card>
+    @endif
     <x-ui.card :title="__('API keys')" :description="__('Your server sends notifications and manages subscribers with these keys. Keep them secret: never put them in an app.')" icon="key" :padding="false">
         @if ($canConfigure)
             <x-slot:actions>

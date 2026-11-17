@@ -85,6 +85,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/', [ProjectController::class, 'update'])->name('update');
         Route::put('location', [ProjectController::class, 'updateLocation'])->name('location.update');
         Route::delete('location', [ProjectController::class, 'destroyLocations'])->name('location.destroy');
+        Route::put('identity', [ProjectController::class, 'updateIdentity'])->name('identity.update');
         Route::delete('/', [ProjectController::class, 'destroy'])->name('destroy');
 
         Route::get('stats', StatsController::class)->name('stats');

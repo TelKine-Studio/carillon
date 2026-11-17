@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Middleware\SetLocale;
+use App\Support\Audit;
+use App\Support\Sessions;
 use App\Support\TwoFactor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,11 +29,21 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
-        $user->update([...$request->validate([
+        $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users')->ignore($user)],
             'locale' => ['nullable', Rule::in(array_keys(SetLocale::AVAILABLE))],
-        ]), 'weekly_report' => $request->boolean('weekly_report')]);
+        ]);
+        // The email receives the password reset links: changing it takes the password.
+        if ($data['email'] !== $user->email) {
+            $request->validate(['email_password' => ['required', 'current_password']], [
+                'email_password.required' => __('Enter your password to change your email address.'),
+                'email_password.current_password' => __('The password is incorrect.'),
+            ]);
+            Audit::log('auth.email_changed', $user, ['from' => $user->email, 'to' => $data['email']], $user);
+        }
+
+        $user->update([...$data, 'weekly_report' => $request->boolean('weekly_report')]);
 
         if ($user->locale && array_key_exists($user->locale, SetLocale::AVAILABLE)) {
             app()->setLocale($user->locale);
@@ -48,6 +60,7 @@ class ProfileController extends Controller
         ]);
 
         $request->user()->update(['password' => $data['password']]);
+        Sessions::endOthers($request->user(), $request->session()->getId());
 
         return back()->with('status', __('Password updated.'));
     }

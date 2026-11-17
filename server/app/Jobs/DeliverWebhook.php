@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Webhook;
 use App\Models\WebhookDelivery;
+use App\Support\NetworkGuard;
 use App\Webhooks\Webhooks;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -47,7 +48,10 @@ class DeliverWebhook implements ShouldQueue
         $error = null;
 
         try {
-            $response = Http::timeout(10)->connectTimeout(5)->withoutRedirecting()
+            if ($blocked = NetworkGuard::checkUrl($webhook->url)) {
+                throw new RuntimeException($blocked);
+            }
+            $response = Http::timeout(10)->connectTimeout(5)->withoutRedirecting()->withOptions(NetworkGuard::pin($webhook->url))
                 ->withHeaders([
                     'User-Agent' => 'Carillon-Webhooks/1.0',
                     'Carillon-Event' => $this->payload['type'],

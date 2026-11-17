@@ -18,7 +18,7 @@
                         <button type="button" class="flex min-w-0 flex-1 basis-64 items-start gap-3 text-left" x-on:click="open = !open" :aria-expanded="open">
                             <x-ui.icon name="chevron-right" class="mt-0.5 size-4 shrink-0 text-zinc-400 transition" ::class="open && 'rotate-90'" />
                             <span class="min-w-0">
-                                <span class="block font-mono text-sm break-all text-zinc-900 dark:text-white">{{ $webhook->url }}</span>
+                                <span class="block font-mono text-sm break-all text-zinc-900 dark:text-white">{{ $canConfigure ? $webhook->url : parse_url($webhook->url, PHP_URL_SCHEME).'://'.parse_url($webhook->url, PHP_URL_HOST).'/…' }}</span>
                                 <span class="mt-1 block text-xs text-zinc-500">
                                     {{ trans_choice(':count event|:count events', count($webhook->events)) }}
                                     · {{ $webhook->last_delivery_at ? __('last delivery :date', ['date' => $webhook->last_delivery_at->diffForHumans()]) : __('no delivery yet') }}

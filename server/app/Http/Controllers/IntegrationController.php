@@ -10,6 +10,7 @@ use App\Jobs\RunIntegration;
 use App\Models\Integration;
 use App\Models\Project;
 use App\Support\Audit;
+use App\Support\NetworkGuard;
 use App\Webhooks\Webhooks;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -234,6 +235,19 @@ class IntegrationController extends Controller
             $rules += ['events' => ['required', 'array', 'min:1'], 'events.*' => [Rule::in(Integration::EVENTS)]];
         }
 
+        $guard = function (string $attribute, mixed $value, \Closure $fail) use ($request, $kind) {
+            if (! filled($value) || ($kind === 'posthog' && $request->input('region') !== 'custom')) {
+                return;
+            }
+            if ($error = str_contains((string) $value, '://') ? NetworkGuard::checkUrl((string) $value) : NetworkGuard::checkHost((string) $value)) {
+                $fail($error);
+            }
+        };
+        foreach (['host', 'endpoint'] as $field) {
+            if (isset($rules[$field])) {
+                $rules[$field][] = $guard;
+            }
+        }
         $data = $request->validate($rules, ['events.required' => __('Choose at least one event.')]);
         $config = collect($data)->except(['name', 'secret', 'events'])->all();
         foreach (['create_users', 'path_style'] as $flag) {

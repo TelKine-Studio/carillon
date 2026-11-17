@@ -11,11 +11,13 @@ use App\Journeys\JourneyRunner;
 use App\Models\Project;
 use App\Models\Subscriber;
 use App\Models\Subscription;
+use App\Push\WebPushEndpoint;
 use App\Sms\Phone;
 use App\Webhooks\Webhooks;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -39,13 +41,21 @@ class SubscriptionController extends Controller
             'token' => [Rule::requiredIf($request->input('type') !== 'ios'), 'nullable', 'string', 'max:4000'],
             ...$this->deviceRules(),
             'external_id' => ['nullable', 'string', 'max:255'],
+            'identity_hash' => ['nullable', 'string', 'max:128'],
             'tags' => ['nullable', 'array', 'max:'.Subscriber::MAX_TAGS],
         ]);
 
         $token = filled($data['token'] ?? null) ? $this->normalizeToken($data['type'], $data['token']) : null;
+        $contact = ! in_array($data['type'], Subscription::PUSH_TYPES, true);
+        if ($contact) {
+            $this->throttleContacts($request);
+        }
+        if (filled($data['external_id'] ?? null)) {
+            $this->verifyIdentity($project, $data['external_id'], $request->input('identity_hash'));
+        }
 
         $created = false;
-        $subscription = DB::transaction(function () use ($project, $data, $token, &$created) {
+        $subscription = DB::transaction(function () use ($project, $data, $token, $contact, &$created) {
             // A phone number may be both an SMS and a WhatsApp subscription.
             $subscription = $token === null ? null : Subscription::query()
                 ->where('project_id', $project->id)
@@ -57,6 +67,13 @@ class SubscriptionController extends Controller
                 $created = true;
                 $subscriber = $this->identity->newSubscriber($project, ['last_active_at' => now()]);
                 $subscription = new Subscription(['project_id' => $project->id, 'subscriber_id' => $subscriber->id, 'type' => $data['type']]);
+            } elseif ($contact) {
+                // An email address or a phone number is not a secret: whoever
+                // knows it must not unsubscribe, re-subscribe or read the person.
+                abort_unless($this->claimable($subscription, $data['external_id'] ?? null), 409, 'This contact is already registered.');
+                $subscription->save();
+
+                return $subscription;
             }
 
             $subscription->fill(['token' => $token, 'invalid_at' => null]);
@@ -66,6 +83,9 @@ class SubscriptionController extends Controller
             return $subscription;
         });
 
+        if (! $created && $contact) {
+            return response()->json(['id' => $subscription->id, 'enabled' => $subscription->enabled]);
+        }
         if (filled($data['external_id'] ?? null)) {
             $this->identity->login($subscription, $data['external_id']);
         }
@@ -78,7 +98,11 @@ class SubscriptionController extends Controller
         $journeys->tagsChanged($subscriber->fresh(), $tagsBefore);
         if ($created) {
             Webhooks::dispatch($project, 'subscription.created', $this->webhookData($subscription->fresh('subscriber')));
-            $journeys->trigger($project, 'new_device', $subscriber);
+            // Email addresses and phone numbers added by an app are not proven:
+            // a journey must not text or mail numbers chosen by anyone.
+            if (! $contact) {
+                $journeys->trigger($project, 'new_device', $subscriber);
+            }
         }
 
         return response()->json($this->present($subscription->fresh('subscriber')), 201);
@@ -100,7 +124,13 @@ class SubscriptionController extends Controller
             $subscription->type = $data['type'];
         }
         if (filled($data['token'] ?? null)) {
-            $subscription->token = $this->normalizeToken($subscription->type, $data['token']);
+            $token = $this->normalizeToken($subscription->type, $data['token']);
+            if (! in_array($subscription->type, Subscription::PUSH_TYPES, true)) {
+                $other = Subscription::query()->where('project_id', $subscription->project_id)->where('type', $subscription->type)
+                    ->where('token_hash', hash('sha256', $token))->whereKeyNot($subscription->id)->with('subscriber')->first();
+                abort_if($other && ! $this->claimable($other, $subscription->subscriber?->external_id, $subscription->subscriber_id), 409, 'This contact is already registered.');
+            }
+            $subscription->token = $token;
             $subscription->invalid_at = null;
 
             // The token now belongs to this device (an iPhone registered
@@ -134,7 +164,8 @@ class SubscriptionController extends Controller
     public function login(Request $request, string $appId, string $id): JsonResponse
     {
         $subscription = $this->subscription($appId, $id);
-        $data = $request->validate(['external_id' => ['required', 'string', 'max:255']]);
+        $data = $request->validate(['external_id' => ['required', 'string', 'max:255'], 'identity_hash' => ['nullable', 'string', 'max:128']]);
+        $this->verifyIdentity($subscription->project, $data['external_id'], $data['identity_hash'] ?? null);
 
         $this->identity->login($subscription, $data['external_id']);
 
@@ -314,7 +345,8 @@ class SubscriptionController extends Controller
         }
 
         $data = json_decode($token, true);
-        abort_unless(isset($data['endpoint'], $data['keys']['p256dh'], $data['keys']['auth']), 422, 'Invalid web push subscription.');
+        abort_unless(isset($data['endpoint'], $data['keys']['p256dh'], $data['keys']['auth']) && is_string($data['endpoint']), 422, 'Invalid web push subscription.');
+        abort_unless(WebPushEndpoint::allowed($data['endpoint']), 422, 'The endpoint is not the push service of a browser.');
 
         return json_encode(['endpoint' => $data['endpoint'], 'keys' => ['p256dh' => $data['keys']['p256dh'], 'auth' => $data['keys']['auth']]], JSON_UNESCAPED_SLASHES);
     }
@@ -347,9 +379,12 @@ class SubscriptionController extends Controller
         $email = self::email((string) $request->input('email'));
         abort_unless($email, 422, 'Invalid email address.');
 
-        $subscription = Subscription::query()->firstOrNew(['project_id' => $device->project_id, 'token_hash' => hash('sha256', $email)]);
+        $this->throttleContacts($request);
+
+        $subscription = Subscription::query()->with('subscriber')->firstOrNew(['project_id' => $device->project_id, 'token_hash' => hash('sha256', $email)]);
         $created = ! $subscription->exists;
-        $subscription->fill(['subscriber_id' => $device->subscriber_id, 'type' => 'email', 'token' => $email, 'invalid_at' => null, 'sdk' => $device->sdk]);
+        abort_unless($created || $this->claimable($subscription, $device->subscriber?->external_id, $device->subscriber_id), 409, 'This email address belongs to another user.');
+        $subscription->fill(['subscriber_id' => $device->subscriber_id, 'type' => 'email', 'token' => $email, 'sdk' => $device->sdk]);
         // Someone who unsubscribed stays unsubscribed (their choice wins).
         if ($created) {
             $subscription->enabled = true;
@@ -417,9 +452,12 @@ class SubscriptionController extends Controller
         $phone = Phone::normalize((string) $request->input('phone_number'));
         abort_unless($phone, 422, 'Invalid phone number: use the international format (+2250700000000).');
 
-        $subscription = Subscription::query()->firstOrNew(['project_id' => $device->project_id, 'type' => $type, 'token_hash' => hash('sha256', $phone)]);
+        $this->throttleContacts($request);
+
+        $subscription = Subscription::query()->with('subscriber')->firstOrNew(['project_id' => $device->project_id, 'type' => $type, 'token_hash' => hash('sha256', $phone)]);
         $created = ! $subscription->exists;
-        $subscription->fill(['subscriber_id' => $device->subscriber_id, 'type' => $type, 'token' => $phone, 'invalid_at' => null, 'sdk' => $device->sdk]);
+        abort_unless($created || $this->claimable($subscription, $device->subscriber?->external_id, $device->subscriber_id), 409, 'This phone number belongs to another user.');
+        $subscription->fill(['subscriber_id' => $device->subscriber_id, 'type' => $type, 'token' => $phone, 'sdk' => $device->sdk]);
         if ($created) {
             $subscription->enabled = true;
         }
@@ -446,6 +484,44 @@ class SubscriptionController extends Controller
             ->delete();
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Whether an existing email or phone contact may be taken by this
+     * request: it belongs to nobody known (anonymous person), to the same
+     * person, or to the same external id (the user logged in on a new device).
+     */
+    protected function claimable(Subscription $contact, ?string $externalId, ?string $subscriberId = null): bool
+    {
+        $owner = $contact->subscriber;
+        if (! $owner || $owner->external_id === null) {
+            return true;
+        }
+
+        return ($subscriberId !== null && $owner->id === $subscriberId)
+            || (filled($externalId) && hash_equals($owner->external_id, (string) $externalId));
+    }
+
+    /** Email addresses and phone numbers added by apps: 30 per hour per address IP. */
+    protected function throttleContacts(Request $request): void
+    {
+        $key = 'sdk-contacts:'.$request->ip();
+        abort_if(RateLimiter::tooManyAttempts($key, 30), 429, 'Too many contacts added: try again later.');
+        RateLimiter::hit($key, 3600);
+    }
+
+    /**
+     * Identity verification (setting of the project): the server of the app
+     * signs the external id with the identity secret, HMAC-SHA256 in hex, so
+     * that a device cannot log in as someone else.
+     */
+    protected function verifyIdentity(Project $project, string $externalId, mixed $hash): void
+    {
+        if (! $project->verifiesIdentity()) {
+            return;
+        }
+        $expected = hash_hmac('sha256', $externalId, (string) $project->identitySecret());
+        abort_unless(is_string($hash) && hash_equals($expected, strtolower($hash)), 401, 'Identity verification failed: send identity_hash = HMAC-SHA256(external_id, identity secret).');
     }
 
     /** Lowercase address, or null if it is not one. */

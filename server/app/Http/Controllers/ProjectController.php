@@ -9,8 +9,10 @@ use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -137,6 +139,28 @@ class ProjectController extends Controller
         }
 
         return back()->with('success', $on ? __('Positions are collected again.') : __('Positions are no longer collected; the stored ones are erased.'));
+    }
+
+    /** Identity verification of the SDK logins (external id signed by the server of the app). */
+    public function updateIdentity(Request $request, Project $project): RedirectResponse
+    {
+        $this->authorize('configure', $project);
+        $settings = $project->settings ?? [];
+
+        if ($request->boolean('rotate') || ! filled($settings['identity_secret'] ?? null)) {
+            $settings['identity_secret'] = Crypt::encryptString(Str::random(48));
+        }
+        if ($request->has('identity_verification') && filled($settings['identity_secret'] ?? null)) {
+            $settings['identity_verification'] = $request->boolean('identity_verification');
+        }
+        $project->update(['settings' => $settings]);
+        Audit::log('project.identity_verification', $project, ['enabled' => (bool) ($settings['identity_verification'] ?? false), 'rotated' => $request->boolean('rotate')]);
+
+        return back()->with('success', match (true) {
+            $request->boolean('rotate') => __('New identity secret generated: update your server.'),
+            (bool) ($settings['identity_verification'] ?? false) => __('Identity verification is on: logins without a valid hash are refused.'),
+            default => __('Identity verification is off.'),
+        });
     }
 
     public function destroyLocations(Project $project): RedirectResponse

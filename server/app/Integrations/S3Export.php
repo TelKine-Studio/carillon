@@ -3,6 +3,7 @@
 namespace App\Integrations;
 
 use App\Models\Integration;
+use App\Support\NetworkGuard;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -93,9 +94,13 @@ final class S3Export
             $host = $bucket.'.'.$host;
         }
 
+        if ($blocked = NetworkGuard::checkUrl($scheme.'://'.$host)) {
+            throw new RuntimeException($blocked);
+        }
         $hash = hash_file('sha256', $file);
         $headers = self::sign('PUT', $host, $path, $hash, $region, (string) $integration->setting('key_id'), (string) $integration->secret, now()->toImmutable());
         $response = Http::timeout(300)->connectTimeout(10)->withoutRedirecting()
+            ->withOptions(NetworkGuard::pin($scheme.'://'.$host))
             ->withHeaders($headers + ['Content-Type' => $type])
             ->withBody(file_get_contents($file), $type)
             ->put($scheme.'://'.$host.$path);

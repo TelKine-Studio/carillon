@@ -1,3 +1,7 @@
+## 0.5.0
+
+- Identity verification: `Carillon.login(externalId, identityHash: …)` sends the HMAC-SHA256 of the external id computed by your server, required when the project turns identity verification on (Settings → Keys & IDs). Without it, any device knowing the App ID could log in as any user.
+
 ## 0.4.0
 
 - Location: when the app already has the location permission, the SDK sends the last known position of the device (rounded to about 1 km by Carillon), at most once a day or after a move of more than 500 m. It never asks for the permission, never turns the GPS on, and works without Google Play services. iOS loads CoreLocation at run time: apps that do not use the location need no purpose string.

@@ -15,6 +15,16 @@
                 @error('require_2fa_admins')<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror
             </x-settings.section>
 
+            <x-settings.section :title="__('Private network')" icon="lock" :fields="['private_network']">
+                <x-slot:summary>
+                    <x-settings.summary :columns="1">
+                        <x-settings.value :label="__('Webhooks and integrations may reach private addresses')" :on="$settings->boolean('security.private_network')" :value="__('Yes')" :empty="__('No')" />
+                    </x-settings.summary>
+                </x-slot:summary>
+                <x-ui.toggle name="private_network" :checked="$settings->boolean('security.private_network')" :label="__('Allow private addresses')"
+                    :description="__('Webhooks, analytics, databases and storages of the projects may then use localhost, 10.x, 172.16-31.x, 192.168.x… Turn it on only if every project administrator is trusted, e.g. to sync a database running next to Carillon.')" />
+            </x-settings.section>
+
             <x-settings.section :title="__('Single sign-on (OpenID Connect)')" :description="__('Let people log in with Google Workspace, Microsoft Entra ID, Keycloak, Authentik, Okta…')" icon="key"
                 :fields="['sso_enabled', 'sso_label', 'sso_issuer', 'sso_client_id', 'sso_client_secret', 'sso_auto_create', 'sso_allowed_domains']">
                 <x-slot:summary>

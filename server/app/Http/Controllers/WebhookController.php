@@ -6,6 +6,7 @@ use App\Jobs\DeliverWebhook;
 use App\Models\Project;
 use App\Models\Webhook;
 use App\Support\Audit;
+use App\Support\NetworkGuard;
 use App\Webhooks\Webhooks;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -94,7 +95,11 @@ class WebhookController extends Controller
     protected function validated(Request $request): array
     {
         $data = $request->validate([
-            'url' => ['required', 'url:http,https', 'max:2000'],
+            'url' => ['required', 'url:http,https', 'max:2000', function ($attribute, $value, $fail) {
+                if ($error = NetworkGuard::checkUrl($value)) {
+                    $fail($error);
+                }
+            }],
             'events' => ['required', 'array', 'min:1'],
             'events.*' => [Rule::in(Webhook::EVENTS)],
         ], ['events.required' => __('Choose at least one event.')]);

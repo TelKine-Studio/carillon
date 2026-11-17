@@ -8,6 +8,7 @@ use App\Models\Invitation;
 use App\Models\Project;
 use App\Models\User;
 use App\Notifications\InvitationNotification;
+use App\Support\AppUrl;
 use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,17 +40,28 @@ class ProjectMemberController extends Controller
         $email = Str::lower($data['email']);
 
         if ($user = User::query()->where('email', $email)->first()) {
+            // Already a member: same checks as a change of role (an admin
+            // cannot demote an owner, the last owner stays).
+            if ($project->members()->whereKey($user->id)->exists()) {
+                $current = $this->memberRole($project, $user);
+                $this->ensureCanGrant($request->user(), $project, $current);
+                $this->ensureAnotherOwner($project, $user, $current, $role);
+            }
             $project->addMember($user, $role);
             Audit::log('project.member_added', $project, ['user' => $user->email, 'role' => $role->value]);
 
             return back()->with('status', __(':name now has access to the project.', ['name' => $user->name]));
         }
 
+        // An invitation of an instance administrator is not replaced from a project.
+        if (Invitation::query()->pending()->where('email', $email)->where('role', '!=', Role::User->value)->exists()) {
+            throw ValidationException::withMessages(['email' => __('This person already has a pending invitation from an instance administrator.')]);
+        }
         Invitation::query()->pending()->where('email', $email)->delete();
         [$invitation, $token] = Invitation::issue($email, Role::User, $request->user(), $data['name'] ?? null, $project, $role);
         Audit::log('user.invited', $invitation, ['project' => $project->app_id, 'role' => $role->value]);
 
-        $url = route('invitations.show', $token);
+        $url = AppUrl::route('invitations.show', $token);
         $mailed = false;
 
         if (config('mail.default') !== 'log') {

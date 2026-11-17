@@ -53,6 +53,8 @@ class Audit
             'auth.2fa_enabled' => __('Two-factor authentication enabled'),
             'auth.2fa_disabled' => __('Two-factor authentication disabled'),
             'auth.2fa_failed' => __('Invalid two-factor code'),
+            'auth.email_changed' => __('Email address changed'),
+            'project.identity_verification' => __('Identity verification changed'),
             'user.invited' => __('User added'),
             'user.activated' => __('Account activated'),
             'user.updated' => __('User updated'),

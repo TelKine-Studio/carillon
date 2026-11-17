@@ -25,6 +25,9 @@ class CarillonStore {
   String? get externalId => _prefs.getString('${_prefix}external_id');
   set externalId(String? value) => _set('external_id', value);
 
+  String? get identityHash => _prefs.getString('${_prefix}identity_hash');
+  set identityHash(String? value) => _set('identity_hash', value);
+
   String? get token => _prefs.getString('${_prefix}token');
   set token(String? value) => _set('token', value);
 
@@ -32,7 +35,8 @@ class CarillonStore {
   set optedOut(bool value) => _prefs.setBool('${_prefix}opted_out', value);
 
   /// The app (or the person) lets Carillon read the position: on by default.
-  bool get locationShared => _prefs.getBool('${_prefix}location_shared') ?? true;
+  bool get locationShared =>
+      _prefs.getBool('${_prefix}location_shared') ?? true;
   set locationShared(bool value) =>
       _prefs.setBool('${_prefix}location_shared', value);
 
@@ -48,10 +52,8 @@ class CarillonStore {
     return raw == null ? null : Map<String, num>.from(jsonDecode(raw) as Map);
   }
 
-  set sentLocation(Map<String, num>? value) => _set(
-    'location',
-    value == null ? null : jsonEncode(value),
-  );
+  set sentLocation(Map<String, num>? value) =>
+      _set('location', value == null ? null : jsonEncode(value));
 
   DateTime? get lastSession {
     final value = _prefs.getInt('${_prefix}last_session');

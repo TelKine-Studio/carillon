@@ -78,8 +78,14 @@ class Carillon {
   }
 
   /// Links this device to a person of your app (their id in your system).
-  static Future<void> login(String externalId) =>
-      _whenReady.then((engine) => engine.login(externalId));
+  ///
+  /// With identity verification on in the project, pass [identityHash]:
+  /// HMAC-SHA256 of [externalId] with the identity secret, computed by your
+  /// server (never put the secret in the app).
+  static Future<void> login(String externalId, {String? identityHash}) =>
+      _whenReady.then(
+        (engine) => engine.login(externalId, identityHash: identityHash),
+      );
 
   /// Detaches this device from the person (e.g. on sign out).
   static Future<void> logout() => _whenReady.then((engine) => engine.logout());
@@ -116,11 +122,12 @@ class CarillonLocation {
       Carillon._whenReady.then((engine) => engine.store.locationShared);
 
   /// false: stops reading it and erases the position known by Carillon.
-  Future<void> setShared(bool shared) => Carillon._whenReadyCall((engine) async {
-    engine.store.locationShared = shared;
-    engine.store.sentLocation = null;
-    await engine.sync();
-  });
+  Future<void> setShared(bool shared) =>
+      Carillon._whenReadyCall((engine) async {
+        engine.store.locationShared = shared;
+        engine.store.sentLocation = null;
+        await engine.sync();
+      });
 }
 
 class CarillonLiveActivitiesApi {
@@ -463,12 +470,13 @@ class _Engine with WidgetsBindingObserver {
     _unhandledClicks.clear();
   }
 
-  Future<void> login(String externalId) async {
+  Future<void> login(String externalId, {String? identityHash}) async {
     store.externalId = externalId;
+    store.identityHash = identityHash;
     final id = store.subscriptionId;
     if (id == null) return sync();
     final result = await _guard(
-      () => api.login(id, externalId),
+      () => api.login(id, externalId, identityHash: identityHash),
       operation: 'login',
     );
     _absorb(result);
@@ -476,6 +484,7 @@ class _Engine with WidgetsBindingObserver {
 
   Future<void> logout() async {
     store.externalId = null;
+    store.identityHash = null;
     final id = store.subscriptionId;
     if (id == null) return;
     final result = await _guard(() => api.logout(id), operation: 'logout');
@@ -634,6 +643,8 @@ class _Engine with WidgetsBindingObserver {
         'type': platform.type,
         ...body,
         if (store.externalId != null) 'external_id': store.externalId,
+        if (store.externalId != null && store.identityHash != null)
+          'identity_hash': store.identityHash,
         if (store.tags.isNotEmpty) 'tags': store.tags,
       });
       store.subscriptionId = result['id'] as String?;

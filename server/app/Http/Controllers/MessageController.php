@@ -316,8 +316,10 @@ class MessageController extends Controller
                 ->with('subscription:id,subscriber_id,type,device_model,app_version', 'subscription.subscriber:id,external_id')
                 ->orderBy('id')
                 ->chunk(1000, function ($deliveries) use ($out) {
+                    // Values sent by apps (device model, app version…) cannot become spreadsheet formulas.
+                    $cell = fn ($value) => is_string($value) && preg_match('/^[=+\-@\t\r]/', $value) ? "'".$value : $value;
                     foreach ($deliveries as $delivery) {
-                        fputcsv($out, [
+                        fputcsv($out, array_map($cell, [
                             $delivery->subscription_id,
                             $delivery->subscription?->subscriber?->external_id,
                             $delivery->subscription?->type,
@@ -328,7 +330,7 @@ class MessageController extends Controller
                             $delivery->sent_at?->toIso8601String(),
                             $delivery->received_at?->toIso8601String(),
                             $delivery->clicked_at?->toIso8601String(),
-                        ], escape: '\\');
+                        ]), escape: '\\');
                     }
                 });
             fclose($out);

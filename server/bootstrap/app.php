@@ -3,6 +3,7 @@
 use App\Http\Middleware\CloudflareClientIp;
 use App\Http\Middleware\EnsureApplicationIsInstalled;
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
@@ -22,11 +23,17 @@ $app = Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Carillon is meant to run behind a reverse proxy (Coolify / Traefik, ...).
-        $middleware->trustProxies(at: '*');
+        // Carillon is meant to run behind a reverse proxy (Coolify / Traefik, ...)
+        // on the same host or private network: only those may set the client
+        // IP and the scheme. The Host comes from the request itself.
+        $middleware->trustProxies(
+            at: ['127.0.0.1', '::1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', 'fc00::/7'],
+            headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO | Request::HEADER_X_FORWARDED_PREFIX,
+        );
         $middleware->append(CloudflareClientIp::class);
 
         $middleware->web(append: [
+            SecurityHeaders::class,
             EnsureApplicationIsInstalled::class,
             EnsureUserIsActive::class,
             SetLocale::class,

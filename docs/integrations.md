@@ -4,7 +4,11 @@
 tab lists what is connected (integrations and webhooks) with its status; the
 *Catalog* tab lists everything that can be connected, inbound or outbound.
 
-Secrets (keys, passwords, webhook URLs) are stored encrypted. An integration
+Secrets (keys, passwords, webhook URLs) are stored encrypted. Webhooks and
+integrations cannot reach loopback, private, link-local (cloud metadata) or
+reserved addresses, so that a project administrator cannot probe the network
+of the server; an instance administrator can allow private networks in
+**Settings → Security** (for a database running next to Carillon). An integration
 that fails 20 times in a row is paused; **Resume** turns it back on.
 
 ## Analytics: PostHog, Mixpanel, Amplitude (outbound)

@@ -5,6 +5,7 @@ namespace App\Integrations;
 use App\Journeys\JourneyRunner;
 use App\Models\Integration;
 use App\Models\Subscriber;
+use App\Support\NetworkGuard;
 use Closure;
 use Illuminate\Database\Connection;
 use Illuminate\Database\QueryException;
@@ -113,6 +114,9 @@ final class SqlSync
             return $name;
         }
 
+        if ($blocked = NetworkGuard::checkHost((string) $integration->setting('host'))) {
+            throw new InvalidArgumentException($blocked);
+        }
         $pgsql = $integration->kind === 'postgres';
         config(["database.connections.$name" => array_filter([
             'driver' => $pgsql ? 'pgsql' : 'mysql',

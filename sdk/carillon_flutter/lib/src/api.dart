@@ -19,8 +19,14 @@ class CarillonApi {
   Future<Map<String, dynamic>> update(String id, Map<String, dynamic> body) =>
       _send('PATCH', '/subscriptions/$id', body);
 
-  Future<Map<String, dynamic>> login(String id, String externalId) =>
-      _send('POST', '/subscriptions/$id/login', {'external_id': externalId});
+  Future<Map<String, dynamic>> login(
+    String id,
+    String externalId, {
+    String? identityHash,
+  }) => _send('POST', '/subscriptions/$id/login', {
+    'external_id': externalId,
+    'identity_hash': ?identityHash,
+  });
 
   Future<Map<String, dynamic>> logout(String id) =>
       _send('POST', '/subscriptions/$id/logout', const {});

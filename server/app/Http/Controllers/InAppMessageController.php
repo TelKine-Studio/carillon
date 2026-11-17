@@ -118,7 +118,7 @@ class InAppMessageController extends Controller
             'buttons' => ['nullable', 'array', 'max:2'],
             'buttons.*.text' => ['nullable', 'string', 'max:40'],
             'buttons.*.action' => ['nullable', Rule::in(['dismiss', 'url'])],
-            'buttons.*.url' => ['nullable', 'string', 'max:500'],
+            'buttons.*.url' => ['nullable', 'string', 'max:500', 'not_regex:/^[\s\x00-\x1f]*(javascript|data|vbscript|file):/i'],
             'trigger_type' => ['required', Rule::in(['app_open', 'event'])],
             'trigger_event' => ['nullable', 'required_if:trigger_type,event', 'string', 'max:128'],
             'trigger_delay' => ['nullable', 'integer', 'min:0', 'max:600'],

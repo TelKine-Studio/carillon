@@ -9,7 +9,8 @@
         'mailgun' => ['Mailgun', __('API and analytics, US or EU.')],
         'direct' => [__('Direct delivery'), __('From this server, without a third party.')],
     ];
-    $webhook = $mail && in_array($mail->detail('driver'), \App\Email\Drivers::WEBHOOKS, true)
+    // The secret of this address authenticates the bounces: shown to those who configure only.
+    $webhook = $canConfigure && $mail && in_array($mail->detail('driver'), \App\Email\Drivers::WEBHOOKS, true)
         ? url('/api/v1/email/'.$project->app_id.'/'.$mail->detail('driver').'/'.$mail->detail('webhook_secret'))
         : null;
     $isDirect = $mail?->detail('driver') === 'direct';

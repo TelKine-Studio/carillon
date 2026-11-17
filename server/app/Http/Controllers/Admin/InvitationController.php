@@ -7,6 +7,7 @@ use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Models\Invitation;
 use App\Notifications\InvitationNotification;
+use App\Support\AppUrl;
 use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -60,7 +61,7 @@ class InvitationController extends Controller
 
     protected function deliver(Request $request, Invitation $invitation, string $token): RedirectResponse
     {
-        $url = route('invitations.show', $token);
+        $url = AppUrl::route('invitations.show', $token);
         $mailed = false;
 
         if ($request->boolean('send_email') && config('mail.default') !== 'log') {

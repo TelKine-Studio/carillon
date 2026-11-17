@@ -5,7 +5,9 @@ namespace App\Providers;
 use App\Http\Middleware\SetLocale;
 use App\Models\Invitation;
 use App\Models\User;
+use App\Support\AppUrl;
 use App\Support\Settings;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\Request;
@@ -29,6 +31,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Password reset links on the URL of the instance, not on the Host
+        // header of the request (an attacker could send them to their site).
+        ResetPassword::createUrlUsing(fn ($user, string $token) => AppUrl::route('password.reset', ['token' => $token, 'email' => $user->getEmailForPasswordReset()]));
+
         // Search that behaves the same on SQLite and PostgreSQL: any column
         // type (text, JSON, UUID), case-insensitive, the term escaped.
         QueryBuilder::macro('whereContains', function (array|string $columns, string $term, string $boolean = 'and') {
@@ -102,7 +108,7 @@ class AppServiceProvider extends ServiceProvider
         // SDK calls of the apps, per device address.
         RateLimiter::for('sdk', fn (Request $request) => Limit::perMinute(120)->by('sdk:'.$request->ip()));
         // Email services send bounces in bursts, from few addresses.
-        RateLimiter::for('sources', fn (Request $request) => Limit::perMinute(3000)->by('sources:'.$request->route('appId')));
+        RateLimiter::for('sources', fn (Request $request) => Limit::perMinute(3000)->by('sources:'.$request->route('appId').'|'.$request->ip()));
         RateLimiter::for('email-events', fn (Request $request) => Limit::perMinute(3000)->by('email-events:'.$request->ip()));
 
         RateLimiter::for('login', fn (Request $request) => Limit::perMinute(5)

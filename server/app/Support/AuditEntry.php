@@ -82,6 +82,8 @@ class AuditEntry
             'auth.2fa_enabled' => 'Two-factor authentication enabled by :actor',
             'auth.2fa_disabled' => 'Two-factor authentication disabled by :actor',
             'auth.2fa_failed' => 'Wrong two-factor code for :subject',
+            'auth.email_changed' => ':actor changed their email address',
+            'project.identity_verification' => ':actor changed the identity verification of :subject',
             'user.invited' => ':actor invited :subject',
             'user.activated' => ':subject activated their account',
             'user.updated' => ':actor updated the account of :subject',

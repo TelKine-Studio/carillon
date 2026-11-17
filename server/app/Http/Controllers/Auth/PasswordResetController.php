@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\Sessions;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -48,6 +49,7 @@ class PasswordResetController extends Controller
             [...$request->only('password', 'password_confirmation', 'token'), 'email' => mb_strtolower($request->string('email'))],
             function (User $user, string $password) {
                 $user->forceFill(['password' => $password, 'remember_token' => Str::random(60)])->save();
+                Sessions::endOthers($user);
 
                 event(new PasswordReset($user));
                 Audit::log('auth.password_reset', $user, user: $user);

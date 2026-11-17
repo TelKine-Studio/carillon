@@ -111,6 +111,7 @@ class SettingsController extends Controller
 
         $values = [
             'security.require_2fa_admins' => $request->boolean('require_2fa_admins'),
+            'security.private_network' => $request->boolean('private_network'),
             'sso.enabled' => $request->boolean('sso_enabled'),
             'sso.label' => $data['sso_label'] ?? null,
             'sso.issuer' => isset($data['sso_issuer']) ? rtrim($data['sso_issuer'], '/') : null,
@@ -128,7 +129,7 @@ class SettingsController extends Controller
         }
 
         $settings->set($values);
-        Audit::log('settings.updated', null, ['section' => 'security', 'sso' => $values['sso.enabled'], 'require_2fa_admins' => $values['security.require_2fa_admins']]);
+        Audit::log('settings.updated', null, ['section' => 'security', 'sso' => $values['sso.enabled'], 'require_2fa_admins' => $values['security.require_2fa_admins'], 'private_network' => $values['security.private_network']]);
 
         return back()->with('status', __('Security settings saved.'));
     }

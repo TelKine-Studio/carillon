@@ -20,7 +20,7 @@
             <form method="POST" action="{{ route('profile.update') }}" id="account" class="scroll-mt-24">
                 @csrf
                 @method('PUT')
-                <x-settings.section :title="__('Account')" :description="__('Your name, email address and language.')" icon="user" :fields="['name', 'email', 'locale', 'weekly_report']">
+                <x-settings.section :title="__('Account')" :description="__('Your name, email address and language.')" icon="user" :fields="['name', 'email', 'email_password', 'locale', 'weekly_report']">
                     <x-slot:summary>
                         <x-settings.summary>
                             <x-settings.value :label="__('Full name')" :value="$user->name" />
@@ -32,6 +32,7 @@
                     <div class="grid gap-5 sm:grid-cols-2">
                         <x-ui.input name="name" :label="__('Full name')" :value="$user->name" required />
                         <x-ui.input name="email" type="email" :label="__('Email')" :value="$user->email" required />
+                        <x-ui.input name="email_password" type="password" :label="__('Current password')" :hint="__('Only to change the email address.')" autocomplete="current-password" optional />
                         <x-ui.select name="locale" :label="__('Language')" :value="$user->locale" :options="['' => __('Instance default')] + $locales" />
                         <div class="sm:col-span-2">
                             <x-ui.toggle name="weekly_report" :checked="(bool) $user->weekly_report" :label="__('Weekly report')" :description="__('Every Monday morning, an email with the figures of the week of your projects.')" />
@@ -74,9 +75,15 @@
 
                 @if ($user->hasTwoFactor())
                     <div class="flex flex-wrap gap-3">
-                        <form method="POST" action="{{ route('two-factor.recovery-codes') }}">
+                        <form method="POST" action="{{ route('two-factor.recovery-codes') }}" class="flex flex-wrap items-start gap-2" x-data="{ open: {{ $errors->has('codes_password') ? 'true' : 'false' }} }">
                             @csrf
-                            <x-ui.button variant="secondary" size="sm" icon="refresh">{{ __('New recovery codes') }}</x-ui.button>
+                            <x-ui.button type="button" variant="secondary" size="sm" icon="refresh" @click="open = true" x-show="!open">{{ __('New recovery codes') }}</x-ui.button>
+                            <template x-if="open">
+                                <div class="flex flex-wrap items-start gap-2">
+                                    <x-ui.input name="codes_password" type="password" :placeholder="__('Your password')" required autocomplete="current-password" />
+                                    <x-ui.button variant="secondary" size="sm" icon="refresh" class="mt-1">{{ __('New recovery codes') }}</x-ui.button>
+                                </div>
+                            </template>
                         </form>
                         <form method="POST" action="{{ route('two-factor.disable') }}" class="flex flex-wrap items-start gap-2" x-data="{ open: {{ $errors->has('password') ? 'true' : 'false' }} }">
                             @csrf

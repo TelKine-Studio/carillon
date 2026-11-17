@@ -376,13 +376,39 @@ afterwards.
   (`location: false` when the project does not collect positions)
 - `PATCH …/subscriptions/{id}` — new token, `enabled` (with `permission`: `granted`, `denied` or `not_determined`, which tells why it is disabled), `session: true`,
   `lat`/`long`, `location_shared: false` (erases the position)…
-- `POST …/subscriptions/{id}/login` — `{"external_id": "user-42"}`
+- `POST …/subscriptions/{id}/login` — `{"external_id": "user-42", "identity_hash": "…"}`
 - `POST …/subscriptions/{id}/logout`
 - `PUT …/subscriptions/{id}/tags` — `{"tags": {"plan": "gold", "old": null}}`
 - `POST …/subscriptions/{id}/events` — `{"message_id": "…", "event": "received|clicked"}`
 - `PUT …/subscriptions/{id}/live-activities/start-token` — `{"activity_type": "DeliveryAttributes", "token": "…"}` (`token: null` removes it)
 - `POST …/subscriptions/{id}/live-activities/enter` — `{"activity_id", "activity_type", "token"}`: the update token of an activity on screen
 - `POST …/subscriptions/{id}/live-activities/exit` — `{"activity_id"}`: the activity left the screen
+
+### Identity verification
+
+The App ID is public: without more, any device could log in as any external
+id and receive the notifications of that user. **Settings → Keys & IDs →
+Identity verification** generates a secret; your server computes for each
+user `identity_hash = hex(HMAC-SHA256(secret, external_id))` and gives it to
+the app, which passes it to `Carillon.login(id, identityHash: …)` (Flutter)
+or `Carillon.login(id, { identityHash })` (web). Once the verification is on,
+`login` and a registration with `external_id` without a valid hash answer
+401. Generate the secret and ship the apps first, then turn it on.
+
+### Email addresses and phone numbers
+
+An address or a number is not a secret. Through the SDK endpoints:
+
+- a contact already known for a user with an external id cannot be read,
+  re-subscribed, unsubscribed or moved by another device (409); the same user
+  logged in on a new device can add it;
+- a hard bounce or an unsubscription is never undone by the SDK;
+- at most 30 contacts per hour are added from one IP address;
+- contacts added by apps do not start "new device" journeys (only push
+  devices do), so nobody can make the project text or mail numbers of their
+  choice.
+
+Your server keeps full control with the REST API (`/apps/{app_id}/users`).
 
 ## What the devices receive
 

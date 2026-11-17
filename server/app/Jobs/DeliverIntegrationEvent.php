@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Integrations\Streams;
 use App\Models\Integration;
+use App\Support\NetworkGuard;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Http;
@@ -37,7 +38,10 @@ class DeliverIntegrationEvent implements ShouldQueue
 
         $request = Streams::request($integration, $this->payload, $integration->project->name);
         try {
-            $http = Http::timeout(10)->connectTimeout(5)->withoutRedirecting()->withHeaders(['User-Agent' => 'Carillon-Integrations/1.0']);
+            if ($blocked = NetworkGuard::checkUrl($request['url'])) {
+                throw new RuntimeException($blocked);
+            }
+            $http = Http::timeout(10)->connectTimeout(5)->withoutRedirecting()->withOptions(NetworkGuard::pin($request['url']))->withHeaders(['User-Agent' => 'Carillon-Integrations/1.0']);
             $response = ($request['form'] ?? false) ? $http->asForm()->post($request['url'], $request['body']) : $http->post($request['url'], $request['body']);
             $error = $response->successful() ? null : 'HTTP '.$response->status().' '.mb_substr(trim($response->body()), 0, 200);
             // Mixpanel answers 200 with {"status": 0, "error": …} when the event is refused.

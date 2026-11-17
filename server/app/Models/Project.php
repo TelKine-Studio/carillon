@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -147,6 +148,19 @@ class Project extends Model
     public function collectsLocation(): bool
     {
         return (bool) $this->setting('collect_location', true);
+    }
+
+    /** Devices log in with an external id signed by the server of the app (setting of the project). */
+    public function verifiesIdentity(): bool
+    {
+        return (bool) $this->setting('identity_verification', false) && filled($this->setting('identity_secret'));
+    }
+
+    public function identitySecret(): ?string
+    {
+        $secret = $this->setting('identity_secret');
+
+        return filled($secret) ? Crypt::decryptString($secret) : null;
     }
 
     public function initials(): string

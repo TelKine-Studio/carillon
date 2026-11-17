@@ -136,7 +136,8 @@ class SegmentSourceController extends Controller
     protected function key(Request $request): ?string
     {
         // Segment: Basic auth with the write key as user name.
-        $key = $request->getUser() ?: $request->bearerToken() ?: $request->header('X-Write-Key') ?: $request->query('key');
+        // Never in the URL (it would end up in access logs).
+        $key = $request->getUser() ?: $request->bearerToken() ?: $request->header('X-Write-Key');
 
         return is_string($key) && $key !== '' ? $key : null;
     }
