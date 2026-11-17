@@ -762,6 +762,7 @@ Alpine.data('emailDesigner', (initial, labels) => ({
 Alpine.data('messageComposer', (config) => ({
     ab: config.ab ?? false,
     test: { sending: false, result: '', ok: false, url: null },
+    review: { when: '' },
     // Sends the message as written to the test devices only, without leaving the page.
     async sendTest(url) {
         this.test = { sending: true, result: '', ok: false, url: null };

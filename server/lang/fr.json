@@ -2206,5 +2206,15 @@
     "Custom": "Personnalisé",
     "Built-in": "Intégré",
     "Create your own: for example the customers with the tag plan = vip, or the people inactive for 30 days.": "Créez les vôtres : par exemple les clients avec le tag plan = vip, ou les personnes inactives depuis 30 jours.",
-    "Used": "Utilisé"
+    "Used": "Utilisé",
+    "vs previous :count day|vs previous :count days": "vs le jour précédent|vs les :count jours précédents",
+    "Engagement": "Engagement",
+    "View details": "Voir le détail",
+    "Cohort retention": "Rétention",
+    "Review and send": "Vérifier et envoyer",
+    "Check the essentials before it leaves.": "Vérifiez l’essentiel avant le départ.",
+    "Chosen users": "Utilisateurs choisis",
+    "Chosen devices": "Appareils choisis",
+    "At the same local time for each person": "À la même heure locale pour chacun",
+    "It will reach :count people: a message sent cannot be taken back.": "Il touchera :count personnes : un message envoyé ne peut pas être rattrapé."
 }

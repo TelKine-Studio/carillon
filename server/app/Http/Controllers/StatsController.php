@@ -78,6 +78,8 @@ class StatsController extends Controller
                     'delivered' => (int) ($previous->delivered ?? 0),
                     'clicked' => (int) ($previous->clicked ?? 0),
                     'ctr' => ($previous->delivered ?? 0) > 0 ? $previous->clicked / $previous->delivered * 100 : null,
+                    'new_devices' => $project->subscriptions()->whereIn('type', Subscription::PUSH_TYPES)->whereBetween('created_at', [$previousStart, $start])->count(),
+                    'devices' => max(0, $devices - $newDevices),
                 ],
             ],
             'charts' => [

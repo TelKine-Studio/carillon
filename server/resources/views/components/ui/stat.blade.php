@@ -19,14 +19,7 @@
     </div>
     <p data-count class="mt-3 origin-left text-3xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-white">{{ $value }}</p>
     @if ($delta !== null)
-        {{-- Trend against the previous period, as OneSignal: green up, red down. --}}
-        <p class="mt-1 flex items-center gap-1 text-xs">
-            <span @class(['inline-flex items-center gap-0.5 font-medium tabular-nums', 'text-emerald-600 dark:text-emerald-400' => $delta >= 0, 'text-red-600 dark:text-red-400' => $delta < 0])>
-                <svg viewBox="0 0 12 12" class="size-3" aria-hidden="true"><path d="{{ $delta >= 0 ? 'M2 9l3.5-3.5 2 2L10 4M7 4h3v3' : 'M2 3l3.5 3.5 2-2L10 8M7 8h3V5' }}" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                {{ ($delta >= 0 ? '+' : '').number_format($delta, 1, ',', ' ') }} %
-            </span>
-            <span class="text-zinc-500 dark:text-zinc-400">{{ $deltaLabel ?? __('vs previous 30 days') }}</span>
-        </p>
+        <p class="mt-1"><x-ui.trend :value="$delta" :label="$deltaLabel ?? __('vs previous 30 days')" /></p>
     @endif
     @if ($hint)
         <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ $hint }}</p>

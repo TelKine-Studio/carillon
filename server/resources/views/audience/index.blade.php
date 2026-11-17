@@ -4,7 +4,6 @@
         @can('configure', $project)
             <x-ui.button variant="secondary" :href="route('projects.imports.create', $project)" icon="upload">{{ __('Import from OneSignal') }}</x-ui.button>
         @endcan
-        <x-ui.button variant="secondary" :href="route('projects.test-devices.index', $project)" icon="smartphone">{{ __('Test devices') }}</x-ui.button>
         @can('send', $project)
             <x-ui.button variant="secondary" :href="route('projects.segments.index', $project)" icon="layers">{{ __('Segments') }}</x-ui.button>
         @endcan
@@ -29,17 +28,18 @@
         $views = ['people' => [__('People'), $totals['people']], 'devices' => [__('Devices'), $totals['devices']]];
     @endphp
     <div x-data="liveList('audience-results')" data-live-also="audience-tabs audience-view">
+    <nav id="audience-tabs" class="scrollbar-none mb-4 flex gap-1 overflow-x-auto border-b border-zinc-200 dark:border-zinc-800" aria-label="{{ __('View') }}">
+        @foreach ($views as $key => [$label, $count])
+            <a data-live-link href="{{ route('projects.subscribers.index', [$project, ...array_filter(request()->only(['q', 'platform', 'state'])), 'view' => $key === 'people' ? null : $key]) }}" @if ($view === $key) aria-current="page" @endif
+                @class(['-mb-px inline-flex shrink-0 items-center gap-1.5 border-b-2 px-2.5 py-2.5 text-sm font-medium whitespace-nowrap transition',
+                    'border-brand-600 text-zinc-900 dark:border-brand-400 dark:text-white' => $view === $key,
+                    'border-transparent text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white' => $view !== $key])>
+                {{ $label }}<span class="min-w-5 rounded bg-zinc-100 px-1 text-center text-xs tabular-nums text-zinc-500 dark:bg-white/10 dark:text-zinc-400">{{ $n($count) }}</span>
+            </a>
+        @endforeach
+        <a href="{{ route('projects.test-devices.index', $project) }}" class="-mb-px inline-flex shrink-0 items-center gap-1.5 border-b-2 border-transparent px-2.5 py-2.5 text-sm font-medium whitespace-nowrap text-zinc-500 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">{{ __('Test devices') }}</a>
+    </nav>
     <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
-        <nav id="audience-tabs" class="inline-flex shrink-0 gap-0.5 self-start rounded-lg bg-zinc-200/60 p-1 dark:bg-white/[0.06]" aria-label="{{ __('View') }}">
-            @foreach ($views as $key => [$label, $count])
-                <a data-live-link href="{{ route('projects.subscribers.index', [$project, ...array_filter(request()->only(['q', 'platform', 'state'])), 'view' => $key === 'people' ? null : $key]) }}" @if ($view === $key) aria-current="page" @endif
-                    @class(['inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium whitespace-nowrap transition',
-                        'bg-white text-zinc-900 shadow-sm shadow-zinc-950/10 dark:bg-zinc-800 dark:text-white dark:shadow-black/40' => $view === $key,
-                        'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white' => $view !== $key])>
-                    {{ $label }}<span class="text-xs tabular-nums text-zinc-400">{{ $n($count) }}</span>
-                </a>
-            @endforeach
-        </nav>
         <form method="GET" data-live class="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
             <span id="audience-view">@if ($view === 'devices')<input type="hidden" name="view" value="devices">@endif</span>
             <div class="relative flex-1">
@@ -56,7 +56,7 @@
 
     <div id="audience-results" class="card transition-opacity" :class="loading && 'is-loading'">
     @if ($view === 'people')
-        <div class="hidden gap-4 border-b border-zinc-100 px-5 py-2.5 text-xs font-medium text-zinc-500 lg:grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_130px_110px_130px_36px] xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.1fr)_130px_110px_130px_minmax(0,1fr)_36px] dark:border-zinc-800">
+        <div class="hidden gap-4 rounded-t-2xl border-b border-zinc-200 bg-zinc-50 px-5 py-3 text-xs font-medium text-zinc-500 lg:grid dark:bg-white/[.03] lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_130px_110px_130px_36px] xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.1fr)_130px_110px_130px_minmax(0,1fr)_36px] dark:border-zinc-800">
             <span>{{ __('Person') }}</span><span>{{ __('External id') }}</span><span>{!! $sortLink('last_active', __('Last active')) !!}</span><span>{{ __('Channels') }}</span><span>{!! $sortLink('first_active', __('First seen')) !!}</span><span class="hidden xl:block">{{ __('Location') }}</span><span></span>
         </div>
         @forelse ($results as $person)
@@ -122,7 +122,7 @@
                 :description="$search || $platform || $state ? __('Try another search or filter.') : __('Devices appear here once your app uses the Carillon SDK with this App ID.')" />
         @endforelse
     @else
-        <div class="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_120px_110px] gap-4 border-b border-zinc-100 px-5 py-2.5 text-xs font-medium text-zinc-500 lg:grid dark:border-zinc-800">
+        <div class="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_120px_110px] gap-4 rounded-t-2xl border-b border-zinc-200 bg-zinc-50 px-5 py-3 text-xs font-medium text-zinc-500 dark:bg-white/[.03] lg:grid dark:border-zinc-800">
             <span>{{ __('Device') }}</span><span>{{ __('Person') }}</span><span>{{ __('Tags') }}</span><span>{!! $sortLink('last_active', __('Last seen')) !!}</span><span>{{ __('State') }}</span>
         </div>
         @forelse ($results as $subscription)

@@ -86,7 +86,7 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ $template ? route('projects.templates.update', [$project, $template]) : ($templateMode ? route('projects.templates.store', $project) : route('projects.messages.store', $project)) }}" x-data="messageComposer(@js($config))" x-on:submit="$event.submitter?.classList.contains('send-plane') && $event.submitter.classList.add('is-sending')" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+    <form id="composer-form" method="POST" action="{{ $template ? route('projects.templates.update', [$project, $template]) : ($templateMode ? route('projects.templates.store', $project) : route('projects.messages.store', $project)) }}" x-data="messageComposer(@js($config))" x-on:submit="$event.submitter?.classList.contains('send-plane') && $event.submitter.classList.add('is-sending')" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
         @csrf
         @if ($template)
             @method('PUT')
@@ -597,9 +597,54 @@
                 <p class="mt-3 text-xs text-amber-700 dark:text-amber-400" x-show="estimate.error" x-text="estimate.error" x-cloak></p>
                 <p class="mt-3 text-xs text-amber-700 dark:text-amber-400" x-show="estimate.total === 0 && !estimate.error" x-cloak x-text="['sms', 'whatsapp'].includes(channel) ? @js(__('No subscribed phone number matches this audience yet.')) : channel === 'email' ? @js(__('No subscribed address matches this audience yet.')) : @js(__('No subscribed device matches this audience yet.'))">{{ __('No subscribed device matches this audience yet.') }}</p>
 
-                <x-ui.button class="send-plane mt-5 w-full" size="lg" icon="send">
-                    <span x-text="ab && channel === 'push' ? @js(__('Start the A/B test')) : (schedule !== 'now' ? @js(__('Schedule the message')) : (channel === 'email' ? @js(__('Send the email')) : (channel === 'sms' ? @js(__('Send the SMS')) : (channel === 'whatsapp' ? @js(__('Send on WhatsApp')) : @js(__('Send the message'))))))">{{ __('Send the message') }}</span>
+                {{-- Review before sending, as OneSignal ("Review and send"). --}}
+                <x-ui.button type="button" class="mt-5 w-full" size="lg" icon="send" x-on:click="if ($root.reportValidity()) { review.when = $root.querySelector('[name=send_at]')?.value || ''; $dispatch('open-modal', 'review') }">
+                    <span>{{ __('Review and send') }}</span>
                 </x-ui.button>
+                @php
+                    $segmentNames = collect(\App\Models\Segment::BUILT_IN)->mapWithKeys(fn ($name) => [$name => __($name)])->all();
+                @endphp
+                <x-ui.modal name="review" :title="__('Review and send')" :description="__('Check the essentials before it leaves.')" max-width="max-w-lg">
+                    <dl class="divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
+                        <div class="grid grid-cols-[120px_minmax(0,1fr)] gap-3 py-2.5">
+                            <dt class="text-zinc-500">{{ __('Channel') }}</dt>
+                            <dd class="text-zinc-900 dark:text-zinc-100" x-text="({ push: @js(__('Push notification')), email: @js(__('Email')), sms: 'SMS', whatsapp: 'WhatsApp' })[channel]"></dd>
+                        </div>
+                        <div class="grid grid-cols-[120px_minmax(0,1fr)] gap-3 py-2.5">
+                            <dt class="text-zinc-500">{{ __('Audience') }}</dt>
+                            <dd class="text-zinc-900 dark:text-zinc-100">
+                                <span x-show="audience === 'segments'" x-text="included.map((name) => ({{ \Illuminate\Support\Js::from($segmentNames) }})[name] ?? name).join(', ') + (excluded.length ? ' − ' + excluded.map((name) => ({{ \Illuminate\Support\Js::from($segmentNames) }})[name] ?? name).join(', ') : '')"></span>
+                                <span x-show="audience === 'users'">{{ __('Chosen users') }}</span>
+                                <span x-show="audience === 'devices'">{{ __('Chosen devices') }}</span>
+                            </dd>
+                        </div>
+                        <div class="grid grid-cols-[120px_minmax(0,1fr)] gap-3 py-2.5">
+                            <dt class="text-zinc-500">{{ __('Recipients') }}</dt>
+                            <dd class="font-semibold text-zinc-900 tabular-nums dark:text-white" x-text="estimate.total === null ? '—' : format(estimate.total)"></dd>
+                        </div>
+                        <div class="grid grid-cols-[120px_minmax(0,1fr)] gap-3 py-2.5">
+                            <dt class="text-zinc-500">{{ __('Delivery') }}</dt>
+                            <dd class="text-zinc-900 dark:text-zinc-100" x-text="({ now: @js(__('Immediately')), later: @js(__('Scheduled')) + (review.when ? ' · ' + review.when.replace('T', ' ') : ''), timezone: @js(__('At the same local time for each person')), smart: @js(__('At the smart time of each person')) })[schedule] ?? schedule"></dd>
+                        </div>
+                        <div class="grid grid-cols-[120px_minmax(0,1fr)] gap-3 py-2.5">
+                            <dt class="text-zinc-500">{{ __('Content') }}</dt>
+                            <dd class="min-w-0 text-zinc-900 dark:text-zinc-100">
+                                <template x-if="channel === 'push'"><span><strong class="block font-semibold" x-text="preview.title"></strong><span class="block whitespace-pre-line text-zinc-600 dark:text-zinc-400" x-text="preview.body"></span></span></template>
+                                <template x-if="channel === 'email'"><span class="font-semibold" x-text="emailSubject"></span></template>
+                                <template x-if="channel === 'sms' || channel === 'whatsapp'"><span class="whitespace-pre-line" x-text="channel === 'sms' ? smsPreview : whatsAppPreview"></span></template>
+                            </dd>
+                        </div>
+                    </dl>
+                    <p class="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-900 dark:bg-amber-500/10 dark:text-amber-200" x-show="estimate.total > 100" x-cloak>
+                        <x-ui.icon name="alert" class="mt-px size-3.5 shrink-0" /><span x-text="@js(__('It will reach :count people: a message sent cannot be taken back.')).replace(':count', format(estimate.total))"></span>
+                    </p>
+                    <div class="mt-5 flex justify-end gap-2">
+                        <x-ui.button type="button" variant="ghost" x-on:click="$dispatch('close-modal', 'review')">{{ __('Back') }}</x-ui.button>
+                        <x-ui.button form="composer-form" class="send-plane" icon="send">
+                            <span x-text="ab && channel === 'push' ? @js(__('Start the A/B test')) : (schedule !== 'now' ? @js(__('Schedule the message')) : (channel === 'email' ? @js(__('Send the email')) : (channel === 'sms' ? @js(__('Send the SMS')) : (channel === 'whatsapp' ? @js(__('Send on WhatsApp')) : @js(__('Send the message'))))))">{{ __('Send the message') }}</span>
+                        </x-ui.button>
+                    </div>
+                </x-ui.modal>
                 @isset($draft)
                     @if ($draft)<input type="hidden" name="draft_id" value="{{ $draft->id }}">@endif
                 @endisset
