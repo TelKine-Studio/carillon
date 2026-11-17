@@ -911,7 +911,10 @@ Alpine.data('segmentBuilder', (config) => ({
         const groups = [[]];
         for (const filter of config.filters) {
             if (filter.operator === 'OR') groups.push([]);
-            else groups[groups.length - 1].push({ field: 'tag', key: '', relation: '=', value: '', hours_ago: '', ...filter });
+            else if (filter.field === 'location') {
+                // Shown as "lat, long" (key) and a radius (value).
+                groups[groups.length - 1].push({ field: 'location', key: `${filter.lat ?? ''}, ${filter.long ?? ''}`, relation: 'within', value: String(filter.radius ?? ''), hours_ago: '' });
+            } else groups[groups.length - 1].push({ field: 'tag', key: '', relation: '=', value: '', hours_ago: '', ...filter });
         }
         this.groups = groups.filter((g) => g.length).length ? groups.filter((g) => g.length) : [[this.blank()]];
         this.$watch('groups', () => this.refresh(), { deep: true });
@@ -923,7 +926,12 @@ Alpine.data('segmentBuilder', (config) => ({
     },
 
     get filters() {
-        return this.groups.flatMap((group, index) => [...(index ? [{ operator: 'OR' }] : []), ...group]);
+        const toFilter = (condition) => {
+            if (condition.field !== 'location') return condition;
+            const [lat, long] = String(condition.key).split(',').map((part) => part.trim());
+            return { field: 'location', lat, long, radius: condition.value };
+        };
+        return this.groups.flatMap((group, index) => [...(index ? [{ operator: 'OR' }] : []), ...group.map(toFilter)]);
     },
 
     get json() {
@@ -935,7 +943,7 @@ Alpine.data('segmentBuilder', (config) => ({
     },
 
     usesKey(field) {
-        return ['tag', 'event', 'event_value'].includes(field);
+        return ['tag', 'event', 'event_value', 'location'].includes(field);
     },
 
     usesHours(field) {

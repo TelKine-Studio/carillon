@@ -91,7 +91,8 @@ class SegmentController extends Controller
         try {
             // Conditions still being typed are left out of the live count.
             $filters = array_values(array_filter($this->filters($request), fn (array $f) => isset($f['operator'])
-                || ((! in_array($f['field'], ['tag', 'event', 'event_value'], true) || filled($f['key'] ?? null))
+                || ($f['field'] === 'location' && isset($f['lat'], $f['long'], $f['radius']))
+                || ($f['field'] !== 'location' && (! in_array($f['field'], ['tag', 'event', 'event_value'], true) || filled($f['key'] ?? null))
                     && (in_array($f['relation'], ['exists', 'not_exists'], true) || filled($f['value'] ?? null) || isset($f['hours_ago'])))));
             $total = $filters === [] || collect($filters)->every(fn ($f) => isset($f['operator'])) ? null : $this->audience->query($project, ['filters' => $filters])->count();
         } catch (ValidationException $e) {
@@ -136,6 +137,16 @@ class SegmentController extends Controller
                 continue;
             }
             if (! isset($filter['field'])) {
+                continue;
+            }
+            if ($filter['field'] === 'location') {
+                $filters[] = array_filter([
+                    'field' => 'location',
+                    'lat' => is_numeric($filter['lat'] ?? null) ? (float) $filter['lat'] : null,
+                    'long' => is_numeric($filter['long'] ?? null) ? (float) $filter['long'] : null,
+                    'radius' => is_numeric($filter['radius'] ?? null) ? (float) $filter['radius'] : null,
+                ], fn ($v) => $v !== null);
+
                 continue;
             }
             $filters[] = array_filter([

@@ -35,6 +35,8 @@ class UserController extends Controller
             'properties.language' => ['nullable', 'string', 'max:8'],
             'properties.timezone_id' => ['nullable', 'timezone'],
             'properties.country' => ['nullable', 'string', 'size:2'],
+            'properties.lat' => ['nullable', 'numeric', 'between:-90,90', 'required_with:properties.long'],
+            'properties.long' => ['nullable', 'numeric', 'between:-180,180', 'required_with:properties.lat'],
             'subscriptions' => ['nullable', 'array', 'max:20'],
             'subscriptions.*.type' => ['required', Rule::in(array_keys(self::TYPES))],
             'subscriptions.*.token' => ['required', 'string', 'max:4000'],
@@ -81,6 +83,7 @@ class UserController extends Controller
                     'sdk' => 'import',
                 ])->save();
             }
+            $this->locate($subscriber, $data['properties'] ?? []);
 
             return $subscriber;
         });
@@ -103,11 +106,14 @@ class UserController extends Controller
             'properties.language' => ['nullable', 'string', 'max:8'],
             'properties.timezone_id' => ['nullable', 'timezone'],
             'properties.country' => ['nullable', 'string', 'size:2'],
+            'properties.lat' => ['nullable', 'numeric', 'between:-90,90', 'required_with:properties.long'],
+            'properties.long' => ['nullable', 'numeric', 'between:-180,180', 'required_with:properties.lat'],
         ]);
 
         $tagsBefore = $subscriber->tags;
         $this->applyProperties($subscriber, $data['properties']);
         $subscriber->save();
+        $this->locate($subscriber, $data['properties']);
         app(JourneyRunner::class)->tagsChanged($subscriber, $tagsBefore);
 
         return response()->json(['properties' => $this->properties($subscriber)]);
@@ -137,6 +143,24 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * Position sent by the server of the app (OneSignal "lat"/"long"): given
+     * to the push devices of the person, unless the project turned it off.
+     *
+     * @param  array<string, mixed>  $properties
+     */
+    protected function locate(Subscriber $subscriber, array $properties): void
+    {
+        if (! isset($properties['lat'], $properties['long']) || ! $subscriber->project->collectsLocation()) {
+            return;
+        }
+        $subscriber->subscriptions()->whereIn('type', Subscription::PUSH_TYPES)->get()
+            ->each(function (Subscription $subscription) use ($properties) {
+                $subscription->locate((float) $properties['lat'], (float) $properties['long']);
+                $subscription->save();
+            });
+    }
+
     protected function project(Request $request): Project
     {
         return $request->attributes->get('project');
@@ -159,7 +183,16 @@ class UserController extends Controller
             'timezone_id' => $subscriber->timezone,
             'country' => $subscriber->country,
             'last_active' => $subscriber->last_active_at?->getTimestamp(),
+            ...$this->lastLocation($subscriber),
         ], fn ($value) => $value !== null);
+    }
+
+    /** @return array{lat?: float, long?: float} */
+    protected function lastLocation(Subscriber $subscriber): array
+    {
+        $device = $subscriber->subscriptions()->whereNotNull('latitude')->latest('located_at')->first(['latitude', 'longitude']);
+
+        return $device ? ['lat' => $device->latitude, 'long' => $device->longitude] : [];
     }
 
     /** @return array<string, mixed> */

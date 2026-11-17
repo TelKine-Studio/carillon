@@ -175,6 +175,15 @@
                                 <dd @class(['min-w-0 truncate text-zinc-900 dark:text-zinc-100', 'font-mono text-xs' => $mono]) @if ($mono && $value) title="{{ $value }}" @endif>{{ filled($value) ? $value : '—' }}</dd>
                             </div>
                         @endforeach
+                        @if ($device->latitude !== null)
+                            <div class="flex min-w-0 items-center gap-4 border-t border-zinc-100 py-2.5 sm:col-span-2 dark:border-zinc-800">
+                                <dt class="w-32 shrink-0 text-zinc-500">{{ __('Location') }}</dt>
+                                <dd class="flex min-w-0 flex-wrap items-center gap-x-2 text-zinc-900 dark:text-zinc-100">
+                                    <a href="https://www.openstreetmap.org/?mlat={{ $device->latitude }}&mlon={{ $device->longitude }}#map=15/{{ $device->latitude }}/{{ $device->longitude }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 font-mono text-xs hover:text-brand-700 dark:hover:text-brand-300"><x-ui.icon name="map-pin" class="size-3.5" />{{ number_format($device->latitude, 2, '.', '') }}, {{ number_format($device->longitude, 2, '.', '') }}</a>
+                                    <span class="text-xs text-zinc-500">± {{ $n($device->location_accuracy ?? 1100) }} m · {{ $device->located_at?->diffForHumans() }}</span>
+                                </dd>
+                            </div>
+                        @endif
                     </dl>
                 </x-ui.card>
             @empty

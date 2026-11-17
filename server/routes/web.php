@@ -82,6 +82,8 @@ Route::middleware('auth')->group(function () {
         Route::get('icon', [ProjectController::class, 'icon'])->name('icon');
         Route::get('settings/{section?}', [ProjectController::class, 'settings'])->name('settings');
         Route::put('/', [ProjectController::class, 'update'])->name('update');
+        Route::put('location', [ProjectController::class, 'updateLocation'])->name('location.update');
+        Route::delete('location', [ProjectController::class, 'destroyLocations'])->name('location.destroy');
         Route::delete('/', [ProjectController::class, 'destroy'])->name('destroy');
 
         Route::get('stats', StatsController::class)->name('stats');

@@ -49,7 +49,13 @@ If nobody matches: 400 `All included players are not subscribed`.
 Filter fields: `tag` (relations `=`, `!=`, `>`, `<`, `exists`, `not_exists`,
 `time_elapsed_gt`, `time_elapsed_lt`), `language`, `country`, `app_version`,
 `session_count`, `external_id`, `device_type`, `last_session` and
-`first_session` (`hours_ago`).
+`first_session` (`hours_ago`), `location` (devices within `radius` meters of
+`lat`/`long`: `{"field": "location", "lat": 5.32, "long": -4.02, "radius": 5000}`).
+
+Positions come from the SDK (0.4+) when the app already has the location
+permission, or from your server (`properties.lat`/`long` of a user). They are
+rounded to about 1 km; the project can turn them off (Settings → General →
+Device location), which erases the stored ones.
 
 ### Content and options
 
@@ -237,7 +243,9 @@ settings).
 
 - `GET /api/v1/apps/{app_id}/users/by/external_id/{external_id}`
 - `PATCH /api/v1/apps/{app_id}/users/by/external_id/{external_id}` —
-  `{"properties": {"tags": {"plan": "silver", "old": null}}}` (`null` removes a tag)
+  `{"properties": {"tags": {"plan": "silver", "old": null}}}` (`null` removes a tag);
+  `"lat"`/`"long"` set the position of the person's push devices (and the user
+  returned shows the last known one)
 - `DELETE /api/v1/apps/{app_id}/users/by/external_id/{external_id}`
 
 ## Custom events and conversions
@@ -360,8 +368,11 @@ afterwards.
 - `POST /api/v1/sdk/apps/{app_id}/subscriptions` — `{"type": "ios|android|web",
   "token": "…", "environment": "sandbox|production", "language", "timezone",
   "country", "app_version", "device_model", "device_os", "sdk",
-  "external_id", "tags"}` → `{"id", "subscriber_id", "external_id", "enabled", "tags"}`
-- `PATCH …/subscriptions/{id}` — new token, `enabled`, `session: true`…
+  "external_id", "tags", "lat", "long", "location_accuracy"}` →
+  `{"id", "subscriber_id", "external_id", "enabled", "tags", "location"}`
+  (`location: false` when the project does not collect positions)
+- `PATCH …/subscriptions/{id}` — new token, `enabled`, `session: true`,
+  `lat`/`long`, `location_shared: false` (erases the position)…
 - `POST …/subscriptions/{id}/login` — `{"external_id": "user-42"}`
 - `POST …/subscriptions/{id}/logout`
 - `PUT …/subscriptions/{id}/tags` — `{"tags": {"plan": "gold", "old": null}}`

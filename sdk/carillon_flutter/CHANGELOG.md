@@ -1,3 +1,8 @@
+## 0.4.0
+
+- Location: when the app already has the location permission, the SDK sends the last known position of the device (rounded to about 1 km by Carillon), at most once a day or after a move of more than 500 m. It never asks for the permission, never turns the GPS on, and works without Google Play services. iOS loads CoreLocation at run time: apps that do not use the location need no purpose string.
+- `Carillon.location.setShared(false)` stops it for a person who refused (and erases the position known by Carillon); the project can turn it off too (Settings → General), the SDK then stops reading it.
+
 ## 0.3.0
 
 - Live Activities (iOS): `CarillonLiveActivities.observe(YourAttributes.self)` sends Carillon the push-to-start token of the type (iOS 17.2+), the update token of each activity and its end; `Carillon.liveActivities` has the OneSignal calls for activities managed by hand. Calls made before the device is registered are sent once it is.

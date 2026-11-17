@@ -73,6 +73,8 @@ public class CarillonFlutterPlugin: NSObject, FlutterPlugin {
     case "initialNotification":
       result(initialResponse)
       initialResponse = nil
+    case "lastLocation":
+      result(CarillonLocation.lastKnown())
     case "clearAll":
       let center = UNUserNotificationCenter.current()
       center.removeAllDeliveredNotifications()

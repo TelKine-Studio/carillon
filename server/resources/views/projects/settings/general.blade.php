@@ -43,6 +43,40 @@
         </x-settings.section>
     </form>
 
+    @php
+        $located = $project->subscriptions()->whereNotNull('latitude')->count();
+    @endphp
+    <form method="POST" action="{{ route('projects.location.update', $project) }}">
+        @csrf
+        @method('PUT')
+        <x-settings.section class="mt-6" :title="__('Device location')" :description="__('The SDK reads the last known position only when your app already has the location permission. It never asks for it.')" icon="map-pin" :editable="$canConfigure" :fields="['collect_location']">
+            <x-slot:summary>
+                <x-settings.summary>
+                    <x-settings.value :label="__('Collect the position')" :on="$project->collectsLocation()" :value="__('On, when the app has the permission')" :empty="__('Collection turned off')" />
+                    <x-settings.value :label="__('Devices with a position')" :value="number_format($located, 0, ',', ' ')" />
+                </x-settings.summary>
+                <p class="mt-4 text-xs text-zinc-500 dark:text-zinc-400">{{ __('Rounded to about 1 km and refreshed at most once a day. Target it in segments with the condition Location (within a radius).') }}</p>
+            </x-slot:summary>
+            <fieldset @disabled(! $canConfigure) class="space-y-4">
+                <input type="hidden" name="collect_location" value="0">
+                <x-ui.toggle name="collect_location" :checked="$project->collectsLocation()" :label="__('Collect the position of devices')"
+                    :description="__('Turning it off erases the stored positions and tells the SDK to stop. Mention it in the privacy policy of your app.')" />
+            </fieldset>
+            @if ($canConfigure && $located > 0)
+                <x-slot:danger>
+                    <x-ui.button type="submit" form="erase-locations" variant="ghost-danger" class="mr-auto" icon="trash">{{ __('Erase the stored positions') }}</x-ui.button>
+                </x-slot:danger>
+            @endif
+        </x-settings.section>
+    </form>
+    @if ($canConfigure && $located > 0)
+        <form id="erase-locations" method="POST" action="{{ route('projects.location.destroy', $project) }}" class="hidden"
+            data-confirm-title="{{ __('Erase the stored positions?') }}" data-confirm="{{ __(':count devices lose their position until the SDK sends it again.', ['count' => number_format($located, 0, ',', ' ')]) }}" data-confirm-action="{{ __('Erase') }}">
+            @csrf
+            @method('DELETE')
+        </form>
+    @endif
+
     @can('delete', $project)
         <section class="rounded-2xl border border-red-200 bg-red-50/40 p-5 sm:p-6 dark:border-red-500/20 dark:bg-red-500/5" x-data="{ open: {{ $errors->has('confirm_name') ? 'true' : 'false' }} }">
             <div class="flex flex-wrap items-center justify-between gap-4">

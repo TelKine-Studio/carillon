@@ -83,6 +83,7 @@ class CarillonFlutterPlugin :
                 result.success(initialClick)
                 initialClick = null
             }
+            "lastLocation" -> result.success(CarillonLocation.lastKnown(context))
             "clearAll" -> {
                 NotificationManagerCompat.from(context).cancelAll()
                 result.success(null)

@@ -217,6 +217,13 @@ class SubscriptionController extends Controller
             'device_model' => ['nullable', 'string', 'max:64'],
             'device_os' => ['nullable', 'string', 'max:32'],
             'sdk' => ['nullable', 'string', 'max:32'],
+            // Last known position, sent only when the app already has the
+            // location permission (same names as OneSignal).
+            'lat' => ['nullable', 'numeric', 'between:-90,90', 'required_with:long'],
+            'long' => ['nullable', 'numeric', 'between:-180,180', 'required_with:lat'],
+            'location_accuracy' => ['nullable', 'numeric', 'min:0'],
+            // false: the app (or the person) stopped sharing it.
+            'location_shared' => ['nullable', 'boolean'],
         ];
     }
 
@@ -234,6 +241,23 @@ class SubscriptionController extends Controller
             $subscription->sdk = 'carillon';
         }
         $subscription->last_active_at ??= now();
+        $this->applyLocation($subscription, $data);
+    }
+
+    /** @param array<string, mixed> $data */
+    protected function applyLocation(Subscription $subscription, array $data): void
+    {
+        $project = $subscription->project;
+        if (! $project->collectsLocation() || ($data['location_shared'] ?? null) === false) {
+            if ($subscription->latitude !== null) {
+                $subscription->locate(null, null);
+            }
+
+            return;
+        }
+        if (isset($data['lat'], $data['long'])) {
+            $subscription->locate((float) $data['lat'], (float) $data['long'], isset($data['location_accuracy']) ? (float) $data['location_accuracy'] : null);
+        }
     }
 
     /** @param array<string, mixed> $data */
@@ -441,6 +465,8 @@ class SubscriptionController extends Controller
             'external_id' => $subscription->subscriber?->external_id,
             'enabled' => $subscription->enabled,
             'tags' => (object) ($subscription->subscriber?->tags ?? []),
+            // Whether the SDK may send the position (setting of the project).
+            'location' => $subscription->project->collectsLocation(),
         ];
     }
 }

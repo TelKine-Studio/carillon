@@ -13,9 +13,10 @@
             'last_click' => [['>', __('more than … hours ago (or never)')], ['<', __('less than … hours ago')]],
             'event' => [['exists', __('at least once')], ['not_exists', __('never')], ['>', __('more than … times')], ['<', __('fewer than … times')], ['=', __('exactly … times')]],
             'event_value' => [['>', __('total above')], ['<', __('total below')], ['=', __('total of')]],
+            'location' => [['within', __('within (meters)')]],
         ],
     ];
-    $fields = ['tag' => __('Tag'), 'language' => __('Language'), 'country' => __('Country'), 'app_version' => __('App version'), 'session_count' => __('Sessions'), 'last_session' => __('Last session'), 'first_session' => __('First session'), 'external_id' => __('External id'), 'device_type' => __('Platform'), 'event' => __('Event'), 'event_value' => __('Event total (value)'), 'last_click' => __('Last click')];
+    $fields = ['tag' => __('Tag'), 'language' => __('Language'), 'country' => __('Country'), 'app_version' => __('App version'), 'session_count' => __('Sessions'), 'last_session' => __('Last session'), 'first_session' => __('First session'), 'external_id' => __('External id'), 'device_type' => __('Platform'), 'event' => __('Event'), 'event_value' => __('Event total (value)'), 'last_click' => __('Last click'), 'location' => __('Location')];
 @endphp
 <x-layouts.app :title="($segment->exists ? $segment->name : __('New segment')).' · '.$project->name">
     <div class="mx-auto max-w-5xl">
@@ -45,10 +46,10 @@
                                 <p class="my-2 text-xs font-semibold tracking-wide text-zinc-400 uppercase" x-show="c > 0">{{ __('and') }}</p>
                                 <div class="grid gap-2 sm:grid-cols-[180px_minmax(0,1fr)_170px_minmax(0,1fr)_minmax(0,1fr)_auto]">
                                     <x-ui.dynamic-select :options="json_encode(collect($fields)->map(fn ($l, $v) => [$v, $l])->values())" model="condition.field" x-on:change="$nextTick(() => fieldChanged(condition))" />
-                                    <input x-show="usesKey(condition.field)" x-model="condition.key" class="form-control font-mono text-sm" :placeholder="condition.field === 'tag' ? @js(__('tag key')) : @js(__('event name'))">
+                                    <input x-show="usesKey(condition.field)" x-model="condition.key" class="form-control font-mono text-sm" :placeholder="condition.field === 'tag' ? @js(__('tag key')) : (condition.field === 'location' ? @js(__('latitude, longitude')) : @js(__('event name')))">
                                     <span x-show="!usesKey(condition.field)" class="hidden sm:block"></span>
                                     <x-ui.dynamic-select options="relations(condition.field)" model="condition.relation" />
-                                    <input x-show="needsValue(condition)" x-model="condition.value" class="form-control" placeholder="{{ __('value') }}">
+                                    <input x-show="needsValue(condition)" x-model="condition.value" class="form-control" :type="condition.field === 'location' ? 'number' : 'text'" :placeholder="condition.field === 'location' ? @js(__('radius in meters')) : @js(__('value'))">
                                     <span x-show="!needsValue(condition)" class="hidden sm:block"></span>
                                     <input x-show="usesHours(condition.field)" x-model="condition.hours_ago" type="number" min="0" step="any" class="form-control" :placeholder="['event', 'event_value'].includes(condition.field) ? @js(__('over the last … hours')) : @js(__('hours'))">
                                     <span x-show="!usesHours(condition.field)" class="hidden sm:block"></span>

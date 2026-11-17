@@ -100,6 +100,17 @@ Carillon.inAppMessages.addClickListener((messageId, button) {
 });
 ```
 
+## Location
+
+When your app **already has** the location permission (it asked for it for its own needs), the SDK sends the last known position of the device: at most once a day, or after a move of more than 500 m. Carillon never asks for the permission, never turns the GPS on, and rounds the position to about 1 km. Target it in segments with the condition *Location* (within a radius), or in the API with `{"field": "location", "lat": 5.32, "long": -4.02, "radius": 5000}`.
+
+```dart
+// A person refused in your app: stop, and erase the position known by Carillon.
+await Carillon.location.setShared(false);
+```
+
+The project can turn it off for every device in Carillon (Settings → General → Device location). Mention it in the privacy policy of your app; on the App Store it is an *approximate location*.
+
 ## iOS setup
 
 1. In Xcode, *Runner → Signing & Capabilities*: add **Push Notifications**.

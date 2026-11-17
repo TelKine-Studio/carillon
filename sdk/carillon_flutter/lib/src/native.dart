@@ -108,6 +108,16 @@ class NativePush extends PushPlatform {
   Future<void> clearAll() => _channel.invokeMethod('clearAll');
 
   @override
+  Future<Map<String, dynamic>?> lastLocation() async {
+    try {
+      final value = await _channel.invokeMethod<Map>('lastLocation');
+      return value == null ? null : Map<String, dynamic>.from(value);
+    } on MissingPluginException {
+      return null;
+    }
+  }
+
+  @override
   Future<void> share(Map<String, String?> values) =>
       _channel.invokeMethod('share', values);
 

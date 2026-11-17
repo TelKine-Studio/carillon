@@ -137,6 +137,12 @@ class Project extends Model
         return data_get($this->settings, $key, $default);
     }
 
+    /** The SDK reports the position of devices whose app has the permission (on unless turned off). */
+    public function collectsLocation(): bool
+    {
+        return (bool) $this->setting('collect_location', true);
+    }
+
     public function initials(): string
     {
         return collect(preg_split('/\s+/', trim($this->name)))

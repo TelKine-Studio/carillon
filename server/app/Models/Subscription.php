@@ -27,6 +27,9 @@ class Subscription extends Model
     public const PROVIDERS = ['ios' => 'apns', 'android' => 'fcm', 'huawei' => 'hms', 'amazon' => 'adm', 'web' => 'webpush', 'email' => 'email', 'sms' => 'sms', 'whatsapp' => 'whatsapp'];
 
     /** Marks a device imported from OneSignal that the Carillon SDK has not registered yet. */
+    /** Decimals kept of the coordinates: 2 ≈ 1.1 km ("approximate location" for Apple). */
+    public const LOCATION_DECIMALS = 2;
+
     public const ONESIGNAL_SDK = 'onesignal-import';
 
     protected static function booted(): void
@@ -49,6 +52,10 @@ class Subscription extends Model
             'invalid_at' => 'datetime',
             'last_active_at' => 'datetime',
             'seen_at' => 'datetime',
+            'latitude' => 'float',
+            'longitude' => 'float',
+            'location_accuracy' => 'integer',
+            'located_at' => 'datetime',
             'sessions' => 'integer',
         ];
     }
@@ -110,5 +117,17 @@ class Subscription extends Model
     public function webSubscription(): ?array
     {
         return $this->type === 'web' ? json_decode((string) $this->token, true) : null;
+    }
+
+    /** Stores the position (rounded), or forgets it with nulls. */
+    public function locate(?float $latitude, ?float $longitude, ?float $accuracy = null): void
+    {
+        $known = $latitude !== null && $longitude !== null;
+        $this->forceFill([
+            'latitude' => $known ? round($latitude, self::LOCATION_DECIMALS) : null,
+            'longitude' => $known ? round($longitude, self::LOCATION_DECIMALS) : null,
+            'location_accuracy' => $known && $accuracy !== null ? (int) max(round($accuracy), 1100) : null,
+            'located_at' => $known ? now() : null,
+        ]);
     }
 }

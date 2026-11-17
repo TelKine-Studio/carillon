@@ -39,7 +39,11 @@ Automations that run on their own:
   platform, events, messages received; test devices.
 - **Segments** on tags, language, country, app version, sessions, last
   session, platform, **events** (how many times, over a period), **total
-  value** of an event (e.g. money spent) and **last click**.
+  value** of an event (e.g. money spent), **last click** and **location**
+  (within a radius).
+- **Location** of devices, read by the SDK only when the app already has the
+  permission (never asked), rounded to about 1 km; on by default, can be
+  turned off per project.
 - **Import** from OneSignal (automatic nightly sync) or a CSV file.
 
 ## In-app messages

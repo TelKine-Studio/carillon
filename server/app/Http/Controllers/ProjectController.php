@@ -125,6 +125,33 @@ class ProjectController extends Controller
         ]);
     }
 
+    /** Whether the SDK reports the position of devices whose app has the permission. */
+    public function updateLocation(Request $request, Project $project): RedirectResponse
+    {
+        $this->authorize('configure', $project);
+        $on = $request->boolean('collect_location');
+
+        $project->update(['settings' => array_merge($project->settings ?? [], ['collect_location' => $on])]);
+        if (! $on) {
+            $this->forgetLocations($project);
+        }
+
+        return back()->with('success', $on ? __('Positions are collected again.') : __('Positions are no longer collected; the stored ones are erased.'));
+    }
+
+    public function destroyLocations(Project $project): RedirectResponse
+    {
+        $this->authorize('configure', $project);
+        $this->forgetLocations($project);
+
+        return back()->with('success', __('Stored positions erased.'));
+    }
+
+    protected function forgetLocations(Project $project): void
+    {
+        $project->subscriptions()->whereNotNull('latitude')->update(['latitude' => null, 'longitude' => null, 'location_accuracy' => null, 'located_at' => null]);
+    }
+
     public function update(Request $request, Project $project): RedirectResponse
     {
         $this->authorize('configure', $project);

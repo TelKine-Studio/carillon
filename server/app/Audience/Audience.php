@@ -175,6 +175,11 @@ class Audience
     protected function applyFilter(Builder $query, array $filter): void
     {
         $field = $filter['field'] ?? null;
+        if ($field === 'location') {
+            $this->location($query, $filter);
+
+            return;
+        }
         $relation = $filter['relation'] ?? '=';
         $value = $filter['value'] ?? null;
 
@@ -273,6 +278,41 @@ class Audience
             ->where('deliveries.clicked_at', '>=', $limit);
 
         $relation === '>' ? $query->whereNotExists($clicked) : $query->whereExists($clicked);
+    }
+
+    /**
+     * Devices last seen within "radius" meters of lat/long (OneSignal format).
+     * Flat-earth distance (exact enough below a few hundred km), computed
+     * with plain arithmetic so that it runs on SQLite as on PostgreSQL.
+     *
+     * @param  Builder<Subscription>  $query
+     * @param  array<string, mixed>  $filter
+     */
+    protected function location(Builder $query, array $filter): void
+    {
+        $lat = $filter['lat'] ?? null;
+        $long = $filter['long'] ?? null;
+        $radius = (float) ($filter['radius'] ?? 0);
+        if (! is_numeric($lat) || ! is_numeric($long) || abs((float) $lat) > 90 || abs((float) $long) > 180 || $radius <= 0) {
+            throw ValidationException::withMessages(['filters' => __('A location condition needs lat, long and a radius in meters.')]);
+        }
+        $lat = (float) $lat;
+        $long = (float) $long;
+        $radius = min($radius, 1_000_000);
+
+        $metersPerDegree = 111_320;
+        $cos = max(cos(deg2rad($lat)), 0.01);
+        $dLat = $radius / $metersPerDegree;
+        $dLong = $radius / ($metersPerDegree * $cos);
+
+        $query->whereNotNull('subscriptions.latitude')
+            ->whereBetween('subscriptions.latitude', [$lat - $dLat, $lat + $dLat])
+            ->whereBetween('subscriptions.longitude', [$long - $dLong, $long + $dLong])
+            ->whereRaw(
+                '((subscriptions.latitude - cast(? as double precision)) * (subscriptions.latitude - cast(? as double precision)) + '
+                .'(subscriptions.longitude - cast(? as double precision)) * (subscriptions.longitude - cast(? as double precision)) * cast(? as double precision)) <= cast(? as double precision)',
+                [$lat, $lat, $long, $long, $cos * $cos, ($radius / $metersPerDegree) ** 2],
+            );
     }
 
     /** @param Builder<Subscription> $query */

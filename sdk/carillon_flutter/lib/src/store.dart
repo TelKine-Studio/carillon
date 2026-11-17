@@ -31,6 +31,28 @@ class CarillonStore {
   bool get optedOut => _prefs.getBool('${_prefix}opted_out') ?? false;
   set optedOut(bool value) => _prefs.setBool('${_prefix}opted_out', value);
 
+  /// The app (or the person) lets Carillon read the position: on by default.
+  bool get locationShared => _prefs.getBool('${_prefix}location_shared') ?? true;
+  set locationShared(bool value) =>
+      _prefs.setBool('${_prefix}location_shared', value);
+
+  /// The project collects positions (answer of the server): on by default.
+  bool get locationAllowed =>
+      _prefs.getBool('${_prefix}location_allowed') ?? true;
+  set locationAllowed(bool value) =>
+      _prefs.setBool('${_prefix}location_allowed', value);
+
+  /// Last position sent: {lat, long, at (ms)}.
+  Map<String, num>? get sentLocation {
+    final raw = _prefs.getString('${_prefix}location');
+    return raw == null ? null : Map<String, num>.from(jsonDecode(raw) as Map);
+  }
+
+  set sentLocation(Map<String, num>? value) => _set(
+    'location',
+    value == null ? null : jsonEncode(value),
+  );
+
   DateTime? get lastSession {
     final value = _prefs.getInt('${_prefix}last_session');
     return value == null ? null : DateTime.fromMillisecondsSinceEpoch(value);

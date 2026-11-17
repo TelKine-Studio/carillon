@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
@@ -20,7 +21,7 @@ import 'store.dart';
 class Carillon {
   Carillon._();
 
-  static const sdkVersion = 'carillon-flutter/0.3.0';
+  static const sdkVersion = 'carillon-flutter/0.4.0';
 
   static _Engine? _engine;
   static final _started = Completer<_Engine>();
@@ -95,9 +96,33 @@ class Carillon {
   /// Live Activities of iOS (see CarillonLiveActivities.observe on the
   /// native side, which reports the tokens by itself).
   static final liveActivities = CarillonLiveActivitiesApi._();
+
+  /// Position of the device: read only when the app already has the
+  /// location permission (Carillon never asks for it).
+  static final location = CarillonLocation._();
 }
 
 /// Same calls as OneSignal.LiveActivities, for activities managed by hand.
+/// The SDK sends the last known position of the device when the app
+/// already has the location permission, at most once a day (or after a
+/// move of more than 500 m). It never asks for the permission and never
+/// turns the GPS on. Stop it with [setShared] (for a person who refused),
+/// or for the whole project in Carillon (Settings → General).
+class CarillonLocation {
+  CarillonLocation._();
+
+  /// Whether the app lets Carillon read the position (true by default).
+  Future<bool> get isShared =>
+      Carillon._whenReady.then((engine) => engine.store.locationShared);
+
+  /// false: stops reading it and erases the position known by Carillon.
+  Future<void> setShared(bool shared) => Carillon._whenReadyCall((engine) async {
+    engine.store.locationShared = shared;
+    engine.store.sentLocation = null;
+    await engine.sync();
+  });
+}
+
 class CarillonLiveActivitiesApi {
   CarillonLiveActivitiesApi._();
 
@@ -583,6 +608,7 @@ class _Engine with WidgetsBindingObserver {
       'enabled': enabled,
       'environment': await platform.environment(),
       ...await _device(),
+      ...await _location(),
     }..removeWhere((key, value) => value == null);
 
     final id = store.subscriptionId;
@@ -618,6 +644,15 @@ class _Engine with WidgetsBindingObserver {
 
     store.token = token;
     if (newSession) store.lastSession = now;
+    final allowed = result?['location'];
+    if (allowed is bool) store.locationAllowed = allowed;
+    if (body.containsKey('lat')) {
+      store.sentLocation = {
+        'lat': body['lat'] as num,
+        'long': body['long'] as num,
+        'at': now.millisecondsSinceEpoch,
+      };
+    }
     _sessionPending = false;
     await platform.share({
       'server': store.serverUrl,
@@ -767,6 +802,42 @@ class _Engine with WidgetsBindingObserver {
       const Duration(milliseconds: 400),
       () => _presentInApp(trigger, event: event),
     );
+  }
+
+  /// The position, when there is a new one worth sending.
+  Future<Map<String, dynamic>> _location() async {
+    if (!store.locationShared) return {'location_shared': false};
+    if (!store.locationAllowed) return {};
+    final position = await platform.lastLocation();
+    final lat = position?['lat'];
+    final long = position?['long'];
+    if (lat is! num || long is! num) return {};
+
+    final sent = store.sentLocation;
+    if (sent != null) {
+      final age = DateTime.now().millisecondsSinceEpoch - (sent['at'] ?? 0);
+      final moved = _meters(sent['lat']!, sent['long']!, lat, long);
+      if (age < const Duration(days: 1).inMilliseconds && moved < 500) {
+        return {};
+      }
+    }
+    return {
+      'lat': lat,
+      'long': long,
+      'location_accuracy': ?position?['accuracy'],
+    };
+  }
+
+  static double _meters(num lat1, num long1, num lat2, num long2) {
+    const radius = 6371000.0;
+    final dLat = (lat2 - lat1) * math.pi / 180;
+    final dLong = (long2 - long1) * math.pi / 180;
+    final a =
+        math.pow(math.sin(dLat / 2), 2) +
+        math.cos(lat1 * math.pi / 180) *
+            math.cos(lat2 * math.pi / 180) *
+            math.pow(math.sin(dLong / 2), 2);
+    return 2 * radius * math.asin(math.sqrt(a));
   }
 
   Future<Map<String, dynamic>> _device() async {

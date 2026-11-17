@@ -1,6 +1,6 @@
 name: carillon_flutter
 description: "Push notifications and in-app messages for Flutter apps with Carillon, the self-hosted OneSignal alternative: APNs, FCM, Huawei, Amazon, users, tags and events."
-version: 0.3.0
+version: 0.4.0
 issue_tracker: https://github.com/TelKine-Studio/carillon/issues
 topics: [push-notifications, onesignal, notifications, self-hosted, fcm]
 homepage: https://github.com/TelKine-Studio/carillon

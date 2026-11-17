@@ -49,6 +49,10 @@ abstract class PushPlatform {
 
   Future<void> clearAll();
 
+  /// Last known position {lat, long, accuracy, time}, only when the app
+  /// already has the location permission (never asked by Carillon).
+  Future<Map<String, dynamic>?> lastLocation() async => null;
+
   /// Makes the server, project and device known to the notification
   /// service extension (iOS), which reports receptions.
   Future<void> share(Map<String, String?> values) async {}
