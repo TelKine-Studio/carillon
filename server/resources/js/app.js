@@ -962,8 +962,7 @@ Alpine.data('segmentBuilder', (config) => ({
     },
 
     refresh() {
-        // Template editor: no audience.
-        if (!config.estimateUrl) return;
+        if (!config.countUrl) return;
         clearTimeout(this.timer);
         this.timer = setTimeout(async () => {
             this.loading = true;
