@@ -18,7 +18,9 @@ services:
         condition: service_healthy
     environment:
       DB_CONNECTION: pgsql
-      DB_HOST: postgres
+      # A name of its own: on a network shared with other apps (Coolify),
+      # "postgres" may also be another app's database.
+      DB_HOST: carillon-postgres
       DB_PORT: 5432
       DB_DATABASE: carillon
       DB_USERNAME: carillon
@@ -37,6 +39,10 @@ services:
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - carillon-postgres
     environment:
       POSTGRES_DB: carillon
       POSTGRES_USER: carillon
