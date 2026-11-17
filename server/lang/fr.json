@@ -2379,5 +2379,21 @@
     "Or start from a quick journey": "Ou partez d’un parcours prêt à l’emploi",
     "minute": "minute",
     "hour": "heure",
-    "day": "jour"
+    "day": "jour",
+    "All messages": "Tous les messages",
+    "Users & devices": "Utilisateurs et appareils",
+    "In-app": "In-app",
+    "People who used the app, day by day.": "Utilisateurs qui ont ouvert l’app, jour par jour.",
+    "No session in this period.": "Aucune session sur la période.",
+    "Engagement trends": "Tendances d’engagement",
+    "Click rate of the push notifications.": "Taux de clic des notifications push.",
+    "Total subscribed": "Total des abonnés",
+    "Reachable devices at the end of each day.": "Appareils joignables à la fin de chaque jour.",
+    "Subscription changes": "Changements d’abonnement",
+    ":count unsubscription|:count unsubscriptions": ":count désabonnement|:count désabonnements",
+    "Subscribes": "Abonnements",
+    "Unsubscribes": "Désabonnements",
+    "No change in this period.": "Aucun changement sur la période.",
+    "Weekly cohort retention": "Rétention hebdomadaire par cohorte",
+    "People first seen in a week, and the share of them back in each of the following weeks.": "Les utilisateurs arrivés une semaine donnée, et la part d’entre eux revenus chacune des semaines suivantes."
 }

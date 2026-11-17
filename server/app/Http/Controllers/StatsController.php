@@ -52,6 +52,16 @@ class StatsController extends Controller
         $dates = collect(range(0, $days - 1))->map(fn (int $offset) => $start->addDays($offset));
         $series = fn (callable $value) => $dates->map(fn (CarbonImmutable $date) => ['date' => $date, 'value' => (int) $value($date->toDateString())])->all();
 
+        // People who used the app each day (sessions of the SDK, clicks, nightly sync).
+        $activePerDay = DB::table('activity_days')->where('project_id', $project->id)->where('day', '>=', $start->toDateString())
+            ->selectRaw('day, count(*) as total')->groupBy('day')->pluck('total', 'day');
+        $activePrevious = DB::table('activity_days')->where('project_id', $project->id)->whereBetween('day', [$previousStart->toDateString(), $start->subDay()->toDateString()])->count();
+        // Subscription changes, like OneSignal: first subscriptions and unsubscriptions per day.
+        $changes = fn (string $column) => $project->subscriptions()->whereIn('type', Subscription::PUSH_TYPES)->where($column, '>=', $start)
+            ->selectRaw("date({$column}) as day, count(*) as total")->groupBy(DB::raw("date({$column})"))->pluck('total', 'day');
+        $subscribedPerDay = $changes('subscribed_at');
+        $unsubscribedPerDay = $changes('unsubscribed_at');
+
         $delivered = (int) $perDay->sum('delivered');
         $clicked = (int) $perDay->sum('clicked');
         $newDevices = (int) $newPerDay->sum();
@@ -73,6 +83,9 @@ class StatsController extends Controller
                 'messages' => (int) $perDay->sum('messages'),
                 'delivered' => $delivered,
                 'clicked' => $clicked,
+                'active' => (int) $activePerDay->sum(),
+                'subscribed' => (int) $subscribedPerDay->sum(),
+                'unsubscribed' => (int) $unsubscribedPerDay->sum(),
                 'ctr' => $delivered > 0 ? $clicked / $delivered * 100 : null,
                 'previous' => [
                     'delivered' => (int) ($previous->delivered ?? 0),
@@ -80,6 +93,7 @@ class StatsController extends Controller
                     'ctr' => ($previous->delivered ?? 0) > 0 ? $previous->clicked / $previous->delivered * 100 : null,
                     'new_devices' => $project->subscriptions()->whereIn('type', Subscription::PUSH_TYPES)->whereBetween('created_at', [$previousStart, $start])->count(),
                     'devices' => max(0, $devices - $newDevices),
+                    'active' => $activePrevious,
                 ],
             ],
             'charts' => [
@@ -87,6 +101,9 @@ class StatsController extends Controller
                 'clicked' => $series(fn (string $day) => $perDay[$day]->clicked ?? 0),
                 'new_devices' => $series(fn (string $day) => $newPerDay[$day] ?? 0),
                 'devices' => $totals,
+                'active' => $series(fn (string $day) => $activePerDay[$day] ?? 0),
+                'subscribed' => $series(fn (string $day) => $subscribedPerDay[$day] ?? 0),
+                'unsubscribed' => $series(fn (string $day) => $unsubscribedPerDay[$day] ?? 0),
             ],
             'breakdowns' => [
                 'platform' => $this->breakdown((clone $reachable)->select('type as label'), fn ($type) => ['ios' => 'iOS', 'android' => 'Android', 'huawei' => 'Huawei', 'amazon' => 'Amazon', 'web' => __('Web')][$type] ?? $type),

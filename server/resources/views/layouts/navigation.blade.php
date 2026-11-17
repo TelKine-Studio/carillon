@@ -3,18 +3,27 @@
     $user = auth()->user();
     $current = request()->route('project');
     $current = $current instanceof \App\Models\Project ? $current : null;
-    // Sections of a project; each appears once its pages exist.
-    $sections = collect([
-        ['route' => 'projects.show', 'match' => 'projects.show', 'icon' => 'home', 'label' => __('Overview')],
-        ['route' => 'projects.stats', 'match' => 'projects.stats', 'icon' => 'bar-chart', 'label' => __('Statistics')],
-        ['route' => 'projects.messages.index', 'match' => 'projects.messages.*', 'icon' => 'send', 'label' => __('Messages')],
-        ['route' => 'projects.journeys.index', 'match' => 'projects.journeys.*', 'icon' => 'zap', 'label' => __('Journeys')],
-        ['route' => 'projects.in-app.index', 'match' => 'projects.in-app.*', 'icon' => 'message', 'label' => __('In-app')],
-        ['route' => 'projects.subscribers.index', 'match' => 'projects.subscribers.*', 'icon' => 'users', 'label' => __('Audience')],
-        ['route' => 'projects.segments.index', 'match' => 'projects.segments.*', 'icon' => 'layers', 'label' => __('Segments')],
-        ['route' => 'projects.templates.index', 'match' => 'projects.templates.*', 'icon' => 'file', 'label' => __('Templates')],
-        ['route' => 'projects.settings', 'match' => 'projects.settings*', 'icon' => 'settings', 'label' => __('Settings')],
-    ])->filter(fn ($item) => \Illuminate\Support\Facades\Route::has($item['route']));
+    // Sections of a project, grouped like OneSignal (top, Messages, Audience, then the settings).
+    $groups = collect([
+        'main' => [null, [
+            ['route' => 'projects.show', 'match' => 'projects.show', 'icon' => 'home', 'label' => __('Overview')],
+            ['route' => 'projects.stats', 'match' => 'projects.stats', 'icon' => 'bar-chart', 'label' => __('Statistics')],
+            ['route' => 'projects.journeys.index', 'match' => 'projects.journeys.*', 'icon' => 'zap', 'label' => __('Journeys')],
+        ]],
+        'messages' => [__('Messages'), [
+            ['route' => 'projects.messages.index', 'match' => 'projects.messages.*', 'icon' => 'send', 'label' => __('All messages')],
+            ['route' => 'projects.in-app.index', 'match' => 'projects.in-app.*', 'icon' => 'message', 'label' => __('In-app')],
+            ['route' => 'projects.live-activities.index', 'match' => 'projects.live-activities.*', 'icon' => 'activity', 'label' => __('Live Activities')],
+            ['route' => 'projects.templates.index', 'match' => 'projects.templates.*', 'icon' => 'file', 'label' => __('Templates')],
+        ]],
+        'audience' => [__('Audience'), [
+            ['route' => 'projects.subscribers.index', 'match' => ['projects.subscribers.*', 'projects.test-devices.*', 'projects.imports.*'], 'icon' => 'users', 'label' => __('Users & devices')],
+            ['route' => 'projects.segments.index', 'match' => 'projects.segments.*', 'icon' => 'layers', 'label' => __('Segments')],
+        ]],
+        'settings' => [null, [
+            ['route' => 'projects.settings', 'match' => 'projects.settings*', 'icon' => 'settings', 'label' => __('Settings')],
+        ]],
+    ])->map(fn ($group) => [$group[0], array_values(array_filter($group[1], fn ($item) => \Illuminate\Support\Facades\Route::has($item['route'])))]);
     $admin = [
         ['route' => 'admin.users.index', 'match' => 'admin.users.*', 'icon' => 'users', 'label' => __('Users'), 'count' => $nav['invitations'] ?: null],
         ['route' => 'admin.audit', 'match' => 'admin.audit', 'icon' => 'shield', 'label' => __('Audit log')],
@@ -68,12 +77,17 @@
         </div>
 
         @if ($current)
-            <div class="space-y-1">
-                @foreach ($sections as $item)
-                    <a href="{{ route($item['route'], $current) }}" @class(['nav-link', 'nav-link-active' => request()->routeIs($item['match'])])>
-                        <x-ui.icon :name="$item['icon']" class="size-[18px]" />
-                        <span class="flex-1">{{ $item['label'] }}</span>
-                    </a>
+            <div class="space-y-5">
+                @foreach ($groups as [$groupLabel, $items])
+                    <div class="space-y-0.5">
+                        @if ($groupLabel)<p class="eyebrow px-3 pb-1">{{ $groupLabel }}</p>@endif
+                        @foreach ($items as $item)
+                            <a href="{{ route($item['route'], $current) }}" @class(['nav-link', 'nav-link-active' => request()->routeIs(...(array) $item['match'])])>
+                                <x-ui.icon :name="$item['icon']" class="size-[18px]" />
+                                <span class="flex-1">{{ $item['label'] }}</span>
+                            </a>
+                        @endforeach
+                    </div>
                 @endforeach
             </div>
         @endif

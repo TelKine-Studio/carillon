@@ -40,14 +40,33 @@
             @endforeach
         </nav>
 
-        {{-- Overview: four analytic cards. --}}
+        {{-- Overview, as the Analytics of OneSignal: sessions, engagement, subscribers, changes, then the cohorts. --}}
         <div x-show="tab === 'overview'" class="grid gap-4 lg:grid-cols-2">
-            @foreach ([
-                ['delivered', __('Delivered notifications'), $n($kpis['delivered']), $trend($kpis['delivered'], $kpis['previous']['delivered']), trans_choice(':count message|:count messages', $kpis['messages'], ['count' => $n($kpis['messages'])]), $charts['delivered'], __('No message sent in this period.'), 'engagement'],
-                ['clicked', __('Click rate'), $pct($kpis['ctr']), $trend($kpis['ctr'], $kpis['previous']['ctr']), trans_choice(':count click|:count clicks', $kpis['clicked'], ['count' => $n($kpis['clicked'])]), $charts['clicked'], __('No click in this period.'), 'engagement'],
-                ['new_devices', __('New devices'), $n($kpis['new_devices']), $trend($kpis['new_devices'], $kpis['previous']['new_devices']), __('Devices registered by the SDK or imported.'), $charts['new_devices'], __('No new device in this period.'), 'audience'],
-                ['devices', __('Reachable devices'), $n($kpis['devices']), $trend($kpis['devices'], $kpis['previous']['devices']), __('Total at the end of each day.'), $charts['devices'], __('No device yet.'), 'audience'],
-            ] as [$key, $title, $value, $change, $metric, $points, $empty, $more])
+            @php
+                $colors = ['brand' => '#E4531E', 'gray' => '#A1A1AA', 'red' => '#EF4444', 'green' => '#10B981'];
+                $cards = [
+                    ['active', __('Sessions'), $n($kpis['active']), $trend($kpis['active'], $kpis['previous']['active']), __('People who used the app, day by day.'), 'bars', $charts['active'], __('No session in this period.'), 'retention'],
+                    ['engagement', __('Engagement trends'), $pct($kpis['ctr']), $trend($kpis['ctr'], $kpis['previous']['ctr']), __('Click rate of the push notifications.'), [
+                        ['label' => __('Delivered'), 'color' => $colors['gray'], 'points' => $charts['delivered']],
+                        ['label' => __('Clicked'), 'color' => $colors['brand'], 'points' => $charts['clicked']],
+                        ['label' => __('Unsubscribes'), 'color' => $colors['red'], 'points' => $charts['unsubscribed']],
+                    ], null, __('No message sent in this period.'), 'engagement'],
+                    ['subscribers', __('Total subscribed'), $n($kpis['devices']), $trend($kpis['devices'], $kpis['previous']['devices']), __('Reachable devices at the end of each day.'), [
+                        ['label' => __('Subscribed devices'), 'color' => $colors['brand'], 'points' => $charts['devices']],
+                    ], null, __('No device yet.'), 'audience'],
+                    ['changes', __('Subscription changes'), $n($kpis['subscribed']), null, trans_choice(':count unsubscription|:count unsubscriptions', $kpis['unsubscribed'], ['count' => $n($kpis['unsubscribed'])]), [
+                        ['label' => __('Subscribes'), 'color' => $colors['green'], 'points' => $charts['subscribed']],
+                        ['label' => __('Unsubscribes'), 'color' => $colors['red'], 'points' => $charts['unsubscribed']],
+                    ], null, __('No change in this period.'), 'audience'],
+                ];
+            @endphp
+            @foreach ($cards as $card)
+                @php
+                    [$key, $title, $value, $change, $metric, $chart] = $card;
+                    $points = $card[6] ?? null;
+                    $empty = $card[7];
+                    $more = $card[8];
+                @endphp
                 <section class="card flex flex-col p-5 sm:p-6">
                     <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">{{ $title }}</h2>
                     <p class="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -56,13 +75,24 @@
                     </p>
                     <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ $metric }}</p>
                     <div class="mt-4 flex-1">
-                        <x-ui.bar-chart :points="$points" :label="$title" :empty="$empty" />
+                        @if ($chart === 'bars')
+                            <x-ui.bar-chart :points="$points" :label="$title" :empty="$empty" />
+                        @else
+                            <x-ui.line-chart :series="$chart" :label="$title" :empty="$empty" />
+                        @endif
                     </div>
                     <div class="mt-4 flex justify-end border-t border-zinc-100 pt-3 dark:border-zinc-800">
                         <button type="button" x-on:click="go('{{ $more }}')" class="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:text-brand-800 dark:text-brand-300 dark:hover:text-brand-200">{{ __('View details') }}<x-ui.icon name="chevron-right" class="size-4" /></button>
                     </div>
                 </section>
             @endforeach
+            <section class="card lg:col-span-2">
+                <header class="px-5 pt-5 sm:px-6">
+                    <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">{{ __('Weekly cohort retention') }}</h2>
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ __('People first seen in a week, and the share of them back in each of the following weeks.') }}</p>
+                </header>
+                <div class="mt-3">@include('stats.partials.retention')</div>
+            </section>
         </div>
 
         {{-- Engagement: clicks and the best messages. --}}
@@ -196,44 +226,7 @@
         {{-- Retention by cohort. --}}
         <div x-show="tab === 'retention'" x-cloak>
     <x-ui.card :title="__('Retention by cohort')" :description="__('People grouped by the week they were first seen, and the share of them who used the app again in the following weeks.')" icon="activity" :padding="false">
-        @if (collect($retention)->sum('size') === 0)
-            <p class="px-5 pb-5 text-sm text-zinc-500 sm:px-6">{{ __('No new people in the last 8 weeks yet.') }}</p>
-        @else
-            <div class="overflow-x-auto">
-                <table class="w-full min-w-[560px] text-sm">
-                    <thead class="text-xs text-zinc-500">
-                        <tr class="border-b border-zinc-100 dark:border-zinc-800">
-                            <th class="px-5 py-2.5 text-left font-medium sm:px-6">{{ __('Week of arrival') }}</th>
-                            <th class="px-3 py-2.5 text-right font-medium">{{ __('People') }}</th>
-                            @foreach (range(0, 7) as $week)
-                                <th class="px-1 py-2.5 text-center font-medium">{{ $week === 0 ? __('Week 0') : __('W:n', ['n' => $week]) }}</th>
-                            @endforeach
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($retention as $row)
-                            <tr>
-                                <td class="px-5 py-1 whitespace-nowrap text-zinc-700 sm:px-6 dark:text-zinc-300">{{ $row['start']->isoFormat('D MMM') }}</td>
-                                <td class="px-3 py-1 text-right tabular-nums text-zinc-900 dark:text-white">{{ $n($row['size']) }}</td>
-                                @foreach ($row['weeks'] as $week => $value)
-                                    <td class="p-0.5">
-                                        @if ($value === null || $row['size'] === 0)
-                                            <span class="block h-9 rounded-md bg-zinc-50 dark:bg-white/[.03]"></span>
-                                        @else
-                                            {{-- One hue, darker = more people back; the text keeps the ink colors. --}}
-                                            <span class="retention-cell flex h-9 items-center justify-center rounded-md text-xs font-medium tabular-nums {{ $value >= 70 ? 'text-white' : 'text-zinc-800 dark:text-zinc-100' }}"
-                                                style="--level: {{ round(8 + min(100, $value) * 0.84) }}%"
-                                                title="{{ __(':value of the people first seen the week of :date were active :weeks week(s) later', ['value' => $pct($value), 'date' => $row['start']->isoFormat('D MMM'), 'weeks' => $week]) }}">{{ $pct($value) }}</span>
-                                        @endif
-                                    </td>
-                                @endforeach
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-            <p class="px-5 pt-3 pb-5 text-xs text-zinc-500 sm:px-6">{{ __('Activity is counted from the app sessions (Carillon SDK), the clicks and, for devices still on OneSignal, the nightly sync.') }}</p>
-        @endif
+        @include('stats.partials.retention')
     </x-ui.card>
 
         </div>

@@ -31,6 +31,7 @@ class StatsTest extends TestCase
         $this->actingAs($owner)->get(route('projects.stats', [$project, 'days' => 7]))
             ->assertOk()
             ->assertSee('Statistics')
+            ->assertSee(__('Engagement trends'))->assertSee(__('Subscription changes'))->assertSee(__('Weekly cohort retention'))->assertSee(__('Sessions'))
             ->assertSee('10 %')
             ->assertSee('Bonus today')
             ->assertSee('iOS')
