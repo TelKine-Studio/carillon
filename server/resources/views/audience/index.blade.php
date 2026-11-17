@@ -128,20 +128,28 @@
                 :description="$search || $platform || $state ? __('Try another search or filter.') : __('Devices appear here once your app uses the Carillon SDK with this App ID.')" />
         @endforelse
     @elseif ($view === 'test')
-        @php $testCols = 'lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_170px_110px_200px]'; @endphp
+        {{-- Same columns as the devices, with the name of the test device first (like OneSignal). --}}
+        @php $testCols = 'lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1.1fr)_120px_110px_36px]'; @endphp
         <div class="hidden gap-4 rounded-t-2xl border-b border-zinc-200 bg-zinc-50 px-5 py-3 text-xs font-medium text-zinc-500 lg:grid {{ $testCols }} dark:border-zinc-800 dark:bg-white/[.03]">
-            <span>{{ __('Device') }}</span><span>{{ __('Person') }}</span><span>{!! $sortLink('last_active', __('Last seen')) !!}</span><span>{{ __('State') }}</span><span></span>
+            <span>{{ __('Name') }}</span><span>{{ __('Device') }}</span><span>{{ __('Person') }}</span><span>{{ __('Tags') }}</span><span>{!! $sortLink('last_active', __('Last seen')) !!}</span><span>{{ __('State') }}</span><span></span>
         </div>
         @forelse ($results as $device)
-            @php $person = $device->subscriber; @endphp
-            <div class="relative grid gap-3 border-t border-zinc-100 px-4 py-3 transition first:border-0 last:rounded-b-2xl hover:bg-zinc-50/80 sm:px-5 lg:items-center lg:gap-4 {{ $testCols }} dark:border-zinc-800 dark:hover:bg-white/[.02]">
-                <div class="flex min-w-0 items-center gap-3">
+            @php $person = $device->subscriber; $profile = route('projects.subscribers.show', [$project, $person]); @endphp
+            <div class="relative grid gap-x-4 gap-y-2 border-t border-zinc-100 px-4 py-3 transition first:border-0 last:rounded-b-2xl hover:bg-zinc-50/80 sm:px-5 lg:items-center {{ $testCols }} dark:border-zinc-800 dark:hover:bg-white/[.02]">
+                <div class="flex min-w-0 items-center gap-3 pr-10 lg:pr-0">
+                    <span class="lg:hidden"><x-audience.device :subscription="$device" /></span>
+                    <div class="min-w-0">
+                        {{-- The link covers the whole row; the menu stays above it. --}}
+                        <a href="{{ $profile }}" class="block truncate text-sm font-medium text-zinc-900 after:absolute after:inset-0 dark:text-white">{{ $device->test_name ?: ($device->device_model ?: __('Unnamed device')) }}</a>
+                        <p class="truncate text-xs text-zinc-500 lg:hidden">{{ collect([$device->device_model, $device->device_os, $device->app_version ? 'v'.$device->app_version : null])->filter()->implode(' · ') ?: '—' }}</p>
+                    </div>
+                </div>
+                <div class="hidden min-w-0 items-center gap-3 lg:flex">
                     <x-audience.device :subscription="$device" />
                     <div class="min-w-0">
-                        <a href="{{ route('projects.subscribers.show', [$project, $person]) }}" class="block truncate text-sm font-medium text-zinc-900 after:absolute after:inset-0 dark:text-white">{{ $device->test_name ?: ($device->device_model ?: __('Unnamed device')) }}</a>
-                        <p class="truncate text-xs text-zinc-500">{{ collect([$device->device_model, $device->device_os, $device->app_version ? 'v'.$device->app_version : null])->filter()->implode(' · ') ?: '—' }}</p>
+                        <p class="truncate text-sm text-zinc-800 dark:text-zinc-200">{{ $device->device_model ?: ucfirst($device->type) }}</p>
+                        <p class="truncate text-xs text-zinc-500">{{ collect([$device->device_os, $device->app_version ? 'v'.$device->app_version : null])->filter()->implode(' · ') ?: '—' }}</p>
                     </div>
-                    <span class="ml-auto lg:hidden"><x-audience.state :subscription="$device" /></span>
                 </div>
                 <p class="min-w-0 truncate pl-12 text-sm lg:pl-0">
                     @if ($person->external_id)
@@ -150,19 +158,35 @@
                         <span class="text-zinc-400">{{ __('Anonymous') }}</span>
                     @endif
                 </p>
-                <p class="hidden text-xs text-zinc-500 lg:block" title="{{ $device->last_active_at?->isoFormat('LLL') }}">{{ $device->last_active_at?->diffForHumans() ?? '—' }}</p>
-                <span class="hidden lg:block"><x-audience.state :subscription="$device" /></span>
-                <div class="relative z-10 flex items-center justify-end gap-1 pl-12 lg:pl-0">
-                    @can('send', $project)
-                        <x-ui.button type="button" variant="ghost" size="sm" icon="pencil"
-                            x-on:click="$dispatch('rename-test-device', { url: {{ \Illuminate\Support\Js::from(route('projects.test-devices.update', [$project, $device->id])) }}, name: {{ \Illuminate\Support\Js::from($device->test_name ?? '') }} })">{{ __('Rename') }}</x-ui.button>
-                        <form method="POST" action="{{ route('projects.test-devices.destroy', [$project, $device->id]) }}">
-                            @csrf
-                            @method('DELETE')
-                            <x-ui.button variant="ghost-danger" size="sm" icon="x" title="{{ __('Stop using as a test device') }}">{{ __('Remove') }}</x-ui.button>
-                        </form>
-                    @endcan
+                <div class="hidden min-w-0 flex-wrap gap-1 lg:flex">
+                    @forelse (array_slice($person->tags ?? [], 0, 3, true) as $key => $value)
+                        <span class="inline-flex max-w-full truncate rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] text-zinc-600 dark:bg-white/5 dark:text-zinc-400">{{ $key }}={{ $value }}</span>
+                    @empty
+                        <span class="text-xs text-zinc-400">—</span>
+                    @endforelse
+                    @if (count($person->tags ?? []) > 3)<span class="text-[11px] text-zinc-400">+{{ count($person->tags) - 3 }}</span>@endif
                 </div>
+                <p class="hidden text-xs text-zinc-500 lg:block" title="{{ $device->last_active_at?->isoFormat('LLL') }}">{{ $device->last_active_at?->diffForHumans() ?? '—' }}</p>
+                <span class="pl-12 lg:pl-0"><x-audience.state :subscription="$device" /></span>
+                <span class="absolute top-3 right-3 z-10 lg:static">
+                    <x-ui.dropdown width="w-60">
+                        <x-slot:trigger>
+                            <x-ui.button type="button" variant="ghost" size="icon" icon="more"><span class="sr-only">{{ __('Actions') }}</span></x-ui.button>
+                        </x-slot:trigger>
+                        <x-ui.dropdown-item :href="$profile" icon="eye">{{ __('View the profile') }}</x-ui.dropdown-item>
+                        <div x-data="copy({{ \Illuminate\Support\Js::from($device->id) }})"><x-ui.dropdown-item type="button" icon="copy" x-on:click="copy()"><span x-text="copied ? @js(__('Copied')) : @js(__('Copy the id'))">{{ __('Copy the id') }}</span></x-ui.dropdown-item></div>
+                        @can('send', $project)
+                            <x-ui.dropdown-item type="button" icon="pencil"
+                                x-on:click="$dispatch('rename-test-device', { url: {{ \Illuminate\Support\Js::from(route('projects.test-devices.update', [$project, $device->id])) }}, name: {{ \Illuminate\Support\Js::from($device->test_name ?? '') }} })">{{ __('Rename') }}</x-ui.dropdown-item>
+                            <div class="my-1 border-t border-zinc-100 dark:border-zinc-800"></div>
+                            <form method="POST" action="{{ route('projects.test-devices.destroy', [$project, $device->id]) }}">
+                                @csrf
+                                @method('DELETE')
+                                <x-ui.dropdown-item icon="x" danger>{{ __('Stop using as a test device') }}</x-ui.dropdown-item>
+                            </form>
+                        @endcan
+                    </x-ui.dropdown>
+                </span>
             </div>
         @empty
             <x-ui.empty icon="smartphone" :title="$search || $platform || $state ? __('Nobody matches') : __('No test device yet')"
