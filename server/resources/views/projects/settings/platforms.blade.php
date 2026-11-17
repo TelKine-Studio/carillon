@@ -30,7 +30,7 @@
                     <tr class="border-b border-zinc-100 bg-zinc-50/70 text-left text-xs text-zinc-500 dark:border-zinc-800 dark:bg-white/[.02]">
                         <th class="px-5 py-2.5 font-medium sm:px-6">{{ __('Platform') }}</th>
                         <th class="px-3 py-2.5 font-medium">{{ __('Status') }}</th>
-                        <th class="px-5 py-2.5 text-right font-medium sm:px-6"><span class="sr-only">{{ __('Actions') }}</span></th>
+                        <th class="hidden px-5 py-2.5 text-right font-medium sm:table-cell sm:px-6"><span class="sr-only">{{ __('Actions') }}</span></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -38,9 +38,9 @@
                         @php $platformCredential = $project->credential($provider); @endphp
                         <tr class="transition hover:bg-zinc-50/80 dark:hover:bg-white/[.02]">
                             <td class="px-5 py-3 sm:px-6">
-                                <span class="flex items-center gap-3">
+                                <span class="flex items-center gap-3 whitespace-nowrap">
                                     <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 dark:bg-white/5 dark:text-zinc-300"><x-ui.icon :name="$platformIcon" class="size-4" /></span>
-                                    <span class="font-medium text-zinc-900 dark:text-zinc-100">{{ $platformName }}</span>
+                                    <a href="#platform-{{ $provider }}" class="font-medium text-zinc-900 hover:text-brand-700 dark:text-zinc-100 dark:hover:text-brand-300">{{ $platformName }}</a>
                                     @if ($platformService)<span class="hidden text-xs text-zinc-400 sm:inline">{{ $platformService }}</span>@endif
                                 </span>
                             </td>
@@ -53,7 +53,7 @@
                                     <span class="inline-flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400"><span class="size-2 rounded-full bg-zinc-300 dark:bg-zinc-600"></span>{{ __('Not configured') }}</span>
                                 @endif
                             </td>
-                            <td class="px-5 py-3 text-right sm:px-6">
+                            <td class="hidden px-5 py-3 text-right sm:table-cell sm:px-6">
                                 <a href="#platform-{{ $provider }}" class="text-sm font-medium whitespace-nowrap text-brand-700 hover:text-brand-800 dark:text-brand-300 dark:hover:text-brand-200">{{ $platformCredential ? __('Manage') : __('Set up') }}</a>
                             </td>
                         </tr>
