@@ -2205,5 +2205,6 @@
     "Type": "Type",
     "Custom": "Personnalisé",
     "Built-in": "Intégré",
-    "Create your own: for example the customers with the tag plan = vip, or the people inactive for 30 days.": "Créez les vôtres : par exemple les clients avec le tag plan = vip, ou les personnes inactives depuis 30 jours."
+    "Create your own: for example the customers with the tag plan = vip, or the people inactive for 30 days.": "Créez les vôtres : par exemple les clients avec le tag plan = vip, ou les personnes inactives depuis 30 jours.",
+    "Used": "Utilisé"
 }

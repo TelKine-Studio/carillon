@@ -28,35 +28,39 @@
             @endforeach
         </div>
     @else
-        <div class="card">
-            <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
-                @foreach ($journeys as $journey)
-                    @php
-                        [$color, $label] = $statusBadge($journey->status);
-                        $byStatus = collect($counts[$journey->id] ?? [])->pluck('total', 'status');
-                    @endphp
-                    <li>
-                        <a href="{{ route('projects.journeys.show', [$project, $journey]) }}" class="flex flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4 transition first:rounded-t-2xl last:rounded-b-2xl hover:bg-zinc-50/80 sm:px-6 dark:hover:bg-white/[0.02]">
-                            <span class="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600 dark:bg-white/5 dark:text-zinc-300"><x-ui.icon name="zap" class="size-5" /></span>
-                            <span class="min-w-0 flex-1">
-                                <span class="flex items-center gap-2">
-                                    <span class="truncate font-semibold text-zinc-900 dark:text-white">{{ $journey->name }}</span>
-                                    <x-ui.badge :color="$color" :dot="$journey->status === 'active'">{{ $label }}</x-ui.badge>
-                                </span>
-                                <span class="mt-0.5 block truncate text-sm text-zinc-500">{{ $journey->triggerLabel() }} · {{ trans_choice(':count step|:count steps', count($journey->steps ?? [])) }}</span>
-                            </span>
-                            <span class="grid grid-cols-3 gap-6 text-center">
-                                @foreach ([[__('In progress'), $byStatus['active'] ?? 0], [__('Completed'), $byStatus['completed'] ?? 0], [__('Entered'), $byStatus->sum()]] as [$what, $count])
-                                    <span>
-                                        <span class="block text-base font-semibold tabular-nums text-zinc-900 dark:text-white">{{ $n($count) }}</span>
-                                        <span class="block text-xs text-zinc-500">{{ $what }}</span>
-                                    </span>
-                                @endforeach
-                            </span>
-                        </a>
-                    </li>
-                @endforeach
-            </ul>
+        <div class="card overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[720px] text-sm">
+                    <thead>
+                        <tr class="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium text-zinc-500 dark:border-zinc-800 dark:bg-white/[.03] dark:text-zinc-400">
+                            <th class="px-4 py-3 font-medium sm:px-5">{{ __('Name') }}</th>
+                            <th class="px-3 py-3 font-medium">{{ __('Status') }}</th>
+                            <th class="px-3 py-3 text-right font-medium whitespace-nowrap">{{ __('In progress') }}</th>
+                            <th class="px-3 py-3 text-right font-medium">{{ __('Completed') }}</th>
+                            <th class="px-4 py-3 text-right font-medium sm:px-5">{{ __('Entered') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                        @foreach ($journeys as $journey)
+                            @php
+                                [$color, $label] = $statusBadge($journey->status);
+                                $dot = ['green' => 'bg-emerald-500', 'amber' => 'bg-amber-500', 'zinc' => 'bg-zinc-400'][$color];
+                                $byStatus = collect($counts[$journey->id] ?? [])->pluck('total', 'status');
+                            @endphp
+                            <tr class="relative transition hover:bg-zinc-50/80 dark:hover:bg-white/[.02]">
+                                <td class="max-w-0 px-4 py-3.5 sm:px-5" style="width: 50%">
+                                    <a href="{{ route('projects.journeys.show', [$project, $journey]) }}" class="block truncate font-medium text-zinc-900 after:absolute after:inset-0 dark:text-white">{{ $journey->name }}</a>
+                                    <p class="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">{{ $journey->triggerLabel() }} · {{ trans_choice(':count step|:count steps', count($journey->steps ?? [])) }}</p>
+                                </td>
+                                <td class="px-3 py-3.5 whitespace-nowrap"><span class="inline-flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300"><span @class(['size-2 rounded-full', $dot, 'animate-pulse' => $journey->status === 'active'])></span>{{ $label }}</span></td>
+                                <td class="px-3 py-3.5 text-right font-medium text-zinc-900 tabular-nums dark:text-white">{{ $n($byStatus['active'] ?? 0) }}</td>
+                                <td class="px-3 py-3.5 text-right font-medium text-zinc-900 tabular-nums dark:text-white">{{ $n($byStatus['completed'] ?? 0) }}</td>
+                                <td class="px-4 py-3.5 text-right font-medium text-zinc-900 tabular-nums sm:px-5 dark:text-white">{{ $n($byStatus->sum()) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
     @endif
 </x-layouts.app>

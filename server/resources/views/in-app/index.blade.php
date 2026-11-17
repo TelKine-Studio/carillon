@@ -14,62 +14,65 @@
         <p>{{ __('Displayed by the Carillon SDK (Flutter and web): devices still running the OneSignal SDK do not show them.') }}</p>
     </div>
 
-    <div class="card">
-        <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
-            @forelse ($messages as $message)
-                @php
-                    [$color, $label] = match ($message->status) {
-                        'active' => ['green', __('Active')],
-                        'paused' => ['amber', __('Paused')],
-                        default => ['zinc', __('Draft')],
-                    };
-                @endphp
-                <li class="flex flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4 sm:px-6">
-                    <span class="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600 dark:bg-white/5 dark:text-zinc-300"><x-ui.icon name="message" class="size-5" /></span>
-                    <a href="{{ route('projects.in-app.edit', [$project, $message]) }}" class="min-w-0 flex-1">
-                        <span class="flex items-center gap-2">
-                            <span class="truncate font-semibold text-zinc-900 hover:underline dark:text-white">{{ $message->name }}</span>
-                            <x-ui.badge :color="$color" :dot="$message->status === 'active'">{{ $label }}</x-ui.badge>
-                        </span>
-                        <span class="mt-0.5 block truncate text-sm text-zinc-500">
-                            {{ $layouts[$message->layout] ?? $message->layout }} ·
-                            {{ ($message->trigger['type'] ?? '') === 'event' ? __('On event :name', ['name' => $message->trigger['event'] ?? '']) : __('When the app opens') }}
-                            @if ($message->segment) · {{ __($message->segment) }}@endif
-                        </span>
-                    </a>
-                    @if ($message->hasAbTest())
-                        @php
-                            $rate = fn ($clicked, $shown) => $shown ? number_format($clicked / $shown * 100, 1, ',', ' ').' %' : '—';
-                            $winner = $message->shown && $message->shown_b ? ($message->clicked / $message->shown >= $message->clicked_b / $message->shown_b ? 'A' : 'B') : null;
-                        @endphp
-                        <span class="flex items-center gap-3 rounded-lg bg-zinc-50 px-3 py-1.5 text-xs dark:bg-white/5">
-                            <span class="font-semibold text-zinc-500">A/B</span>
-                            <span @class(['tabular-nums', 'font-semibold text-emerald-700 dark:text-emerald-400' => $winner === 'A'])>A {{ $rate($message->clicked, $message->shown) }}</span>
-                            <span @class(['tabular-nums', 'font-semibold text-emerald-700 dark:text-emerald-400' => $winner === 'B'])>B {{ $rate($message->clicked_b, $message->shown_b) }}</span>
-                        </span>
-                    @endif
-                    <span class="grid grid-cols-3 gap-6 text-center">
-                        @foreach ([[__('Shown'), $message->shown + $message->shown_b], [__('Clicked'), $message->clicked + $message->clicked_b], [__('Click rate'), ($message->shown + $message->shown_b) ? number_format(($message->clicked + $message->clicked_b) / ($message->shown + $message->shown_b) * 100, 1, ',', ' ').' %' : '—']] as [$what, $value])
-                            <span>
-                                <span class="block text-base font-semibold tabular-nums text-zinc-900 dark:text-white">{{ is_numeric($value) ? $n($value) : $value }}</span>
-                                <span class="block text-xs text-zinc-500">{{ $what }}</span>
-                            </span>
+    <div class="card overflow-hidden">
+        @if ($messages->isNotEmpty())
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[760px] text-sm">
+                    <thead>
+                        <tr class="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium text-zinc-500 dark:border-zinc-800 dark:bg-white/[.03] dark:text-zinc-400">
+                            <th class="px-4 py-3 font-medium sm:px-5">{{ __('Name') }}</th>
+                            <th class="px-3 py-3 font-medium">{{ __('Status') }}</th>
+                            <th class="px-3 py-3 text-right font-medium">{{ __('Shown') }}</th>
+                            <th class="px-3 py-3 text-right font-medium">{{ __('Clicked') }}</th>
+                            <th class="px-3 py-3 text-right font-medium whitespace-nowrap">{{ __('Click rate') }}</th>
+                            <th class="px-4 py-3 sm:px-5"><span class="sr-only">{{ __('Actions') }}</span></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                        @foreach ($messages as $message)
+                            @php
+                                [$dot, $label] = match ($message->status) {
+                                    'active' => ['bg-emerald-500', __('Active')],
+                                    'paused' => ['bg-amber-500', __('Paused')],
+                                    default => ['bg-zinc-400', __('Draft')],
+                                };
+                                $shown = $message->shown + $message->shown_b;
+                                $clicked = $message->clicked + $message->clicked_b;
+                                $rate = fn ($c, $v) => $v ? number_format($c / $v * 100, 1, ',', ' ').' %' : '—';
+                            @endphp
+                            <tr class="relative transition hover:bg-zinc-50/80 dark:hover:bg-white/[.02]">
+                                <td class="max-w-0 px-4 py-3.5 sm:px-5" style="width: 45%">
+                                    <a href="{{ route('projects.in-app.edit', [$project, $message]) }}" class="block truncate font-medium text-zinc-900 after:absolute after:inset-0 dark:text-white">{{ $message->name }}</a>
+                                    <p class="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">
+                                        {{ $layouts[$message->layout] ?? $message->layout }} ·
+                                        {{ ($message->trigger['type'] ?? '') === 'event' ? __('On event :name', ['name' => $message->trigger['event'] ?? '']) : __('When the app opens') }}
+                                        @if ($message->segment) · {{ __($message->segment) }}@endif
+                                        @if ($message->hasAbTest()) · A/B : A {{ $rate($message->clicked, $message->shown) }}, B {{ $rate($message->clicked_b, $message->shown_b) }}@endif
+                                    </p>
+                                </td>
+                                <td class="px-3 py-3.5 whitespace-nowrap"><span class="inline-flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300"><span class="size-2 rounded-full {{ $dot }}"></span>{{ $label }}</span></td>
+                                <td class="px-3 py-3.5 text-right font-medium text-zinc-900 tabular-nums dark:text-white">{{ $n($shown) }}</td>
+                                <td class="px-3 py-3.5 text-right font-medium text-zinc-900 tabular-nums dark:text-white">{{ $n($clicked) }}</td>
+                                <td class="px-3 py-3.5 text-right font-medium whitespace-nowrap text-zinc-900 tabular-nums dark:text-white">{{ $rate($clicked, $shown) }}</td>
+                                <td class="relative z-10 px-4 py-3.5 text-right sm:px-5">
+                                    @can('send', $project)
+                                        <form method="POST" action="{{ route('projects.in-app.status', [$project, $message]) }}">
+                                            @csrf
+                                            @method('PUT')
+                                            <input type="hidden" name="status" value="{{ $message->status === 'active' ? 'paused' : 'active' }}">
+                                            <x-ui.button size="sm" :variant="$message->status === 'active' ? 'secondary' : 'primary'" :icon="$message->status === 'active' ? 'pause' : 'play'">{{ $message->status === 'active' ? __('Pause') : __('Activate') }}</x-ui.button>
+                                        </form>
+                                    @endcan
+                                </td>
+                            </tr>
                         @endforeach
-                    </span>
-                    @can('send', $project)
-                        <form method="POST" action="{{ route('projects.in-app.status', [$project, $message]) }}">
-                            @csrf
-                            @method('PUT')
-                            <input type="hidden" name="status" value="{{ $message->status === 'active' ? 'paused' : 'active' }}">
-                            <x-ui.button size="sm" :variant="$message->status === 'active' ? 'secondary' : 'primary'" :icon="$message->status === 'active' ? 'pause' : 'play'">{{ $message->status === 'active' ? __('Pause') : __('Activate') }}</x-ui.button>
-                        </form>
-                    @endcan
-                </li>
-            @empty
-                <li><x-ui.empty icon="message" :title="__('No in-app message yet')" :description="__('Announce a new feature, an offer or an update to the people who open the app.')">
-                    @can('send', $project)<x-ui.button :href="route('projects.in-app.create', $project)" icon="plus">{{ __('New in-app message') }}</x-ui.button>@endcan
-                </x-ui.empty></li>
-            @endforelse
-        </ul>
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <x-ui.empty icon="message" :title="__('No in-app message yet')" :description="__('Announce a new feature, an offer or an update to the people who open the app.')">
+                @can('send', $project)<x-ui.button :href="route('projects.in-app.create', $project)" icon="plus">{{ __('New in-app message') }}</x-ui.button>@endcan
+            </x-ui.empty>
+        @endif
     </div>
 </x-layouts.app>
