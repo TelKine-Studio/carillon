@@ -2,7 +2,7 @@
 {{-- Custom dropdown whose options come from Alpine (JS expression returning [[value, label], …]). --}}
 <div x-data="dropdownSelect(() => {{ $options }})" x-modelable="value" x-model="{{ $model }}" @click.outside="open = false" @keydown.escape.stop="open = false" {{ $attributes->merge(['class' => 'relative']) }}>
     <button type="button" x-ref="button" @click="toggle()" @keydown.arrow-down.prevent="move(1)" @keydown.arrow-up.prevent="move(-1)" @keydown.enter.prevent="pick()" @keydown.space.prevent="pick()"
-        aria-haspopup="listbox" :aria-expanded="open.toString()" class="form-control flex items-center gap-2 pr-9 text-left" :class="open && '!border-brand-500 ring-4 ring-brand-500/15'">
+        aria-haspopup="listbox" :aria-expanded="open.toString()" class="form-control flex items-center gap-2 pr-9 text-left" :class="open && '!border-brand-500 ring-2 ring-brand-500/20'">
         <span class="min-w-0 flex-1 truncate" x-text="label || @js($placeholder)"></span>
         <x-ui.icon name="chevron-down" class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-zinc-400 transition" ::class="open && 'rotate-180'" />
     </button>

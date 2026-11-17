@@ -53,7 +53,7 @@
                                     <span x-show="!needsValue(condition)" class="hidden sm:block"></span>
                                     <input x-show="usesHours(condition.field)" x-model="condition.hours_ago" type="number" min="0" step="any" class="form-control" :placeholder="['event', 'event_value'].includes(condition.field) ? @js(__('over the last … hours')) : @js(__('hours'))">
                                     <span x-show="!usesHours(condition.field)" class="hidden sm:block"></span>
-                                    <x-ui.button type="button" variant="ghost" size="icon" icon="x" class="size-[42px] justify-self-end" x-on:click="group.splice(c, 1); if (!group.length) groups.splice(g, 1); if (!groups.length) groups.push([blank()])"><span class="sr-only">{{ __('Remove') }}</span></x-ui.button>
+                                    <x-ui.button type="button" variant="ghost" size="icon" icon="x" class="justify-self-end" x-on:click="group.splice(c, 1); if (!group.length) groups.splice(g, 1); if (!groups.length) groups.push([blank()])"><span class="sr-only">{{ __('Remove') }}</span></x-ui.button>
                                 </div>
                             </div>
                         </template>

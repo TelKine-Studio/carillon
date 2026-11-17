@@ -459,7 +459,7 @@
                             <div class="mb-2 flex gap-2">
                                 <input :name="`buttons[${index}][text]`" x-model="button.text" maxlength="100" class="form-control" placeholder="{{ __('Label') }}">
                                 <input :name="`buttons[${index}][id]`" x-model="button.id" maxlength="64" class="form-control w-36 font-mono text-sm" placeholder="id">
-                                <x-ui.button type="button" variant="ghost" size="icon" icon="x" class="size-[42px] shrink-0" x-on:click="buttons.splice(index, 1)"><span class="sr-only">{{ __('Remove') }}</span></x-ui.button>
+                                <x-ui.button type="button" variant="ghost" size="icon" icon="x" class="shrink-0" x-on:click="buttons.splice(index, 1)"><span class="sr-only">{{ __('Remove') }}</span></x-ui.button>
                             </div>
                         </template>
                         <p class="text-xs text-zinc-500 dark:text-zinc-400" x-show="!buttons.length">{{ __('Up to 3 buttons; your app receives the id of the one tapped.') }}</p>
@@ -474,7 +474,7 @@
                             <div class="mb-2 flex gap-2">
                                 <input :name="`data[${index}][key]`" x-model="row.key" class="form-control w-40 font-mono text-sm" placeholder="{{ __('key') }}">
                                 <input :name="`data[${index}][value]`" x-model="row.value" class="form-control" placeholder="{{ __('value') }}">
-                                <x-ui.button type="button" variant="ghost" size="icon" icon="x" class="size-[42px] shrink-0" x-on:click="data.splice(index, 1)"><span class="sr-only">{{ __('Remove') }}</span></x-ui.button>
+                                <x-ui.button type="button" variant="ghost" size="icon" icon="x" class="shrink-0" x-on:click="data.splice(index, 1)"><span class="sr-only">{{ __('Remove') }}</span></x-ui.button>
                             </div>
                         </template>
                         <p class="text-xs text-zinc-500 dark:text-zinc-400" x-show="!data.length">{{ __('Sent to your app with the notification (e.g. the id of an order).') }}</p>

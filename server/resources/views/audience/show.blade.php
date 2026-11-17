@@ -243,7 +243,7 @@
                             <input :name="`tags[${index}][key]`" x-model="tag.key" class="form-control w-32 font-mono text-sm" placeholder="{{ __('key') }}" @cannot('send', $project) disabled @endcannot>
                             <input :name="`tags[${index}][value]`" x-model="tag.value" class="form-control min-w-0 font-mono text-sm" placeholder="{{ __('value') }}" @cannot('send', $project) disabled @endcannot>
                             @can('send', $project)
-                                <x-ui.button type="button" variant="ghost" size="icon" icon="x" class="size-[42px] shrink-0" x-on:click="tags.splice(index, 1)"><span class="sr-only">{{ __('Remove') }}</span></x-ui.button>
+                                <x-ui.button type="button" variant="ghost" size="icon" icon="x" class="shrink-0" x-on:click="tags.splice(index, 1)"><span class="sr-only">{{ __('Remove') }}</span></x-ui.button>
                             @endcan
                         </div>
                     </template>

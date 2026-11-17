@@ -26,7 +26,7 @@
                             <form x-show="editing" x-cloak method="POST" action="{{ route('projects.test-devices.update', [$project, $device->id]) }}" class="flex items-center gap-2">
                                 @csrf
                                 @method('PUT')
-                                <input name="test_name" value="{{ $device->test_name }}" maxlength="64" class="form-control !py-1.5 text-sm" placeholder="{{ __('e.g. My iPhone') }}" aria-label="{{ __('Name') }}">
+                                <input name="test_name" value="{{ $device->test_name }}" maxlength="64" class="form-control text-sm" placeholder="{{ __('e.g. My iPhone') }}" aria-label="{{ __('Name') }}">
                                 <x-ui.button size="sm">{{ __('Save') }}</x-ui.button>
                                 <x-ui.button type="button" variant="ghost" size="sm" x-on:click="editing = false">{{ __('Cancel') }}</x-ui.button>
                             </form>
