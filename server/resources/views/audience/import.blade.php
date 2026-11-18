@@ -25,8 +25,8 @@
             <form method="POST" action="{{ route('projects.onesignal-sync.update', $project) }}">
                 @csrf
                 @method('PUT')
-                <x-settings.section :title="__('Automatic sync')" :description="__('While your app still runs the OneSignal SDK, new installs subscribe at OneSignal. Carillon fetches them every night with the OneSignal API.')" icon="refresh"
-                    :empty="! $sync" :fields="['onesignal_app_id', 'onesignal_api_key', 'onesignal_enabled']">
+                <x-settings.section :title="__('Automatic sync')" :description="__('While your app still runs the OneSignal SDK, new installs subscribe at OneSignal. Carillon fetches them regularly with the OneSignal API.')" icon="refresh"
+                    :empty="! $sync" :fields="['onesignal_app_id', 'onesignal_api_key', 'onesignal_enabled', 'onesignal_every_hours', 'onesignal_at_hour']">
                     @if ($sync)
                         <x-slot:status>
                             @if ($sync->isRunning())
@@ -34,7 +34,7 @@
                             @elseif ($sync->last_error)
                                 <x-ui.badge color="red" dot>{{ __('Failed') }}</x-ui.badge>
                             @elseif ($sync->enabled)
-                                <x-ui.badge color="green" dot>{{ __('Every night') }}</x-ui.badge>
+                                <x-ui.badge color="green" dot>{{ $sync->every_hours >= 24 ? __('Every day') : $sync->frequencyLabel() }}</x-ui.badge>
                             @else
                                 <x-ui.badge>{{ __('Paused') }}</x-ui.badge>
                             @endif
@@ -45,7 +45,7 @@
                             <x-settings.summary>
                                 <x-settings.value :label="__('OneSignal App ID')" :value="$sync->app_id" mono />
                                 <x-settings.value :label="__('REST API key')" :value="__('Stored (encrypted)')" />
-                                <x-settings.value :label="__('Every night')" :on="$sync->enabled" />
+                                <x-settings.value :label="__('Frequency')" :value="$sync->enabled ? $sync->frequencyLabel() : __('Paused')" />
                                 <x-settings.value :label="__('Last sync')" :value="$sync->last_synced_at?->diffForHumans()" :empty="__('Never')" />
                             </x-settings.summary>
                             @if ($sync->last_error)
@@ -63,7 +63,18 @@
                         <x-ui.input name="onesignal_api_key" type="password" :label="__('REST API key')" autocomplete="new-password" :required="! $sync"
                             :placeholder="$sync ? '••••••••' : 'os_v2_app_…'"
                             :hint="$sync ? __('Leave empty to keep the current key.') : __('OneSignal → Settings → Keys & IDs. Stored encrypted.')" />
-                        <x-ui.toggle name="onesignal_enabled" :checked="$sync?->enabled ?? true" :label="__('Every night')" :description="__('Imports the subscribers at 3:30. Devices already known are updated, never duplicated.')" />
+                        <div class="space-y-5" x-data="{ on: @js((bool) old('onesignal_enabled', $sync?->enabled ?? true)), every: @js((string) old('onesignal_every_hours', $sync?->every_hours ?? 1)) }">
+                            <x-ui.toggle name="onesignal_enabled" :checked="$sync?->enabled ?? true" x-model="on" :label="__('Sync automatically')" :description="__('Devices already known are updated, never duplicated.')" />
+                            <div class="grid gap-5 sm:grid-cols-2" x-show="on" x-cloak>
+                                <x-ui.select name="onesignal_every_hours" :label="__('Frequency')" :value="$sync?->every_hours ?? 1" x-model="every"
+                                    :options="collect(\App\Models\OneSignalSync::FREQUENCIES)->mapWithKeys(fn ($h) => [$h => $h >= 24 ? __('Once a day') : \App\Models\OneSignalSync::frequencyName($h)])->all()"
+                                    :hint="__('New installs reach Carillon within this time.')" />
+                                <div x-show="every === '24'" x-cloak>
+                                    <x-ui.select name="onesignal_at_hour" :label="__('At (UTC)')" :value="$sync?->at_hour ?? 3"
+                                        :options="collect(range(0, 23))->mapWithKeys(fn ($h) => [$h => sprintf('%02d:%02d', $h, \App\Models\OneSignalSync::MINUTE)])->all()" />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     @if ($sync)
                         <x-slot:danger>

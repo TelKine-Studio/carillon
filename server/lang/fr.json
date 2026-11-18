@@ -2419,7 +2419,6 @@
     "Compatible with the OneSignal API: notifications, users, custom events and statistics.": "Compatible avec l’API OneSignal : notifications, utilisateurs, événements personnalisés et statistiques.",
     "CSV import": "Import CSV",
     "Users, devices and tags from a CSV file or a OneSignal export.": "Utilisateurs, appareils et tags depuis un fichier CSV ou un export OneSignal.",
-    "Import your subscribers, then fetch the new ones every night while your app migrates.": "Importez vos abonnés, puis récupérez les nouveaux chaque nuit pendant la migration de votre app.",
     "Email services": "Services d’e-mail",
     "Text messages to the phone numbers of your audience.": "Des SMS vers les numéros de téléphone de votre audience.",
     "Template messages from your WhatsApp Business number (Cloud API).": "Messages modèles depuis votre numéro WhatsApp Business (Cloud API).",
@@ -2583,5 +2582,15 @@
     ":count answer of the push service|:count answers of the push service": ":count réponse du service de push|:count réponses du service de push",
     "token": "jeton",
     ":count device already on the Carillon SDK, left as it is.|:count devices already on the Carillon SDK, left as they are.": ":count appareil déjà sur le SDK Carillon, laissé tel quel.|:count appareils déjà sur le SDK Carillon, laissés tels quels.",
-    "The import was interrupted. Run it again.": "L’import a été interrompu. Relancez-le."
+    "The import was interrupted. Run it again.": "L’import a été interrompu. Relancez-le.",
+    "While your app still runs the OneSignal SDK, new installs subscribe at OneSignal. Carillon fetches them regularly with the OneSignal API.": "Tant que votre app utilise encore le SDK OneSignal, les nouvelles installations s’abonnent chez OneSignal. Carillon les récupère régulièrement grâce à l’API de OneSignal.",
+    "Every day": "Chaque jour",
+    "Every day at :time (UTC)": "Chaque jour à :time (UTC)",
+    "Every :count hours": "Toutes les :count heures",
+    "Once a day": "Une fois par jour",
+    "Sync automatically": "Synchroniser automatiquement",
+    "Devices already known are updated, never duplicated.": "Les appareils déjà connus sont mis à jour, jamais dupliqués.",
+    "New installs reach Carillon within this time.": "Les nouvelles installations arrivent dans Carillon dans ce délai.",
+    "At (UTC)": "À (UTC)",
+    "Import your subscribers, then fetch the new ones every hour or every day while your app migrates.": "Importez vos abonnés, puis récupérez les nouveaux toutes les heures ou chaque jour pendant la migration de votre app."
 }

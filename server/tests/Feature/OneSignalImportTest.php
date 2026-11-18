@@ -263,4 +263,39 @@ class OneSignalImportTest extends TestCase
         $this->assertNotNull($import->error);
         $this->assertSame('running', $fresh->refresh()->status);
     }
+
+    public function test_the_sync_runs_at_the_chosen_frequency(): void
+    {
+        Http::fake(['*' => Http::response(['csv_file_url' => 'https://onesignal-exports.example.com/x.csv.gz'])]);
+        $this->actingAs($this->owner)->put(route('projects.onesignal-sync.update', $this->project), [
+            'onesignal_app_id' => 'e5b9d8a5', 'onesignal_api_key' => 'os_v2_app_secret', 'onesignal_enabled' => '1',
+            'onesignal_every_hours' => '3', 'onesignal_at_hour' => '3',
+        ])->assertSessionHasNoErrors();
+        $sync = OneSignalSync::query()->sole();
+        $this->assertSame(3, $sync->every_hours);
+        $sync->forceFill(['pending_url' => null, 'requested_at' => now()->setTime(10, 31)])->save();
+
+        $this->assertFalse($sync->isDue(now()->setTime(12, 30)));
+        $this->assertTrue($sync->isDue(now()->setTime(13, 30)));
+
+        // Once a day: only at the chosen hour, once.
+        $sync->forceFill(['every_hours' => 24, 'at_hour' => 5])->save();
+        $this->assertFalse($sync->isDue(now()->setTime(13, 30)));
+        $this->assertTrue($sync->isDue(now()->addDay()->setTime(5, 30)));
+        $sync->forceFill(['requested_at' => now()->addDay()->setTime(5, 30)])->save();
+        $this->assertFalse($sync->isDue(now()->addDay()->setTime(5, 30)->addMinutes(5)));
+
+        // Paused, or an export already waited for: never due.
+        $sync->forceFill(['every_hours' => 1, 'enabled' => false])->save();
+        $this->assertFalse($sync->isDue(now()->addDays(3)));
+        $sync->forceFill(['enabled' => true, 'pending_url' => 'https://x'])->save();
+        $this->assertFalse($sync->isDue(now()->addDays(3)));
+
+        $this->actingAs($this->owner)->put(route('projects.onesignal-sync.update', $this->project), [
+            'onesignal_app_id' => 'e5b9d8a5', 'onesignal_enabled' => '1', 'onesignal_every_hours' => '2',
+        ])->assertSessionHasErrors('onesignal_every_hours');
+
+        $sync->forceFill(['every_hours' => 1, 'pending_url' => null])->save();
+        $this->actingAs($this->owner)->get(route('projects.imports.create', $this->project))->assertOk()->assertSee(__('Every hour'));
+    }
 }

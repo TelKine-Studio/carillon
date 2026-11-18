@@ -23,13 +23,16 @@ Schedule::command('carillon:weekly-reports')->weeklyOn(1, '07:00')->withoutOverl
 // Messages scheduled with send_after.
 Schedule::command('carillon:dispatch-scheduled')->everyMinute()->withoutOverlapping();
 
-// New subscribers of apps still running the OneSignal SDK, every night.
+// New subscribers of apps still running the OneSignal SDK, at the frequency of each project.
 Schedule::call(function () {
     OneSignalSync::query()->where('enabled', true)->whereNull('pending_url')->each(function (OneSignalSync $sync) {
+        if (! $sync->isDue(now())) {
+            return;
+        }
         $sync->forceFill(['requested_at' => now(), 'last_error' => null])->save();
         SyncOneSignal::dispatch($sync->id);
     });
-})->dailyAt('03:30')->name('onesignal-sync')->withoutOverlapping();
+})->hourlyAt(OneSignalSync::MINUTE)->name('onesignal-sync')->withoutOverlapping();
 
 // Imports whose worker died (redeploy, crash) are marked failed instead of "running" forever.
 Schedule::call(function () {

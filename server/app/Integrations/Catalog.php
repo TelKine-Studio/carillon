@@ -68,7 +68,7 @@ final class Catalog
                 'description' => __('Users, devices and tags from a CSV file or a OneSignal export.')],
             ['key' => 'onesignal', 'logo' => 'onesignal', 'name' => 'OneSignal', 'category' => 'cdp', 'directions' => ['in'], 'monogram' => 'OS', 'color' => '#E54B4D', 'icon' => 'refresh',
                 'url' => route('projects.imports.create', $project), 'can' => 'configure', 'connected' => OneSignalSync::query()->where('project_id', $project->id)->where('enabled', true)->exists(),
-                'description' => __('Import your subscribers, then fetch the new ones every night while your app migrates.')],
+                'description' => __('Import your subscribers, then fetch the new ones every hour or every day while your app migrates.')],
             ['key' => 'email', 'name' => __('Email services'), 'category' => 'messaging', 'directions' => ['out'], 'monogram' => '', 'color' => '', 'icon' => 'mail',
                 'url' => $settings('platforms', '#platform-email'), 'connected' => $project->credentials()->where('provider', 'email')->exists(),
                 'description' => 'SMTP, Amazon SES, Resend, Postmark, Mailgun.'],
