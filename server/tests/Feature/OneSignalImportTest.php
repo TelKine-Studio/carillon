@@ -233,4 +233,34 @@ class OneSignalImportTest extends TestCase
         $this->assertNotNull($dead->refresh()->invalid_at);
         $this->assertSame(1, Subscription::query()->where('token_hash', hash('sha256', 'fcm-moved'))->count());
     }
+
+    public function test_an_import_with_devices_on_the_carillon_sdk_completes(): void
+    {
+        $this->postJson("/api/v1/sdk/apps/{$this->project->app_id}/subscriptions", ['type' => 'android', 'token' => 'fcm-0', 'external_id' => 'u-0'])->assertSuccessful();
+
+        // More than one batch of 500 rows, so the progress is saved with the "kept" count.
+        $rows = [['id', 'identifier', 'device_type', 'notification_types']];
+        foreach (range(0, 1199) as $i) {
+            $rows[] = ['p'.$i, 'fcm-'.$i, '1', '1'];
+        }
+        $file = UploadedFile::fake()->createWithContent('players.csv', $this->csv($rows));
+        $this->actingAs($this->owner)->post(route('projects.imports.store', $this->project), ['file' => $file])->assertRedirect();
+
+        $import = AudienceImport::query()->sole();
+        $this->assertSame(['done', 1200, 1199, 1], [$import->status, $import->rows, $import->created, $import->kept]);
+        $this->actingAs($this->owner)->get(route('projects.imports.create', $this->project))->assertOk()->assertSee('1 device already on the Carillon SDK');
+    }
+
+    public function test_an_interrupted_import_does_not_stay_running(): void
+    {
+        $import = AudienceImport::query()->create(['project_id' => $this->project->id, 'source' => 'onesignal-sync', 'filename' => 'sync', 'path' => 'imports/x.csv', 'status' => 'running', 'rows' => 1000]);
+        $import->newQuery()->whereKey($import->id)->update(['updated_at' => now()->subHours(3)]);
+        $fresh = AudienceImport::query()->create(['project_id' => $this->project->id, 'source' => 'onesignal-sync', 'filename' => 'sync', 'path' => 'imports/y.csv', 'status' => 'running']);
+
+        $this->artisan('schedule:test', ['--name' => 'audience-imports-stalled'])->assertSuccessful();
+
+        $this->assertSame('failed', $import->refresh()->status);
+        $this->assertNotNull($import->error);
+        $this->assertSame('running', $fresh->refresh()->status);
+    }
 }

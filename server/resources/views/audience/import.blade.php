@@ -112,6 +112,9 @@
                                         </div>
                                     @endforeach
                                 </dl>
+                                @if ($import->kept)
+                                    <p class="mt-3 text-xs text-zinc-500">{{ trans_choice(':count device already on the Carillon SDK, left as it is.|:count devices already on the Carillon SDK, left as they are.', $import->kept, ['count' => $n($import->kept)]) }}</p>
+                                @endif
                                 @if ($import->notes)
                                     <p class="mt-3 text-xs text-zinc-500">{{ __('Skipped:') }} {{ collect($import->notes)->map(fn ($count, $reason) => $n($count).' '.(isset($reasons[$reason]) ? trans_choice($reasons[$reason], $count) : $reason))->implode(' · ') }}</p>
                                 @endif

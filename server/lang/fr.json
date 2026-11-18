@@ -2581,5 +2581,7 @@
     "Without hash": "Sans hash",
     "Wrong hash": "Hash faux",
     ":count answer of the push service|:count answers of the push service": ":count réponse du service de push|:count réponses du service de push",
-    "token": "jeton"
+    "token": "jeton",
+    ":count device already on the Carillon SDK, left as it is.|:count devices already on the Carillon SDK, left as they are.": ":count appareil déjà sur le SDK Carillon, laissé tel quel.|:count appareils déjà sur le SDK Carillon, laissés tels quels.",
+    "The import was interrupted. Run it again.": "L’import a été interrompu. Relancez-le."
 }

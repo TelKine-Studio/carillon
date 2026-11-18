@@ -4,6 +4,7 @@ use App\Jobs\RunIntegration;
 use App\Jobs\SyncOneSignal;
 use App\Journeys\JourneyRunner;
 use App\LiveActivities\LiveActivities;
+use App\Models\AudienceImport;
 use App\Models\Integration;
 use App\Models\OneSignalSync;
 use App\Support\SystemHealth;
@@ -29,6 +30,12 @@ Schedule::call(function () {
         SyncOneSignal::dispatch($sync->id);
     });
 })->dailyAt('03:30')->name('onesignal-sync')->withoutOverlapping();
+
+// Imports whose worker died (redeploy, crash) are marked failed instead of "running" forever.
+Schedule::call(function () {
+    AudienceImport::query()->whereIn('status', ['queued', 'running'])->where('updated_at', '<', now()->subHours(AudienceImport::STALL_HOURS))
+        ->update(['status' => 'failed', 'error' => __('The import was interrupted. Run it again.'), 'completed_at' => now()]);
+})->hourly()->name('audience-imports-stalled');
 
 // Downloads the OneSignal exports once generated (a few minutes after the request).
 Schedule::call(function () {

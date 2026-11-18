@@ -33,9 +33,30 @@ class ImportAudience implements ShouldQueue
             $reader->file(Storage::disk('local')->path($import->path), fn (array $counts) => $import->forceFill($counts)->save());
             $import->forceFill($reader->counts + ['status' => 'done', 'notes' => $reader->reasons ?: null, 'completed_at' => now()])->save();
         } catch (Throwable $e) {
-            $import->forceFill($reader->counts + ['status' => 'failed', 'error' => mb_substr($e->getMessage(), 0, 250), 'notes' => $reader->reasons ?: null, 'completed_at' => now()])->save();
+            $this->fail($import, $e->getMessage(), $reader);
         } finally {
             Storage::disk('local')->delete($import->path);
+        }
+    }
+
+    /** The worker gave up on the job (killed, timed out): the import does not stay "running". */
+    public function failed(?Throwable $e): void
+    {
+        $import = AudienceImport::query()->find($this->importId);
+        if ($import?->running()) {
+            $this->fail($import, $e?->getMessage() ?? __('The import was interrupted. Run it again.'));
+        }
+    }
+
+    protected function fail(AudienceImport $import, string $message, ?OneSignalImport $reader = null): void
+    {
+        $failure = ['status' => 'failed', 'error' => mb_substr($message, 0, 250), 'completed_at' => now()];
+
+        try {
+            $import->forceFill(($reader?->counts ?? []) + $failure + ['notes' => $reader?->reasons ?: null])->save();
+        } catch (Throwable) {
+            // The counts themselves may be what the database refuses: the failure is recorded anyway.
+            $import->newQuery()->whereKey($import->id)->update($failure);
         }
     }
 }

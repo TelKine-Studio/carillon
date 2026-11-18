@@ -7,13 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /** A file of subscribers exported from OneSignal, imported in the background. */
-#[Fillable(['project_id', 'user_id', 'source', 'filename', 'path', 'status', 'rows', 'created', 'updated', 'skipped', 'notes', 'error', 'started_at', 'completed_at'])]
+#[Fillable(['project_id', 'user_id', 'source', 'filename', 'path', 'status', 'rows', 'created', 'updated', 'skipped', 'kept', 'notes', 'error', 'started_at', 'completed_at'])]
 class AudienceImport extends Model
 {
     protected function casts(): array
     {
         return ['notes' => 'array', 'started_at' => 'datetime', 'completed_at' => 'datetime'];
     }
+
+    /** Hours without progress after which a running import is taken for interrupted. */
+    public const STALL_HOURS = 2;
 
     public function running(): bool
     {

@@ -26,7 +26,7 @@ class OneSignalImport
     protected const SUBSCRIPTION_TYPES = ['iospush' => 'ios', 'androidpush' => 'android', 'huaweipush' => 'huawei', 'fireospush' => 'amazon', 'chromepush' => 'web', 'firefoxpush' => 'web', 'safaripush' => 'web', 'safarilegacypush' => 'web', 'email' => 'email', 'sms' => 'sms', 'whatsapp' => 'whatsapp'];
 
     /** @var array<string, int> */
-    public array $counts = ['rows' => 0, 'created' => 0, 'updated' => 0, 'skipped' => 0];
+    public array $counts = ['rows' => 0, 'created' => 0, 'updated' => 0, 'skipped' => 0, 'kept' => 0];
 
     /** @var array<string, int> reasons of the skipped rows */
     public array $reasons = [];
@@ -209,7 +209,7 @@ class OneSignalImport
         // OneSignal) is the app's: the export of the old app neither re-enables
         // it, nor moves it to another person, nor brings back old tags.
         if ($subscription && $subscription->sdk !== Subscription::ONESIGNAL_SDK) {
-            $this->counts['kept'] = ($this->counts['kept'] ?? 0) + 1;
+            $this->counts['kept']++;
             if ($device['onesignal_id'] && ! $subscription->onesignal_id) {
                 $subscription->forceFill(['onesignal_id' => $device['onesignal_id']])->save();
             }
