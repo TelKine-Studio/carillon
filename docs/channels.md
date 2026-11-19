@@ -199,7 +199,7 @@ Turn it on once, at Apple (nothing to change in the app or Carillon):
 [Certificates, IDs & Profiles → Identifiers](https://developer.apple.com/account/resources/identifiers/list),
 the App ID of the app → **Push Notifications** → tick **Broadcast
 Capability** → Save. Until then Apple refuses the channels (the activity
-shows `channel · TopicDisallowed` in its answers), and Carillon starts with
+shows `channel · BroadcastFeatureNotEnabled` in its answers), and Carillon starts with
 the token as before; it tries channels again every hour. iPhones on iOS
 17, or whose version is unknown, always use the token.
 
