@@ -2604,5 +2604,7 @@
     "Start tokens, update tokens (enter) and ends (exit) sent by the SDK of the app. An activity started by push gets no update without its enter.": "Jetons de démarrage, jetons de mise à jour (enter) et fins (exit) envoyés par le SDK de l’app. Une activité démarrée par push ne reçoit aucune mise à jour sans son enter.",
     "No call from the app in the last 24 h.": "Aucun appel de l’app ces dernières 24 h.",
     "Unknown subscription.": "Abonnement inconnu.",
-    "Token removed.": "Jeton supprimé."
+    "Token removed.": "Jeton supprimé.",
+    "iOS 18 channel": "canal iOS 18",
+    "channel": "canal"
 }

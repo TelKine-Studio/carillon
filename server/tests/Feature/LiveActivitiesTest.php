@@ -7,6 +7,7 @@ use App\LiveActivities\LiveActivities;
 use App\Models\ApiKey;
 use App\Models\LiveActivity;
 use App\Models\LiveActivityCall;
+use App\Models\LiveActivityChannel;
 use App\Models\LiveActivityStartToken;
 use App\Models\Project;
 use App\Models\PushCredential;
@@ -492,5 +493,78 @@ class LiveActivitiesTest extends TestCase
         $this->travel(LiveActivityCall::DAYS + 1)->days();
         $this->artisan('model:prune', ['--model' => [LiveActivityCall::class]]);
         $this->assertSame(0, LiveActivityCall::query()->count());
+    }
+
+    public function test_on_ios_18_an_activity_is_updated_through_its_channel_without_token(): void
+    {
+        Http::fake(['api-manage-broadcast.sandbox.push.apple.com:2195/*' => Http::sequence()
+            ->push(null, 201, ['apns-channel-id' => 'Y2hhbm5lbC0x'])
+            ->push(null, 204)]);
+        $phone = $this->device('phone-token', 'user-1');
+        $tablet = $this->device('tablet-token', 'user-1');
+        $old = $this->device('old-token', 'user-1');
+        Subscription::query()->whereKey($phone)->update(['device_os' => '18.2']);
+        Subscription::query()->whereKey($tablet)->update(['device_os' => 'iOS 26.5']);
+        Subscription::query()->whereKey($old)->update(['device_os' => '17.5']);
+        foreach ([$phone, $tablet, $old] as $id) {
+            $this->sdk($id, 'start-token', ['activity_type' => 'DeliveryAttributes', 'token' => 'start-'.$id]);
+        }
+
+        $this->start()->assertOk();
+
+        // One channel for the activity, created once for both iOS 18+ devices.
+        $this->assertSame(1, LiveActivityChannel::query()->count());
+        Http::assertSentCount(1 + 3 + 0 + 0 + 0 + 0); // channel + 3 starts (start tokens sent by the SDK do not reach Apple)
+        Http::assertSent(fn (HttpRequest $request) => str_ends_with($request->url(), '/1/apps/com.example.shop/channels')
+            && $request['message-storage-policy'] === 1 && $request['push-type'] === 'LiveActivity');
+        Http::assertSent(fn (HttpRequest $request) => str_ends_with($request->url(), '/3/device/start-'.$phone)
+            && $request['aps']['input-push-channel'] === 'Y2hhbm5lbC0x' && ! isset($request['aps']['input-push-token']));
+        Http::assertSent(fn (HttpRequest $request) => str_ends_with($request->url(), '/3/device/start-'.$old)
+            && $request['aps']['input-push-token'] === 1 && ! isset($request['aps']['input-push-channel']));
+
+        $statuses = LiveActivity::query()->pluck('status', 'subscription_id');
+        $this->assertSame('active', $statuses[$phone]);
+        $this->assertSame('active', $statuses[$tablet]);
+        $this->assertSame('started', $statuses[$old]);
+
+        // No token from the app: the update leaves at once, one broadcast for both.
+        $this->api()->postJson("/api/v1/apps/{$this->project->app_id}/live_activities/MRC-0428/notifications", [
+            'event' => 'update', 'event_updates' => ['step' => 'paid'], 'name' => 'Paid',
+        ])->assertOk()->assertJsonPath('recipients', 2)->assertJsonPath('pending', 1);
+
+        Http::assertSent(fn (HttpRequest $request) => str_ends_with($request->url(), '/4/broadcasts/apps/com.example.shop')
+            && $request->header('apns-channel-id') === ['Y2hhbm5lbC0x'] && $request->header('apns-topic') === []
+            && $request->header('apns-push-type') === ['liveactivity'] && (int) $request->header('apns-expiration')[0] > time()
+            && $request['aps']['content-state'] === ['step' => 'paid']);
+        $this->assertSame(1, collect(Http::recorded())->filter(fn ($pair) => str_contains($pair[0]->url(), '/4/broadcasts/'))->count());
+        $this->assertSame([1, 1, 0], LiveActivity::query()->orderByRaw("case subscription_id when '{$phone}' then 0 when '{$tablet}' then 1 else 2 end")->pluck('updates')->all());
+
+        // Ended, then the channel is deleted at Apple an hour later.
+        $this->api()->postJson("/api/v1/apps/{$this->project->app_id}/live_activities/MRC-0428/notifications", ['event' => 'end', 'name' => 'End'])->assertOk();
+        $this->sdk($old, 'exit', ['activity_id' => 'MRC-0428']);
+        $this->assertSame(0, app(LiveActivities::class)->deleteChannels());
+        $this->travel(2)->hours();
+        $this->assertSame(1, app(LiveActivities::class)->deleteChannels());
+        Http::assertSent(fn (HttpRequest $request) => $request->method() === 'DELETE' && $request->header('apns-channel-id') === ['Y2hhbm5lbC0x']);
+        $this->assertNotNull(LiveActivityChannel::query()->value('deleted_at'));
+    }
+
+    public function test_without_the_broadcast_capability_the_start_uses_the_token(): void
+    {
+        Http::fake(['api-manage-broadcast.sandbox.push.apple.com:2195/*' => Http::response(['reason' => 'TopicDisallowed'], 403)]);
+        $phone = $this->device('phone-token', 'user-1');
+        Subscription::query()->whereKey($phone)->update(['device_os' => '18.2']);
+        $this->sdk($phone, 'start-token', ['activity_type' => 'DeliveryAttributes', 'token' => 'start-token-1']);
+
+        $this->start()->assertOk();
+        $this->start(['activity_id' => 'MRC-0429'])->assertOk();
+
+        $activity = LiveActivity::query()->where('activity_id', 'MRC-0428')->first();
+        $this->assertSame('started', $activity->status);
+        $this->assertNull($activity->channel_id);
+        $this->assertSame('TopicDisallowed', collect($activity->pushes)->firstWhere('event', 'channel')['error']);
+        Http::assertSent(fn (HttpRequest $request) => str_ends_with($request->url(), '/3/device/start-token-1') && $request['aps']['input-push-token'] === 1);
+        // Not asked again for every start.
+        $this->assertSame(1, collect(Http::recorded())->filter(fn ($pair) => str_contains($pair[0]->url(), 'manage-broadcast'))->count());
     }
 }

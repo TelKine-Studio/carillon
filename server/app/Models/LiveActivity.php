@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /** One Live Activity on one device. */
-#[Fillable(['project_id', 'subscription_id', 'activity_type', 'activity_id', 'status', 'update_token', 'content_state', 'pending', 'updates', 'error', 'started_at', 'token_at', 'updated_last_at', 'end_at', 'ended_at', 'ends', 'pushes'])]
+#[Fillable(['project_id', 'subscription_id', 'activity_type', 'activity_id', 'status', 'update_token', 'channel_id', 'content_state', 'pending', 'updates', 'error', 'started_at', 'token_at', 'updated_last_at', 'end_at', 'ended_at', 'ends', 'pushes'])]
 #[Hidden(['update_token'])]
 class LiveActivity extends Model
 {

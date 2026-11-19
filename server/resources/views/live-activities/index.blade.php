@@ -68,7 +68,8 @@
                         <span class="font-mono">{{ $activity->activity_type }}</span>
                         · {{ $activity->subscription?->device_model ?? 'iOS' }}
                         @if ($version = $activity->subscription?->app_version) · {{ __('app :version', ['version' => $version]) }} @endif
-                        @if ($activity->token_at) · {{ __('token received :time', ['time' => $activity->token_at->isoFormat('HH:mm:ss')]) }}
+                        @if ($activity->channel_id) · {{ __('iOS 18 channel') }}
+                        @elseif ($activity->token_at) · {{ __('token received :time', ['time' => $activity->token_at->isoFormat('HH:mm:ss')]) }}
                         @elseif ($activity->isOpen()) · <span class="text-amber-700 dark:text-amber-400">{{ __('no update token from the app') }}</span> @endif
                         @if ($externalId = $activity->subscription?->subscriber?->external_id) · {{ $externalId }} @endif
                         @if ($activity->error) · <span class="text-red-600 dark:text-red-400">{{ $activity->error }}</span> @endif
@@ -101,6 +102,7 @@
                                 <span class="font-medium text-zinc-800 dark:text-zinc-200">{{ $push['event'] }}</span>
                                 <x-ui.badge :color="($push['result'] ?? '') === 'sent' ? 'green' : 'red'">{{ $push['status'] ?? '—' }}{{ isset($push['error']) ? ' · '.$push['error'] : '' }}</x-ui.badge>
                                 @isset($push['environment'])<span class="text-zinc-500">{{ $push['environment'] }}</span>@endisset
+                                @isset($push['channel'])<span class="font-mono text-zinc-500">{{ __('channel') }} {{ $push['channel'] }}</span>@endisset
                                 @isset($push['token'])<span class="font-mono text-zinc-500">{{ __('token') }} {{ $push['token'] }}</span>@endisset
                                 @isset($push['apns_id'])<span class="inline-flex items-center gap-1 font-mono text-zinc-500">apns-id {{ $push['apns_id'] }}<x-ui.copy :value="$push['apns_id']" /></span>@endisset
                                 @isset($push['apns_unique_id'])<span class="inline-flex items-center gap-1 font-mono text-zinc-500">apns-unique-id {{ $push['apns_unique_id'] }}<x-ui.copy :value="$push['apns_unique_id']" /></span>@endisset

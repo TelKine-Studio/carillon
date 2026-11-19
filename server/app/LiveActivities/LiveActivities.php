@@ -4,6 +4,7 @@ namespace App\LiveActivities;
 
 use App\Audience\Audience;
 use App\Models\LiveActivity;
+use App\Models\LiveActivityChannel;
 use App\Models\LiveActivityStartToken;
 use App\Models\Message;
 use App\Models\Project;
@@ -13,6 +14,7 @@ use App\Push\ApnsSender;
 use App\Push\FcmSender;
 use App\Push\Result;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -21,9 +23,11 @@ use Illuminate\Support\Facades\DB;
  *   token of the device for the type (iOS 17.2+); Android (Carillon SDK
  *   0.3+) shows them as Live Updates: an ongoing notification with
  *   progress, promoted on Android 16, refreshed by FCM data messages;
- * - update and end: to every device showing the activity, with its update
- *   token. The token only exists once the app received it from iOS and the
- *   SDK sent it: what comes before is kept and sent when it arrives;
+ * - update and end: on iOS 18+, through the broadcast channel of the
+ *   activity (created at the start), with no token from the app; else to
+ *   every device showing the activity, with its update token. The token
+ *   only exists once the app received it from iOS and the SDK sent it:
+ *   what comes before is kept and sent when it arrives;
  * - an activity nobody ended is ended by Carillon at end_at.
  */
 class LiveActivities
@@ -39,6 +43,12 @@ class LiveActivities
 
     /** Updates sent per activity: past that, a loop in a backend is suspected. */
     public const MAX_UPDATES = 500;
+
+    /** First iOS able to start an activity on a broadcast channel. */
+    public const CHANNEL_IOS = 18;
+
+    /** Minutes without trying channels again after Apple refused one. */
+    public const CHANNEL_PAUSE = 60;
 
     public function __construct(protected ApnsSender $apns, protected FcmSender $fcm, protected Audience $audience) {}
 
@@ -94,6 +104,7 @@ class LiveActivities
         $requests = ['ios' => [], 'android' => []];
         $activities = [];
         $alreadyCount = 0;
+        $channels = [];
 
         foreach ($devices as $device) {
             // Started before (still open, or ended: an activity_id is used once).
@@ -119,10 +130,22 @@ class LiveActivities
             if ($android) {
                 $requests['android'][$activity->id] = AndroidPayload::message((string) $device->token, 'start', $activity, $display, $device->person_language, $data);
             } else {
+                $channel = null;
+                if (self::supportsChannels($device)) {
+                    $environment = $device->environment === 'sandbox' ? 'sandbox' : 'production';
+                    $channels[$environment] ??= $this->channel($project, $apns, $activityId, $environment);
+                    [$channel, $channelError] = $channels[$environment];
+                    if ($channel !== null) {
+                        $activity->channel_id = $channel;
+                    } elseif ($channelError !== null) {
+                        // Started with the token instead: why, on the activity.
+                        $this->remember($activity, 'channel', Result::failed($channelError));
+                    }
+                }
                 $requests['ios'][$activity->id] = [
                     'token' => $device->start_token,
                     'environment' => $device->environment,
-                    ...Payload::start($apns, $type, $activityId, $data, $state, $device->person_language),
+                    ...Payload::start($apns, $type, $activityId, $data, $state, $device->person_language, $channel),
                 ];
             }
         }
@@ -138,8 +161,8 @@ class LiveActivities
             $this->remember($activity, 'start', $result);
 
             if ($result->status === 'sent') {
-                // Android has no token to wait for: on screen at once.
-                $activity->forceFill(['status' => $device->type === 'android' ? 'active' : 'started'])->save();
+                // Android and channels have no token to wait for: reachable at once.
+                $activity->forceFill(['status' => $device->type === 'android' || $activity->channel_id ? 'active' : 'started'])->save();
 
                 continue;
             }
@@ -339,10 +362,83 @@ class LiveActivities
         $this->send($activity->subscription->project, collect([$activity]), $pending['event'] ?? 'update', $pending);
     }
 
-    /** iPhones once the app gave the update token; Android at once (FCM token of the device). */
+    /** iPhones on a channel, or once the app gave the update token; Android at once (FCM token of the device). */
     protected function reachable(LiveActivity $activity): bool
     {
-        return $activity->subscription->type === 'android' || filled($activity->update_token);
+        return $activity->subscription->type === 'android' || filled($activity->channel_id) || filled($activity->update_token);
+    }
+
+    /** iOS 18+ (device_os "18.0", "iOS 26.5"…): an unknown version keeps the token. */
+    public static function supportsChannels(Subscription $device): bool
+    {
+        return $device->type === 'ios'
+            && preg_match('/(\d+)(?:\.\d+)*/', (string) $device->device_os, $version) === 1
+            && (int) $version[1] >= self::CHANNEL_IOS;
+    }
+
+    /**
+     * Broadcast channel of an activity_id: the same for every device of the
+     * environment (a person with an iPhone and an iPad), created once.
+     * Without the broadcast capability on the App ID, Apple refuses it:
+     * channels are not tried again for a while, starts use the token.
+     *
+     * @return array{0: ?string, 1: ?string} channel, error
+     */
+    protected function channel(Project $project, PushCredential $apns, string $activityId, string $environment): array
+    {
+        $known = LiveActivityChannel::query()->where('project_id', $project->id)->where('activity_id', $activityId)
+            ->where('environment', $environment)->whereNull('deleted_at')->value('channel_id');
+        if ($known) {
+            return [$known, null];
+        }
+
+        $pause = 'live-activities.channels-refused.'.$apns->id.'.'.$environment;
+        if ($refused = Cache::get($pause)) {
+            return [null, $refused];
+        }
+
+        ['channel' => $channel, 'error' => $error] = $this->apns->createChannel($apns, $environment);
+        if ($channel === null) {
+            Cache::put($pause, $error, now()->addMinutes(self::CHANNEL_PAUSE));
+
+            return [null, $error];
+        }
+
+        LiveActivityChannel::query()->updateOrCreate(
+            ['project_id' => $project->id, 'activity_id' => $activityId, 'environment' => $environment],
+            ['channel_id' => $channel, 'deleted_at' => null],
+        );
+
+        return [$channel, null];
+    }
+
+    /**
+     * Deletes at Apple the channels no longer needed (10 000 at most per app
+     * and environment): every activity on it closed for an hour (stored
+     * messages still arriving), or older than the longest activity.
+     */
+    public function deleteChannels(): int
+    {
+        $deleted = 0;
+
+        LiveActivityChannel::query()->whereNull('deleted_at')->where('created_at', '<=', now()->subHour())
+            ->orderBy('created_at')->limit(100)->get()
+            ->each(function (LiveActivityChannel $channel) use (&$deleted) {
+                $activities = LiveActivity::query()->where('channel_id', $channel->channel_id);
+                $done = $channel->created_at->lte(now()->subSeconds(self::MAX_DURATION + 3600))
+                    || (! (clone $activities)->open()->exists() && ! (clone $activities)->where('ended_at', '>', now()->subHour())->exists());
+                if (! $done) {
+                    return;
+                }
+
+                $apns = Project::query()->find($channel->project_id)?->credential('apns');
+                if (! $apns?->isUsable() || $this->apns->deleteChannel($apns, $channel->environment, $channel->channel_id)) {
+                    $channel->forceFill(['deleted_at' => now()])->save();
+                    $deleted++;
+                }
+            });
+
+        return $deleted;
     }
 
     /**
@@ -359,17 +455,45 @@ class LiveActivities
         [$apns, $fcm] = $this->credentials($project, required: false);
         $byId = $activities->keyBy('id');
         [$android, $ios] = $activities->partition(fn (LiveActivity $activity) => $activity->subscription->type === 'android');
+        // A channel reaches every device on it with one request: the result
+        // of the first activity is the result of all.
+        [$broadcast, $direct] = $ios->partition(fn (LiveActivity $activity) => filled($activity->channel_id));
+        $groups = $broadcast->groupBy('channel_id');
+        $iosRequests = [];
 
-        $results = [
-            ...($apns && $ios->isNotEmpty() ? $this->apns->push($apns, $ios->mapWithKeys(fn (LiveActivity $activity) => [$activity->id => [
+        foreach ($apns ? $groups : [] as $channel => $group) {
+            $first = $group->first();
+            $iosRequests[$first->id] = [
+                'channel' => (string) $channel,
+                'environment' => $first->subscription->environment,
+                ...Payload::event($apns, $event, $data, $first->content_state ?? [], $first->subscription->subscriber?->language),
+            ];
+            // An end waits on the channel as long as Apple keeps messages.
+            if ($event === 'end') {
+                $iosRequests[$first->id]['headers']['apns-expiration'] = (string) (time() + self::MAX_DURATION);
+            }
+        }
+        foreach ($apns ? $direct : [] as $activity) {
+            $iosRequests[$activity->id] = [
                 'token' => $activity->update_token,
                 'environment' => $activity->subscription->environment,
                 ...Payload::event($apns, $event, $data, $activity->content_state ?? [], $activity->subscription->subscriber?->language),
-            ]])->all()) : []),
+            ];
+        }
+
+        $results = [
+            ...($apns && $iosRequests ? $this->apns->push($apns, $iosRequests) : []),
             ...($fcm && $android->isNotEmpty() ? $this->fcm->push($fcm, $android->mapWithKeys(fn (LiveActivity $activity) => [
                 $activity->id => AndroidPayload::message((string) $activity->subscription->token, $event, $activity, $activity->content_state ?? [], $activity->subscription->subscriber?->language, $data),
             ])->all()) : []),
         ];
+        foreach ($groups as $group) {
+            foreach ($group->skip(1) as $activity) {
+                if (isset($results[$group->first()->id])) {
+                    $results[$activity->id] = $results[$group->first()->id];
+                }
+            }
+        }
 
         foreach ($results as $id => $result) {
             $activity = $byId[$id];

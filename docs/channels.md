@@ -186,6 +186,26 @@ In the app (the look of the activity belongs to it):
    update token of each activity on screen and its end. A device must be
    registered (notifications allowed) for its tokens to be kept.
 
+### iOS 18+: updates through a channel (recommended)
+
+iOS gives the update token of an activity started by push to the app only
+when it can wake it: often late (when the person opens the app), never when
+the app was closed from the app switcher. Updates then wait, and the activity
+ends stale. On iOS 18+, Carillon avoids the token: it creates a broadcast
+channel at Apple for each activity, starts the activity on it and sends
+updates and the end to the channel, without anything from the app.
+
+Turn it on once, at Apple (nothing to change in the app or Carillon):
+[Certificates, IDs & Profiles → Identifiers](https://developer.apple.com/account/resources/identifiers/list),
+the App ID of the app → **Push Notifications** → tick **Broadcast
+Capability** → Save. Until then Apple refuses the channels (the activity
+shows `channel · TopicDisallowed` in its answers), and Carillon starts with
+the token as before; it tries channels again every hour. iPhones on iOS
+17, or whose version is unknown, always use the token.
+
+Carillon deletes each channel an hour after its activity ended (Apple
+allows 10 000 channels per app).
+
 Good to know, measured on iOS 27:
 
 - iOS asks twice: the first activity started by push shows **"Allow Live

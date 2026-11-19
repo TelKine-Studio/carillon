@@ -51,6 +51,8 @@ Schedule::call(fn () => app(JourneyRunner::class)->sweepInactive())->hourly()->n
 
 // Live Activities nobody ended (end_after passed): ended by Carillon.
 Schedule::call(fn () => app(LiveActivities::class)->sweep())->everyMinute()->name('live-activities-sweep')->withoutOverlapping();
+// Broadcast channels of finished activities, deleted at Apple (10 000 at most per app).
+Schedule::call(fn () => app(LiveActivities::class)->deleteChannels())->everyFifteenMinutes()->name('live-activity-channels')->withoutOverlapping();
 
 // Integrations: SQL syncs (hourly, or daily at 03:00) and exports to S3 (04:15, the day before).
 Schedule::call(function () {

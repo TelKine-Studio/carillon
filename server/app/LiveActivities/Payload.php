@@ -18,7 +18,7 @@ final class Payload
      * @param  array<string, mixed>  $state
      * @return array{body: array<string, mixed>, headers: array<string, string>}
      */
-    public static function start(PushCredential $credential, string $type, string $activityId, array $data, array $state, ?string $language): array
+    public static function start(PushCredential $credential, string $type, string $activityId, array $data, array $state, ?string $language, ?string $channel = null): array
     {
         $attributes = is_array($data['event_attributes'] ?? null) ? $data['event_attributes'] : [];
         $attributes['carillon'] = ['activityId' => $activityId];
@@ -29,10 +29,11 @@ final class Payload
             'content-state' => (object) $state,
             'attributes-type' => $type,
             'attributes' => (object) $attributes,
-            // iOS 18+ gives the update token of an activity started by push
-            // only when asked: without it, updates and the end never arrive
+            // iOS 18+: the activity listens to the broadcast channel, its
+            // updates need no token from the app. Else iOS 18+ gives the
+            // update token of an activity started by push only when asked
             // (iOS 17 gives it anyway and ignores the key).
-            'input-push-token' => 1,
+            ...($channel !== null ? ['input-push-channel' => $channel] : ['input-push-token' => 1]),
             // iOS shows the start as an alert and refuses a start whose alert
             // lacks the title or the body ("start without an alert configuration").
             'alert' => self::startAlert($data, $type, $language),
