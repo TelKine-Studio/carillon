@@ -139,6 +139,7 @@ class LiveActivitiesTest extends TestCase
                 && $request->header('apns-topic') === ['com.example.shop.push-type.liveactivity']
                 && $aps['event'] === 'start'
                 && $aps['attributes-type'] === 'DeliveryAttributes'
+                && $aps['input-push-token'] === 1
                 && $aps['attributes'] === ['reference' => 'MRC-0428', 'carillon' => ['activityId' => 'MRC-0428']]
                 && $aps['content-state'] === ['step' => 'waiting']
                 && $aps['alert'] === ['title' => 'Top-up in progress', 'body' => 'We are on it'];

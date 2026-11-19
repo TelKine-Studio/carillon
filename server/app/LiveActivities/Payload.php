@@ -29,6 +29,10 @@ final class Payload
             'content-state' => (object) $state,
             'attributes-type' => $type,
             'attributes' => (object) $attributes,
+            // iOS 18+ gives the update token of an activity started by push
+            // only when asked: without it, updates and the end never arrive
+            // (iOS 17 gives it anyway and ignores the key).
+            'input-push-token' => 1,
             // iOS shows the start as an alert and refuses a start whose alert
             // lacks the title or the body ("start without an alert configuration").
             'alert' => self::startAlert($data, $type, $language),
