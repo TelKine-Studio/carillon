@@ -2592,5 +2592,17 @@
     "Devices already known are updated, never duplicated.": "Les appareils déjà connus sont mis à jour, jamais dupliqués.",
     "New installs reach Carillon within this time.": "Les nouvelles installations arrivent dans Carillon dans ce délai.",
     "At (UTC)": "À (UTC)",
-    "Import your subscribers, then fetch the new ones every hour or every day while your app migrates.": "Importez vos abonnés, puis récupérez les nouveaux toutes les heures ou chaque jour pendant la migration de votre app."
+    "Import your subscribers, then fetch the new ones every hour or every day while your app migrates.": "Importez vos abonnés, puis récupérez les nouveaux toutes les heures ou chaque jour pendant la migration de votre app.",
+    "Device of another project": "Appareil d’un autre projet",
+    "Not an iPhone": "Pas un iPhone",
+    "Invalid": "Invalide",
+    "app :version": "app :version",
+    "token received :time": "jeton reçu à :time",
+    "no update token from the app": "aucun jeton de mise à jour reçu de l’app",
+    "Calls of the app (24 h)": "Appels de l’app (24 h)",
+    ":count refused|:count refused": ":count refusé|:count refusés",
+    "Start tokens, update tokens (enter) and ends (exit) sent by the SDK of the app. An activity started by push gets no update without its enter.": "Jetons de démarrage, jetons de mise à jour (enter) et fins (exit) envoyés par le SDK de l’app. Une activité démarrée par push ne reçoit aucune mise à jour sans son enter.",
+    "No call from the app in the last 24 h.": "Aucun appel de l’app ces dernières 24 h.",
+    "Unknown subscription.": "Abonnement inconnu.",
+    "Token removed.": "Jeton supprimé."
 }

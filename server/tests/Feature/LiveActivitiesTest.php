@@ -6,6 +6,7 @@ use App\Enums\ProjectRole;
 use App\LiveActivities\LiveActivities;
 use App\Models\ApiKey;
 use App\Models\LiveActivity;
+use App\Models\LiveActivityCall;
 use App\Models\LiveActivityStartToken;
 use App\Models\Project;
 use App\Models\PushCredential;
@@ -461,5 +462,35 @@ class LiveActivitiesTest extends TestCase
             && $request['aps']['content-state'] === ['title' => 'Order on its way', 'body' => 'Arrives in 20 min', 'status' => 'Delivered', 'step' => 3, 'steps' => 3, 'state' => 'success']);
         Http::assertSent(fn (HttpRequest $request) => ($live($request)['e'] ?? null) === 'end'
             && $live($request)['p'] === 3 && $live($request)['pm'] === 3 && $live($request)['st'] === 'Delivered' && $live($request)['title'] === 'Order on its way');
+    }
+
+    public function test_the_calls_of_the_app_are_journaled_refused_ones_included(): void
+    {
+        $phone = $this->device('phone-token', 'user-1');
+        $android = $this->device('android-token', null, 'android');
+        $other = Project::factory()->create();
+        $foreign = $this->postJson("/api/v1/sdk/apps/{$other->app_id}/subscriptions", ['type' => 'ios', 'token' => 'foreign', 'environment' => 'sandbox'])->assertCreated()->json('id');
+
+        $this->sdk($phone, 'enter', ['activity_id' => 'MRC-1', 'activity_type' => 'DeliveryAttributes', 'token' => 'update-1'])->assertOk();
+        $this->sdk($phone, 'enter', ['activity_id' => 'MRC-2'])->assertStatus(400);
+        $this->sdk('9f1c2b3a-0000-4000-8000-000000000000', 'enter', ['activity_id' => 'MRC-3', 'token' => 'x'])->assertNotFound();
+        $this->sdk($foreign, 'exit', ['activity_id' => 'MRC-4'])->assertNotFound();
+        $this->sdk($android, 'start-token', ['activity_type' => 'DeliveryAttributes', 'token' => 't'])->assertNotFound();
+
+        $outcomes = LiveActivityCall::query()->orderBy('id')->pluck('outcome', 'activity_id')->all();
+        $this->assertSame(['MRC-1' => 'ok', 'MRC-2' => 'invalid', 'MRC-3' => 'unknown_device', 'MRC-4' => 'other_project'], array_slice($outcomes, 0, 4, true));
+        $this->assertSame('not_ios', LiveActivityCall::query()->where('action', 'start-token')->value('outcome'));
+        $this->assertSame($phone, LiveActivityCall::query()->where('activity_id', 'MRC-1')->value('subscription_id'));
+        $this->assertNull(LiveActivityCall::query()->where('activity_id', 'MRC-4')->value('subscription_id'));
+        $this->assertSame(0, LiveActivityCall::query()->where('project_id', $other->id)->count());
+
+        $owner = User::factory()->admin()->create();
+        $this->project->addMember($owner, ProjectRole::Owner);
+        $this->actingAs($owner)->get(route('projects.live-activities.index', $this->project))->assertOk()
+            ->assertSee('9f1c2b3a-0000-4000-8000-000000000000')->assertSee('MRC-4');
+
+        $this->travel(LiveActivityCall::DAYS + 1)->days();
+        $this->artisan('model:prune', ['--model' => [LiveActivityCall::class]]);
+        $this->assertSame(0, LiveActivityCall::query()->count());
     }
 }

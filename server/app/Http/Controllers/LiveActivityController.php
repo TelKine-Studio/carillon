@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\LiveActivities\LiveActivities;
+use App\Models\LiveActivityCall;
 use App\Models\LiveActivityStartToken;
 use App\Models\Project;
 use Illuminate\Http\RedirectResponse;
@@ -18,7 +19,7 @@ class LiveActivityController extends Controller
 
         $search = trim((string) $request->query('q'));
         $activities = $project->liveActivities()
-            ->with('subscription:id,device_model,subscriber_id', 'subscription.subscriber:id,external_id')
+            ->with('subscription:id,device_model,app_version,subscriber_id', 'subscription.subscriber:id,external_id')
             ->when($search !== '', fn ($q) => $q->where('activity_id', 'like', '%'.addcslashes($search, '%_\\').'%'))
             ->latest()
             ->paginate(50)
@@ -35,6 +36,20 @@ class LiveActivityController extends Controller
             // Android apps on the Carillon SDK 0.3+ (Live Updates).
             'android' => $project->subscriptions()->reachable()->where('type', 'android')->where('sdk', 'like', 'carillon-flutter/%')
                 ->where('sdk', 'not like', 'carillon-flutter/0.1.%')->where('sdk', 'not like', 'carillon-flutter/0.2.%')->count(),
+            // Calls of the app in the last 24 h: does it send the update tokens?
+            'calls' => LiveActivityCall::query()->where('project_id', $project->id)->where('created_at', '>=', now()->subDay())
+                ->with('subscription:id,device_model,subscriber_id', 'subscription.subscriber:id,external_id')
+                ->latest('id')->limit(100)->get(),
+            'refused' => LiveActivityCall::query()->where('project_id', $project->id)->where('created_at', '>=', now()->subDay())
+                ->where('outcome', '!=', 'ok')->count(),
+            'outcomes' => [
+                'ok' => __('Accepted'),
+                'unknown_device' => __('Unknown device'),
+                'other_project' => __('Device of another project'),
+                'not_ios' => __('Not an iPhone'),
+                'invalid' => __('Invalid'),
+                'error' => __('Error'),
+            ],
             'colors' => ['starting' => 'zinc', 'started' => 'blue', 'active' => 'green', 'ended' => 'zinc', 'failed' => 'red'],
             'labels' => ['starting' => __('Starting'), 'started' => __('Started'), 'active' => __('On screen'), 'ended' => __('Ended'), 'failed' => __('Refused by Apple')],
         ]);

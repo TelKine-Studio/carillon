@@ -22,6 +22,35 @@
         </div>
     </div>
 
+    {{-- What the app sent: the update token of an activity only comes through it. --}}
+    <details class="card group mb-6 overflow-hidden" @if ($refused) open @endif>
+        <summary class="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 sm:px-5">
+            <x-ui.icon name="chevron-right" class="size-4 text-zinc-400 transition group-open:rotate-90" />
+            <span class="text-sm font-semibold text-zinc-900 dark:text-white">{{ __('Calls of the app (24 h)') }}</span>
+            <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans_choice(':count call|:count calls', $calls->count()) }}</span>
+            @if ($refused)
+                <x-ui.badge color="red">{{ trans_choice(':count refused|:count refused', $refused) }}</x-ui.badge>
+            @endif
+        </summary>
+        <p class="border-t border-zinc-100 px-4 py-2 text-xs text-zinc-500 sm:px-5 dark:border-zinc-800 dark:text-zinc-400">{{ __('Start tokens, update tokens (enter) and ends (exit) sent by the SDK of the app. An activity started by push gets no update without its enter.') }}</p>
+        @forelse ($calls as $call)
+            <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-t border-zinc-100 px-4 py-2 text-xs sm:px-5 dark:border-zinc-800">
+                <span class="tabular-nums text-zinc-500">{{ $call->created_at->isoFormat('D MMM HH:mm:ss') }}</span>
+                <span class="font-mono font-medium text-zinc-800 dark:text-zinc-200">{{ $call->action }}</span>
+                <x-ui.badge :color="$call->outcome === 'ok' ? 'green' : 'red'">{{ $outcomes[$call->outcome] ?? $call->outcome }}</x-ui.badge>
+                @if ($call->activity_id)<span class="font-mono break-all text-zinc-700 dark:text-zinc-300">{{ $call->activity_id }}</span>@endif
+                @if ($call->activity_type)<span class="font-mono text-zinc-500">{{ $call->activity_type }}</span>@endif
+                <span class="text-zinc-500">{{ $call->subscription?->device_model ?? 'iOS' }}@if ($call->app_version) · {{ __('app :version', ['version' => $call->app_version]) }}@endif @if ($externalId = $call->subscription?->subscriber?->external_id) · {{ $externalId }}@endif</span>
+                @unless ($call->subscription_id)
+                    <span class="inline-flex items-center gap-1 font-mono break-all text-zinc-500">{{ $call->subscription_ref }}<x-ui.copy :value="$call->subscription_ref" /></span>
+                @endunless
+                @if ($call->detail)<span class="text-zinc-500">{{ __($call->detail) }}</span>@endif
+            </div>
+        @empty
+            <p class="border-t border-zinc-100 px-4 py-4 text-sm text-zinc-500 sm:px-5 dark:border-zinc-800 dark:text-zinc-400">{{ __('No call from the app in the last 24 h.') }}</p>
+        @endforelse
+    </details>
+
     <form method="GET" class="relative mb-4 sm:w-72">
         <x-ui.icon name="search" class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-zinc-400" />
         <input type="search" name="q" autocomplete="off" value="{{ $search }}" placeholder="{{ __('Search an activity_id…') }}" class="form-control pl-9">
@@ -38,6 +67,9 @@
                     <p class="mt-1 text-xs break-words text-zinc-500 dark:text-zinc-400">
                         <span class="font-mono">{{ $activity->activity_type }}</span>
                         · {{ $activity->subscription?->device_model ?? 'iOS' }}
+                        @if ($version = $activity->subscription?->app_version) · {{ __('app :version', ['version' => $version]) }} @endif
+                        @if ($activity->token_at) · {{ __('token received :time', ['time' => $activity->token_at->isoFormat('HH:mm:ss')]) }}
+                        @elseif ($activity->isOpen()) · <span class="text-amber-700 dark:text-amber-400">{{ __('no update token from the app') }}</span> @endif
                         @if ($externalId = $activity->subscription?->subscriber?->external_id) · {{ $externalId }} @endif
                         @if ($activity->error) · <span class="text-red-600 dark:text-red-400">{{ $activity->error }}</span> @endif
                     </p>
